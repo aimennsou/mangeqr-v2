@@ -37,21 +37,7 @@ export function Menu({ isOpen }: MenuProps) {
   
   const pathname = usePathname();
   const menuList = getMenuList(pathname);
-  const onSignOut = async () => {
-    try {
-      setIsSubmitting(true)
-     
-      setTimeout(() => {
-        setIsSubmitting(false)
-      }, 4000);
-     
-      router.push('/');
 
-    } catch (error) {
-      console.error('Error signing out:', error);
-    
-    }
-  };
   return (
 
 

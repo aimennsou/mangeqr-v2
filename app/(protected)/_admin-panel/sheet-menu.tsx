@@ -24,7 +24,7 @@ export function SheetMenu() {
             variant="link"
             asChild
           >
-      
+        <MenuIcon size={20} />
           </Button>
         </SheetHeader>
         <Menu isOpen />
