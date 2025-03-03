@@ -61,6 +61,7 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { title } from "process";
 import { toast } from "sonner";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export type Menu = {
   position: any;
@@ -72,18 +73,18 @@ export type Menu = {
   shop: {
     id: string;
     name: string;
-    numberOfCategories?: number; // Added as per suggestion
-    numberOfDishes?: number;     // Added as per suggestion
+    numberOfCategories?: number; 
+    numberOfDishes?: number;     
   };
-  numberOfCategories?: number; // Added as per suggestion
-  numberOfDishes?: number;     // Added as per suggestion
+  numberOfCategories?: number; 
+  numberOfDishes?: number;     
 };
 
 interface Category {
   id: string;
   name: string;
   icon: string;
-  menuId: string; // Ensure this exists for filtering
+  menuId: string; 
 }
 
 interface Dish {
@@ -249,7 +250,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
             {availability.map((item, index) => (
               <Badge
                 key={index}
-                className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300 "
+                className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400 "
               >
                 <span>{item}</span>
               </Badge>
@@ -311,13 +312,17 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
             if (!response.ok) {
               throw new Error("Failed to update menu status");
             }
-            toast.success({
+
+
+     
+
+            toast.success(
  
      
-         description: `Le menu est maintenant ${
+     `Le menu est maintenant ${
                 checked ? "ACTIVE" : "INACTIVE"
               }.`,
-            } );
+            );
          
 
              // Update the menus state to reflect the change immediately
@@ -331,11 +336,14 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
           } catch (error) {
             console.error("Failed to update menu status", error);
             setStatus(!checked);
-            toast({
-              title: "Erreur",
-              description: "Échec de la mise à jour du statut du menu.",
-              variant: "destructive",
-            });
+
+
+            toast.error("Échec de la mise à jour du statut du menu."); 
+
+        
+
+
+          
           }
         };
 
@@ -352,7 +360,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
       accessorKey: "state", //  using state, but actual logic is for duplication
       header: "Dupliquer",
       cell: ({ row }) => {
-        const { toast } = useToast();
+
 
         const handleDuplicate = async () => {
           try {
@@ -381,18 +389,17 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
 
 
 
+            toast.success("Le menu a été dupliqué avec succès."); // Toast for duplicate action
+        
 
-            toast({
-              title: "Menu Dupliqué",
-              description: `Le menu a été dupliqué avec succès.`,
-            });
+
+
+ 
           } catch (error) {
             console.error("Failed to duplicate menu", error);
-            toast({
-              title: "Erreur",
-              description: "Limite de menus atteinte.",
-              
-            });
+            toast.error("Limite de menus atteinte."); 
+
+
           }
         };
 
@@ -416,7 +423,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
         const [dialogOpen, setDialogOpen] = useState(false);
         const [editData, setEditData] = useState<Menu>(row.original); // Type the state
         const [isSubmitting, setIsSubmitting] = useState(false);
-        const { toast } = useToast();
+      
 
 
         useEffect(() => {
@@ -446,17 +453,17 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
               )
             );
 
-            toast({
-              title: "Succès",
-              description: "Menu mis à jour avec succès!",
-            });
 
-          } catch (error) {
-            toast({
-              title: "Erreur",
+
+
+            toast.success("Menu mis à jour avec succès!"); // Toast for duplicate action
         
-              description: "Erreur lors de la mise à jour",
-            });
+            
+
+      
+          } catch (error) {
+            toast.error("Erreur lors de la mise à jour"); 
+
           } finally {
             setIsSubmitting(false);
             setDialogOpen(false);
@@ -697,13 +704,17 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
       .map((key) => menus[parseInt(key)].id);
 
     if (selectedMenuIds.length === 0) {
-      toast({
-        title: "Pas de selection.",
-       
-        description: "Merci de selectionné les menus a supprimé",
-      });
+
+      toast.error("Merci de selectionné les menus a supprimé"); 
+
+ 
       return;
     }
+
+
+
+
+
 
     try {
       const response = await fetch("/api/menu", {
@@ -722,10 +733,14 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
         menus.filter((menu) => !selectedMenuIds.includes(menu.id))
       );
 
-      toast({
-        title: "Menu supprimé.",
-        description: "Votre menu est supprimé",
-      });
+
+      toast.error("Votre menu est supprimé"); 
+
+  
+
+ 
+      
+      
       setRowSelection({});
     } catch (error) {
       console.error("Error deleting menus:", error);

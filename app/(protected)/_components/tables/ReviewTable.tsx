@@ -76,7 +76,7 @@ export function ReviewTable({ reviews }: { reviews: Review[] }) {
               return (
                 <div className="flex items-center justify-center">
                   {state === "MANGEQR" ? (
-                   <>        <QrCode className="h-6 w-6 text-accent-foreground mr-auto" />
+                   <>        <QrCode className="h-6 w-6 text-yellow-400 mr-auto" />
   </>
                   ) : state === "GOOGLE" ? (<>
                    

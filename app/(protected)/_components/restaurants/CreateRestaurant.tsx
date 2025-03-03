@@ -8,8 +8,7 @@ import { Coins, DollarSign, Euro } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PhoneInput } from "@/components/phone-input";
 import ImageUpload from "@/components/ImageUpload";
-import { Button } from "@/components/extendui/button";
-import { Icons } from "@/components/icons/icons";
+import { Button } from "@/components/ui/button";
 
 interface DrawerDialogDemoProps {
   onAddRestaurant: (newRestaurant: any) => void;

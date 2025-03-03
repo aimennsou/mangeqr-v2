@@ -10,7 +10,7 @@ import authConfig from '@/auth.config';
 
 export const { auth } = NextAuth(authConfig);
 
-export default auth((req) => {
+export default auth((req: { auth?: any; nextUrl?: any; }) => {
   const { nextUrl } = req;
   const isSignedIn = !!req.auth;
 

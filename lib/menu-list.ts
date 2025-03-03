@@ -45,9 +45,9 @@ export function getMenuList(pathname: string): Group[] {
       groupLabel: "Tableau de bord",
       menus: [
         {
-          href: "/dashboard",
+          href: "/performances",
           label: "Mes performances",
-          active: pathname.includes("/dashboard"),
+          active: pathname.includes("/performances"),
           icon: Gauge,
           submenus: []
         },
@@ -121,9 +121,9 @@ export function getMenuList(pathname: string): Group[] {
   menus: [
 
     {
-      href: "/interface",
+      href: "/numerique",
       label: "Menu numérique",
-      active: pathname.includes("/interface"),
+      active: pathname.includes("/numerique"),
       icon: QrCode,
       submenus: []
     },
@@ -142,9 +142,9 @@ export function getMenuList(pathname: string): Group[] {
       menus: [
 
         {
-          href: "/account",
+          href: "/settings",
           label: "Mon compte",
-          active: pathname.includes("/account"),
+          active: pathname.includes("/settings"),
           icon: Settings,
           submenus: []
         }

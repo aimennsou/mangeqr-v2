@@ -12,10 +12,11 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Menu } from "@/types/all.types";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner"; // Import Sonner's toast function
+
+
 
 interface DrawerDialogDemoProps {
   onAddMenu: (newMenu: any) => void;
@@ -32,10 +33,9 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
     event.preventDefault();
 
     if (!name || !shopId || availability.length === 0) {
-      toast({
-        title: "Erreur",
-        description: "Veuillez remplir tous les champs requis.",
-      });
+          toast.error("Veuillez remplir tous les champs requis."); 
+      
+
       return;
     }
 
@@ -58,17 +58,16 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
       const result = await response.json();
 
       if (!response.ok) {
-        toast({
-          title: "Erreur",
-          description: result.error || "Une erreur est survenue.",
-        });
+
+        toast.error("Une erreur est survenue."); 
+
+       
         return;
       }
 
-      toast({
-        title: "Succès",
-        description: `Le menu "${result.name}" a été ajouté avec succès.`,
-      });
+
+          toast.success(`Le menu "${result.name}" a été ajouté avec succès.`); // Toast for duplicate action
+
 
       const shop = shops.find((shop) => shop.id === result.shopId);
       const updatedMenu = {
@@ -86,10 +85,9 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
       setAvailability([]);
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de l'envoi de votre demande.",
-      });
+      toast.error("Une erreur est survenue lors de l'envoi de votre demande."); 
+
+      
     }
   };
 
@@ -104,10 +102,10 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
         setShops(data);
       } catch (error) {
         console.error("Error fetching shops:", error);
-        toast({
-          title: "Erreur",
-          description: "Impossible de charger les restaurants.",
-        });
+
+        toast.error("Impossible de charger les restaurants."); 
+
+
       }
     };
 

@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET!, {
   typescript: true,
-  apiVersion: '2024-12-18.acacia',
+  apiVersion: '2025-01-27.acacia',
 })
 
 export async function GET() {

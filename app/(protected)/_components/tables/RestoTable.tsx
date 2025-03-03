@@ -2,6 +2,7 @@ import {
      Copy, Download, Pencil, Share2, Check,
      ChevronUpIcon,
      ChevronDownIcon,
+     Plus,
   } from "lucide-react";
   import { cn } from "@/lib/utils";
   import { Button } from "@/components/ui/button";
@@ -43,29 +44,15 @@ import {
 
   import * as React from "react";
 
-import { toast } from "@/hooks/use-toast";
+
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Restaurant } from "@/types";
+import { toast } from "sonner";
+import RestoDrawerDialogDemo from "../restaurants/CreateRestaurant";
 
-  export type Restaurant = {
-
-      id: string;
-      name: string;
-      coverPhoto?: string;
-      address: string;
-      phone: string;
-      qrUrl: string;
-      currency:string;
-      subdomain:string;
-      Wifi: string;
-      Website: string;
-      Instagram: string;
-      Tiktok: string;
-      Google: string;
-    
-  };
 
 
   
@@ -79,10 +66,10 @@ import { Checkbox } from "@/components/ui/checkbox";
     const handleCopy = (qrUrl:string) => {
       setCopied(true);
       navigator.clipboard.writeText(qrUrl || "").then(() => {
-        toast({ title: 'Copié', description: 'Lien copié dans le presse-papiers!' });
+        toast.success('Lien copié dans le presse-papiers!' );
         setTimeout(() => setCopied(false), 2000);
       }).catch(err => {
-        toast({ title: 'Erreur lors de la copie', description: err.message });
+        toast.error( err.message );
       });
     };
  
@@ -189,12 +176,12 @@ import { Checkbox } from "@/components/ui/checkbox";
           header: "Wifi",
           cell: ({ row }) => (
             <div>
-              {row.original.Wifi ? (
-                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300">
+              {row.original.wifi ? (
+                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
                   <span>Ajouté</span> {/* Translates to "Added" */}
                 </Badge>
               ) : (
-                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300">
+                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
 <span className="whitespace-nowrap">En attente</span>
 </Badge>
               )}
@@ -207,12 +194,12 @@ import { Checkbox } from "@/components/ui/checkbox";
           header: "Site web",
           cell: ({ row }) => (
             <div>
-              {row.original.Website ? (
-                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300">
+              {row.original.website ? (
+                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
                   <span>Ajouté</span>
                 </Badge>
               ) : (
-                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300">
+                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
 <span className="whitespace-nowrap">En attente</span>
 </Badge>
               )}
@@ -225,12 +212,12 @@ import { Checkbox } from "@/components/ui/checkbox";
           header: "Instagram",
           cell: ({ row }) => (
             <div>
-              {row.original.Instagram ? (
-                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300">
+              {row.original.instagram ? (
+                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
                   <span>Ajouté</span>
                 </Badge>
               ) : (
-                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300">
+                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
 <span className="whitespace-nowrap">En attente</span>
 </Badge>
               )}
@@ -243,12 +230,12 @@ import { Checkbox } from "@/components/ui/checkbox";
           header: "Tiktok",
           cell: ({ row }) => (
             <div>
-              {row.original.Tiktok ? (
-                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300">
+              {row.original.tiktok ? (
+                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
                   <span>Ajouté</span>
                 </Badge>
               ) : (
-                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300">
+                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
 <span className="whitespace-nowrap">En attente</span>
 </Badge>
               )}
@@ -263,15 +250,15 @@ import { Checkbox } from "@/components/ui/checkbox";
             header: "Compte google",
             cell: ({ row }) => (
               <div>
-              {row.original.Google ? (
+              {row.original.google ? (
                 <Badge
-                  className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300"
+                  className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400"
                 >
                   <span>Ajouté</span>
                 </Badge>
               ) : (
                 <Badge
-                  className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300"
+                  className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400"
                 >
 <span className="whitespace-nowrap">En attente</span>
 </Badge>
@@ -287,11 +274,11 @@ import { Checkbox } from "@/components/ui/checkbox";
           cell: ({ row }) => (
             <div>
               {row.original.coverPhoto === "uploads/LOGO.png" ? (
-                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300">
+                <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
 <span className="whitespace-nowrap">En attente</span>
 </Badge>
               ) : (
-                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300">
+                <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
                   <span>Ajouté</span> {/* Translates to "Added" */}
                 </Badge>
               )}
@@ -330,7 +317,7 @@ import { Checkbox } from "@/components/ui/checkbox";
                                      readOnly
                                    />
                                  </div>
-                                      <Button onClick={() => handleCopy(row.original.qrUrl)} size="sm" className="px-3">
+                                      <Button onClick={() => handleCopy(row.original.qrUrl!)} size="sm" className="px-3">
                                    <span className="sr-only">Copier</span>
                                    {copied ? (
                                <Check className="h-4 w-4 text-black" />
@@ -374,10 +361,10 @@ import { Checkbox } from "@/components/ui/checkbox";
                            <DropdownMenuContent className="">
                              <DropdownMenuLabel className="">Format de votre QR code</DropdownMenuLabel>
                              <DropdownMenuSeparator />
-                             <DropdownMenuCheckboxItem className=" hover:bg-muted" onClick={(e:any) => handleDownloadJPEG(row.original.qrUrl)} >
+                             <DropdownMenuCheckboxItem className=" hover:bg-muted" onClick={(e:any) => handleDownloadJPEG(row.original.qrUrl!)} >
                                JPEG
                              </DropdownMenuCheckboxItem>
-                             <DropdownMenuCheckboxItem className="hover:bg-muted" onClick={(e:any) => handleDownloadPDF(row.original.qrUrl)} >
+                             <DropdownMenuCheckboxItem className="hover:bg-muted" onClick={(e:any) => handleDownloadPDF(row.original.qrUrl!)} >
                                PDF
                              </DropdownMenuCheckboxItem>
                            </DropdownMenuContent>
@@ -431,13 +418,11 @@ import { Checkbox } from "@/components/ui/checkbox";
                   const { file_key, file_name } = await uploadToS3(file);
                   setNewPhoto(getS3Url(file_key));
                   setEditData((prevData) => ({ ...prevData, coverPhoto: file_key }));
-                   toast({
-                            title: 'Image envoyée',
-                            description: 'Votre image a été transmise avec succès !',
-                          });
+                   toast.success( 'Votre image a été transmise avec succès !'
+                      );
                 } catch (error) {
                   console.error("Error uploading file: ", error);
-                  toast({ title: 'Erreur',  description: 'Une erreur s\'est produite lors de l\'envoie de fichier' });
+                  toast.error( 'Une erreur s\'est produite lors de l\'envoie de fichier' );
 
                 }
               }
@@ -468,9 +453,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 
 
 
-                toast({ title: 'Mise à jour réussie', description: 'Le restaurant a été mis à jour avec succès.' });
+                toast.success('Le restaurant a été mis à jour avec succès.' );
               } catch (error) {
-                toast({ title: 'Erreur',  description: 'Une erreur s\'est produite lors de la mise à jour.' });
+                toast.error( 'Une erreur s\'est produite lors de la mise à jour.');
               } finally {
                 setIsSubmitting(false);
               }
@@ -481,31 +466,27 @@ import { Checkbox } from "@/components/ui/checkbox";
         
             return (
               <>
-                {/* Trigger button */}
-      
-                <Button   onClick={() => setDialogOpen(true)} size="icon" className="text-gray-400  bg-inherit shadow-none rounded-full opacity-80 hover:text-gray-500 hover:bg-gray-200">
+                        <Dialog>
+      <DialogTrigger asChild>
+     
+      <Button    size="icon" className="text-gray-400  bg-inherit shadow-none rounded-full opacity-80 hover:text-gray-500 hover:bg-gray-200">
              <Pencil />
             </Button>
-                {/* Modal content */}
-                {dialogOpen && (
-   <div onClick={handleBackgroundClick} className=             "fixed  flex justify-center items-center inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
- >
-                    <div className="bg-white sm:max-w-md  rounded-lg overflow-hidden shadow-lg">
-                      {/* Header */}
-           
-                      <div className="p-4 border-b">
-                        <h2 className="text-lg font-semibold">Modifier votre restaurant</h2>
-                        <p className="text-sm text-gray-500">Modifiez les détails de votre restaurant ici.</p>
-                      </div>
-                      <div className="max-h-[400px] max-w-[300px] overflow-y-auto">
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px] "> 
+        <DialogHeader>
 
+          <DialogTitle>Modifier votre restaurant</DialogTitle>
+          <DialogDescription>
+          Modifiez les détails de votre restaurant ici.
+          </DialogDescription>
+        </DialogHeader>
 
+        <div className="bg-background  overflow-y-auto px-2 rounded-lg overflow-hidden ">
 
+<form onSubmit={handleSubmit} className="max-h-[400px]  ">
 
-
-
-                      {/* Form */}
-                      <form onSubmit={handleSubmit} >
+   
                         <div className="flex flex-col gap-4 p-4  ">
                         <div className="grid gap-2">
                         <Label htmlFor="name">Nom <span className="text-red-500">*</span></Label>                            <Input
@@ -548,7 +529,7 @@ import { Checkbox } from "@/components/ui/checkbox";
                               type="text"
                               id="wifi"
                               name="Wifi"
-                              value={editData.Wifi}
+                              value={editData.wifi}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
                             />
@@ -559,7 +540,7 @@ import { Checkbox } from "@/components/ui/checkbox";
                               type="text"
                               id="website"
                               name="Website"
-                              value={editData.Website}
+                              value={editData.website}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
                             />
@@ -570,7 +551,7 @@ import { Checkbox } from "@/components/ui/checkbox";
                               type="text"
                               id="instagram"
                               name="Instagram"
-                              value={editData.Instagram}
+                              value={editData.instagram}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
                             />
@@ -581,7 +562,7 @@ import { Checkbox } from "@/components/ui/checkbox";
                               type="text"
                               id="tiktok"
                               name="Tiktok"
-                              value={editData.Tiktok}
+                              value={editData.tiktok}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
                             />
@@ -592,7 +573,7 @@ import { Checkbox } from "@/components/ui/checkbox";
                               type="text"
                               id="google"
                               name="Google"
-                              value={editData.Google}
+                              value={editData.google}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
                             />
@@ -634,17 +615,19 @@ import { Checkbox } from "@/components/ui/checkbox";
                 </Button>
                 </div>
                       </form>
+
                       </div>
-                      {/* Footer with close button */}
-                      <div className="flex justify-start p-4 border-t">
-                      <Button type="button"   onClick={() => setDialogOpen(false)}  variant="secondary">
-                      Fermer
-                                   </Button>
-                 
-                      </div>
-                    </div>
-                  </div>
-                )}
+
+
+        
+      </DialogContent>
+    </Dialog>
+
+
+      
+        
+                {/* Modal content */}
+  
               </>
             );
           },
@@ -675,11 +658,10 @@ import { Checkbox } from "@/components/ui/checkbox";
      
      
 
-           toast({
-             title: "Pas de selection.",
-             description: "Merci de selectionné les restaurants a supprimé",
+           toast.error(
+             "Merci de selectionné les restaurants a supprimé",
             
-           });
+    );
   
    
       return; 
@@ -707,20 +689,16 @@ import { Checkbox } from "@/components/ui/checkbox";
       );
 
 
-      toast({
-        
-        title: 'Restaurant supprimé.',
-        description: 'Votre restaurant est supprimé',
-      });
+      toast.success( 'Votre restaurant est supprimé',
+      );
       setRowSelection({});
 
     } catch (error) {
       console.error("Error deleting menus:", error);
-      toast({
-        title: "Erreur",
-        description: "Une erreur est survenue lors de la suppression des restaurants.",
+      toast.error(
+      "Une erreur est survenue lors de la suppression des restaurants."
 
-      });
+     );
     }
   };
   

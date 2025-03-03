@@ -12,19 +12,44 @@ import BillingSettings from '@/components/billing/billing-settings';
 import { DeleteAccountSection } from '@/components/settings/delete-account';
 
 export default function SettingsPage() {
- const user = useCurrentUser();
 
   return (
-    <div className="     w-[1200px] pt-8 pb-8 px-4 sm:px-8">
-    <ScrollArea className="p-4  lg:p-12">
+
+
+
+    
+    <ContentLayout title="Mon compte">
+    <Breadcrumb>
+      <BreadcrumbList>
+      <BreadcrumbItem>
+          <BreadcrumbLink asChild>
+          <Link href="/dashboard" className="flex mx-auto justify-center items-center gap-2">
+                  <Logo className="max-md:hidden" />
+      </Link>
+          </BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>Mon compte</BreadcrumbPage>
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+    <Card className="rounded-lg border-none  mt-6">
+    <CardContent className="p-6">
+    <div className="mt-6">
+
+
+ 
+    <div className="  flex flex-row  ">
+
       {/* Page Title */}
    
   
 
   
       {/* Update Profile Section */}
-      <section className="mb-8">
-        <Card className="w-full  mx-auto">
+      <section className="mb-8 mx-auto">
+        <Card className="w-full  ">
           <CardHeader>
             <h3 className="text-lg md:text-xl font-semibold">Profile settings</h3>
           </CardHeader>
@@ -35,9 +60,9 @@ export default function SettingsPage() {
       </section>
  
       {/* Update Password Section */}
-      {user?.isOAuth === false && (
-        <section>
-          <Card className="w-full  mx-auto">
+ 
+        <section className=" mx-auto">
+          <Card >
             <CardHeader>
               <h3 className="text-lg md:text-xl font-semibold">Update Password</h3>
             </CardHeader>
@@ -46,9 +71,37 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </section>
-      )}
-    </ScrollArea>
+    
+
   </div>
+
+
+      </div>
+    </CardContent>
+  </Card>
+  </ContentLayout>
+
+
+
   
   );
 }
+
+
+
+
+import Link from "next/link";
+import Image from "next/image";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator
+} from "@/components/ui/breadcrumb";
+import { ContentLayout } from "../_admin-panel/content-layout";
+import Logo from "@/components/Logo";
+
+
+

@@ -23,6 +23,12 @@ const inputVariants = cva(
   }
 );
 
+export interface InputProps
+  extends React.InputHTMLAttributes<HTMLInputElement> {}
+
+
+
+
 type InputContextType = {
   id: string;
   disabled?: boolean;

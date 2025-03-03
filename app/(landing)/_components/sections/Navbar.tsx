@@ -213,7 +213,7 @@ Tarifs
             <div className='flex items-center '>
             {user ? (
                 // Render "Go to Account" if user exists
-                <Link href="/recorder">
+                <Link href="/performances">
                   <ExpandingDotButton size="lg" className="text-black cursor-pointer">
                    Mon compte
               </ExpandingDotButton>

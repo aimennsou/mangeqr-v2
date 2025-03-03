@@ -12,6 +12,7 @@ enum UserRole {
   USER
 }
 
+
 model User {
   id                      String                  @id @default(cuid())
   name                    String?
@@ -24,7 +25,7 @@ model User {
   accounts                Account[]
   isTwoFactorEnabled      Boolean                 @default(false)
   twoFactorConfirmation   TwoFactorConfirmation?
-
+    restaurants     Restaurant[]
 }
 
 
@@ -89,3 +90,176 @@ model User {
 
 
 
+
+model Restaurant {
+  id             String        @id @default(uuid()) @db.Uuid
+  userId         String        @db.Uuid
+  user           User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  address        String
+  phone          String
+  coverPhoto     String?
+  qrUrl          String?
+  wifi           String?
+  subdomain      String?
+  currency       Currency      @default(EURO)
+  website        String?
+  instagram      String?
+  tiktok         String?
+  google         String?
+  wifistate      Settings      @default(ACTIVE)
+  websitestate   Settings      @default(ACTIVE)
+  instagramstate Settings      @default(ACTIVE)
+  tiktokstate    Settings      @default(ACTIVE)
+  googlestate    Settings      @default(ACTIVE)
+  menus          Menu[]
+  campaigns      MarketingCampaign[]
+  reviews        Review[]
+  scans          ScanData[]
+  categoryData   CategoryData[]
+  dishData       DishData[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}
+
+model Menu {
+  id            String        @id @default(uuid()) @db.Uuid
+  restaurantId  String        @db.Uuid
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name          String
+  position      Int
+  availability  String[]
+  state         MenuState     @default(ACTIVE)
+  categories    MenuCategory[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model MenuCategory {
+  id            String        @id @default(uuid()) @db.Uuid
+  menuId        String        @db.Uuid
+  menu          Menu          @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  state         CatState      @default(ACTIVE)
+  position      Int
+  name          String
+  logo          String?
+  dishes        Dish[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Dish {
+  id            String        @id @default(uuid()) @db.Uuid
+  categoryId    String        @db.Uuid
+  category      MenuCategory  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  state         DishState     @default(ACTIVE)
+  position      Int
+  name          String
+  description   String?
+  photo         String?
+  price         Float
+  allergenes    String[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Review {
+  id            String        @id @default(uuid()) @db.Uuid
+  restaurantId  String        @db.Uuid
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  clientNumero  String?
+  clientEmail   String?
+  review        Float
+  message       String?
+  state         ReviewState   @default(MANGEQR)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model MarketingCampaign {
+  id            String        @id @default(uuid()) @db.Uuid
+  restaurantId  String        @db.Uuid
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name          String
+  description   String?
+  subject       String
+  body          String
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  sent          Boolean       @default(false)
+  sentAt        DateTime?
+  emailRecipients EmailRecipient[]
+}
+
+model EmailRecipient {
+  id            String        @id @default(uuid()) @db.Uuid
+  campaignId    String        @db.Uuid
+  campaign      MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email         String
+  createdAt     DateTime      @default(now())
+}
+
+model ScanData {
+  id            String        @id @default(uuid()) @db.Uuid
+  restaurantId  String        @db.Uuid
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+}
+
+model CategoryData {
+  id            String        @id @default(uuid()) @db.Uuid
+  restaurantId  String        @db.Uuid
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryId    String        @db.Uuid
+  createdAt     DateTime      @default(now())
+}
+
+model DishData {
+  id            String        @id @default(uuid()) @db.Uuid
+  restaurantId  String        @db.Uuid
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  dishId        String        @db.Uuid
+  createdAt     DateTime      @default(now())
+}
+
+model Newsletter {
+  id            String        @id @default(uuid()) @db.Uuid
+  email         String        @unique
+  createdAt     DateTime      @default(now())
+}
+
+enum UserType {
+  PRO
+  PREMIUM
+}
+
+enum Currency {
+  EURO
+  DOLLAR
+  DINAR
+}
+
+enum MenuState {
+  ACTIVE
+  INACTIVE
+}
+
+enum CatState {
+  ACTIVE
+  INACTIVE
+}
+
+enum DishState {
+  ACTIVE
+  INACTIVE
+}
+
+enum ReviewState {
+  GOOGLE
+  MANGEQR
+}
+
+enum Settings {
+  ACTIVE
+  INACTIVE
+}

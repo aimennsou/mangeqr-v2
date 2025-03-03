@@ -27,3 +27,4 @@ npx prisma db push
 npm run dev
 ```
 # mangeqr-v2
+# mangeqr-final

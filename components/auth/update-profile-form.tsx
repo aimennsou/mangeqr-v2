@@ -119,7 +119,7 @@ export default function UpdateProfileForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
-                  <div className='flex gap-2'>
+                  <div className='gap-2'>
                     <FormControl>
                       <Input
                         {...field}
