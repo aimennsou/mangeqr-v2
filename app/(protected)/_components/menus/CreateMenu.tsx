@@ -25,14 +25,14 @@ interface DrawerDialogDemoProps {
 
 const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) => {
   const [name, setName] = useState("");
-  const [shopId, setShopId] = useState("");
+  const [restaurantId, setShopId] = useState("");
   const [availability, setAvailability] = useState<string[]>([]);
   const [shops, setShops] = useState<{ id: string; name: string }[]>([]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!name || !shopId || availability.length === 0) {
+    if (!name || !restaurantId || availability.length === 0) {
           toast.error("Veuillez remplir tous les champs requis."); 
       
 
@@ -43,7 +43,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
       name,
       availability,
       state: "ACTIVE",
-      shopId,
+      restaurantId,
     };
 
     try {
@@ -69,11 +69,11 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
           toast.success(`Le menu "${result.name}" a été ajouté avec succès.`); // Toast for duplicate action
 
 
-      const shop = shops.find((shop) => shop.id === result.shopId);
+      const restaurant = shops.find((restaurant) => restaurant.id === result.restaurantId);
       const updatedMenu = {
         ...result,
-        shop: {
-          name: shop?.name,
+        restaurant: {
+          name: restaurant?.name,
         },
       };
 
@@ -128,7 +128,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
             />
           </div>
 
-          <Label htmlFor="shop">Restaurant</Label>
+          <Label htmlFor="restaurant">Restaurant</Label>
           <Select onValueChange={(value) => setShopId(value)}>
             <SelectTrigger>
               <SelectValue
@@ -138,9 +138,9 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                {shops.map((shop) => (
-                  <SelectItem key={shop.id} value={shop.id}>
-                    {shop.name}
+                {shops.map((restaurant) => (
+                  <SelectItem key={restaurant.id} value={restaurant.id}>
+                    {restaurant.name}
                   </SelectItem>
                 ))}
               </SelectGroup>

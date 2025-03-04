@@ -2,7 +2,7 @@ import {
      Copy, Download, Pencil, Share2, Check,
      ChevronUpIcon,
      ChevronDownIcon,
-     Plus,
+    
   } from "lucide-react";
   import { cn } from "@/lib/utils";
   import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Restaurant } from "@/types";
 import { toast } from "sonner";
-import RestoDrawerDialogDemo from "../restaurants/CreateRestaurant";
+
 
 
 
@@ -287,7 +287,7 @@ import RestoDrawerDialogDemo from "../restaurants/CreateRestaurant";
         },
         
         {
-            accessorKey: "qrcode",
+            accessorKey: "lien",
             enableSorting: false,
             header: "Mon lien",
             cell: ({ row }) => (

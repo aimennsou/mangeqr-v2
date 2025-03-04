@@ -11,3 +11,11 @@ export async function currentRole() {
 
   return session?.user?.role;
 }
+
+
+
+export async function currentUserId() {
+  const session = await auth();
+
+  return session?.user?.id;
+}

@@ -142,7 +142,9 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
             </div>
             <div>
               <Label htmlFor="logo">Photo bannière</Label>
-              <ImageUpload  />
+              <ImageUpload setFileKey={function (key: string): void {
+              throw new Error("Function not implemented.");
+            } }  />
             </div>
             <Button
               className="bg-yellow-400 hover:bg-yellow-400 w-full text-black"

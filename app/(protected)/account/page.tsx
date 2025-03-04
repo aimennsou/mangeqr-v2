@@ -43,24 +43,7 @@ export default function AccountPage() {
       <div className="mt-6">
 
 
-      <div className="text-center text-gray-500 py-6">
-          
-          <div className="flex justify-center">
-
-            <Image
-    
-              src={"/images/commandes.jpg"}
-              alt="Empty folder"
-              width={400} // Adjust size as needed
-              height={400}
-              priority 
-            />
-          </div>
-          <p className="text-lg text-gray-700 font-semibold mt-4">Aucune Commandes pour le moment.</p>
-          <p className="mt-2">Collez votre Code QR sur les tables de votre restaurant pour commencez acceptez les commandes.</p>
-        </div>
-    
-
+   
 
 
 
