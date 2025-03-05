@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma'; // Assuming Prisma is set up
+import {  PrismaClient } from '@prisma/client';; // Assuming Prisma is set up
 
 const DAY_START_HOUR = 4;
 const NIGHT_START_HOUR = 18;

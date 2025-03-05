@@ -1,7 +1,7 @@
 // app/api/cards/route.ts (or pages/api/cards.ts if you're using pages directory)
 
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma'; // Adjust the path to your prisma client setup
+import {  PrismaClient } from '@prisma/client';; // Adjust the path to your prisma client setup
 
 export async function POST(req: NextRequest) {
   try {

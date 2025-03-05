@@ -1,4 +1,4 @@
-import prisma from '@/lib/prisma';
+import {  PrismaClient } from '@prisma/client';;
 import { NextRequest, NextResponse } from 'next/server';
 import { generateMenu } from '@/lib/menuUtils'; // Assuming this is your function to generate the PDF
 

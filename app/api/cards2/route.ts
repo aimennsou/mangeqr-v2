@@ -1,6 +1,6 @@
 // app/api/getTopData/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma'; // Assuming Prisma is set up correctly in lib/prisma
+import {  PrismaClient } from '@prisma/client';; // Assuming Prisma is set up correctly in lib/prisma
 
 export async function POST(req: NextRequest) {
   try {

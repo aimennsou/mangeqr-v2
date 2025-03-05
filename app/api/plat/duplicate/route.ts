@@ -1,7 +1,7 @@
 // /pages/api/plat/duplicate.ts
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';  // Assuming you have Prisma client set up here
+import {  PrismaClient } from '@prisma/client';;  // Assuming you have Prisma client set up here
 import { v4 as uuidv4 } from 'uuid';  // For generating new UUIDs
 
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import prisma from '../../../lib/prisma'; // Assuming Prisma is set up
+import {  PrismaClient } from '@prisma/client';; // Assuming Prisma is set up
 
 // Weekday numbers (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
 const WEEKDAYS = [1, 2, 3, 4, 5]; // Monday to Friday
