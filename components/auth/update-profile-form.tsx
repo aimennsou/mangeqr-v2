@@ -62,7 +62,7 @@ export default function UpdateProfileForm() {
             toast.success(data.success);
           }
         })
-        .catch(() => toast.error('Oops! Something went wrong.') );
+        .catch(() => toast.error('Oups ! Quelque chose s\'est mal passé.'));
     });
   };
 
@@ -80,7 +80,7 @@ export default function UpdateProfileForm() {
             form.reset();
           }
         })
-        .catch(() => toast.error('Oops! Something went wrong.'));
+        .catch(() => toast.error('Oups ! Quelque chose s\'est mal passé.'));
     });
   };
 
@@ -99,7 +99,7 @@ export default function UpdateProfileForm() {
             name='name'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Name</FormLabel>
+                <FormLabel>Nom</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -123,7 +123,7 @@ export default function UpdateProfileForm() {
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder='name@domain.com'
+                        placeholder='nom@domaine.com'
                         disabled={isPending || !!user.tempEmail}
                       />
                     </FormControl>
@@ -134,14 +134,13 @@ export default function UpdateProfileForm() {
                         onClick={onCancelEmailUpdate}
                         disabled={isPending}
                       >
-                        Cancel
+                        Annuler
                       </Button>
                     )}
                   </div>
                   {!!user.tempEmail && (
                     <FormDescription>
-                      Please verify your new email address or cancel to use old
-                      email address
+                      Veuillez vérifier votre nouvelle adresse e-mail ou annuler pour utiliser l'ancienne adresse e-mail.
                     </FormDescription>
                   )}
                   <FormMessage />
@@ -155,7 +154,7 @@ export default function UpdateProfileForm() {
             name='role'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Role</FormLabel>
+                <FormLabel>Rôle</FormLabel>
                 <Select
                   disabled={isPending}
                   onValueChange={field.onChange}
@@ -163,12 +162,12 @@ export default function UpdateProfileForm() {
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder='Select role' />
+                      <SelectValue placeholder='Sélectionner un rôle' />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
                     <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                    <SelectItem value={UserRole.USER}>User</SelectItem>
+                    <SelectItem value={UserRole.USER}>Utilisateur</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -183,9 +182,9 @@ export default function UpdateProfileForm() {
               render={({ field }) => (
                 <FormItem className='flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm'>
                   <div className='space-y-0.5'>
-                    <FormLabel>Two Factor Authentication</FormLabel>
+                    <FormLabel>Authentification à deux facteurs</FormLabel>
                     <FormDescription>
-                      Enable two factor authentication for your account
+                      Activez l'authentification à deux facteurs pour votre compte
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -204,10 +203,10 @@ export default function UpdateProfileForm() {
           {isPending && (
             <>
               <Loader2 className='animate-spin mr-2' size={18} />
-              Saving...
+              Enregistrement...
             </>
           )}
-          {!isPending && <>Save</>}
+          {!isPending && <>Enregistrer</>}
         </Button>
       </form>
     </Form>

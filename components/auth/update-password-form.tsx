@@ -53,7 +53,7 @@ export default function UpdatePasswordForm() {
             setSuccess(data.success);
           }
         })
-        .catch(() => setError('Oops! Something went wrong.'));
+        .catch(() => setError('Oups ! Quelque chose s\'est mal passé.'));
     });
   };
 
@@ -68,7 +68,7 @@ export default function UpdatePasswordForm() {
                 name='currentPassword'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Your current password</FormLabel>
+                    <FormLabel>Votre mot de passe actuel</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -87,7 +87,7 @@ export default function UpdatePasswordForm() {
                 name='newPassword'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>New password</FormLabel>
+                    <FormLabel>Nouveau mot de passe</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -105,7 +105,7 @@ export default function UpdatePasswordForm() {
                 name='confirmPassword'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirm new password</FormLabel>
+                    <FormLabel>Confirmer le nouveau mot de passe</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -129,7 +129,7 @@ export default function UpdatePasswordForm() {
               <Loader2 className='animate-spin mr-2' size={18} />
             </>
           )}
-          {!isPending && <>Save</>}
+          {!isPending && <>Enregistrer</>}
         </Button>
       </form>
     </Form>
