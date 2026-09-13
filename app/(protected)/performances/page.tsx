@@ -489,11 +489,13 @@ export default function PerformancesPage() {
           <div className="grid gap-4 lg:grid-cols-2">
             <PieGraph data={piegraphData} />
             <Card>
-              <CardHeader>
-                <CardTitle>{t("performances.recentReviews")}</CardTitle>
-                <CardDescription>{t("performances.recentReviewsDesc")}</CardDescription>
+              <CardHeader className="flex flex-col items-stretch space-y-2 border-b p-0 sm:flex-row sm:space-y-0">
+                <div className="flex flex-1 flex-col justify-center gap-2 px-6 py-5 sm:py-6">
+                  <CardTitle>{t("performances.recentReviews")}</CardTitle>
+                  <CardDescription>{t("performances.recentReviewsDesc")}</CardDescription>
+                </div>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-2 pt-6 sm:p-6">
                 <RecentReviews restaurantId={shopId} />
               </CardContent>
             </Card>
