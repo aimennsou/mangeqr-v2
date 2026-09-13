@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import { getS3Url, uploadToS3 } from "@/lib/s3";
 import { useOrderingEnabled } from "@/hooks/use-workspace-role";
 import { DishAddonsDialog } from "./DishAddonsDialog";
+import { useI18n } from "@/lib/i18n";
 
 interface DishCardProps {
   id: string;
@@ -59,6 +60,7 @@ const DishCard: React.FC<DishCardProps> = ({
   onChanged,
   dragHandleProps,
 }) => {
+  const { t } = useI18n();
   const orderingEnabled = useOrderingEnabled();
   const [status, setStatus] = useState(state === "ACTIVE");
   const [editOpen, setEditOpen] = useState(false);
@@ -90,12 +92,12 @@ const DishCard: React.FC<DishCardProps> = ({
 
       if (!response.ok) throw new Error("Failed to delete dish");
 
-      toast.success("Le plat a été supprimé.");
+      toast.success(t("plats.toast.deleted"));
       onDelete?.(id);
       onChanged?.();
     } catch (error) {
       console.error("Failed to delete dish", error);
-      toast.error("Échec de la suppression du plat.");
+      toast.error(t("plats.toast.deleteError"));
     }
   };
 
@@ -109,12 +111,12 @@ const DishCard: React.FC<DishCardProps> = ({
 
       if (!response.ok) throw new Error("Failed to duplicate dish");
 
-      toast.success("Le plat a été dupliqué avec succès.");
+      toast.success(t("plats.toast.duplicated"));
       onDuplicate?.(id);
       onChanged?.();
     } catch (error) {
       console.error("Failed to duplicate dish", error);
-      toast.error("Échec de la duplication du plat.");
+      toast.error(t("plats.toast.duplicateError"));
     }
   };
 
@@ -130,12 +132,12 @@ const DishCard: React.FC<DishCardProps> = ({
 
       if (!response.ok) throw new Error("Failed to update dish status");
 
-      toast.success(`Le plat est maintenant ${newState}.`);
+      toast.success(checked ? t("plats.toast.stateActive") : t("plats.toast.stateInactive"));
       onToggleState?.(id, newState);
     } catch (error) {
       console.error("Failed to update dish status", error);
       setStatus(!checked);
-      toast.error("Échec de la mise à jour du statut du plat.");
+      toast.error(t("plats.toast.stateError"));
     }
   };
 
@@ -163,10 +165,10 @@ const DishCard: React.FC<DishCardProps> = ({
         return;
       }
       setEditPhotoKey(file_key);
-      toast.success("Votre image a été transmise avec succès !");
+      toast.success(t("common.imageUploaded"));
     } catch (error) {
       console.error("Error uploading dish photo", error);
-      toast.error("Une erreur s'est produite lors de l'envoi du fichier");
+      toast.error(t("common.imageUploadError"));
     } finally {
       setUploadingPhoto(false);
       // Allow re-selecting the same file.
@@ -176,7 +178,7 @@ const DishCard: React.FC<DishCardProps> = ({
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
-      toast.error("Le nom du plat est requis.");
+      toast.error(t("plats.nameRequired"));
       return;
     }
     setSaving(true);
@@ -195,12 +197,12 @@ const DishCard: React.FC<DishCardProps> = ({
         }),
       });
       if (!response.ok) throw new Error("Failed to update dish");
-      toast.success("Le plat a été mis à jour.");
+      toast.success(t("plats.toast.updated"));
       setEditOpen(false);
       onChanged?.();
     } catch (error) {
       console.error("Failed to update dish", error);
-      toast.error("Échec de la mise à jour du plat.");
+      toast.error(t("plats.toast.updateError"));
     } finally {
       setSaving(false);
     }
@@ -238,7 +240,7 @@ const DishCard: React.FC<DishCardProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Supprimer le plat</p>
+                  <p>{t("plats.tooltip.delete")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -255,7 +257,7 @@ const DishCard: React.FC<DishCardProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Dupliquer le plat</p>
+                  <p>{t("plats.tooltip.duplicate")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -272,7 +274,7 @@ const DishCard: React.FC<DishCardProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Modifier le plat</p>
+                  <p>{t("plats.tooltip.edit")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -292,7 +294,7 @@ const DishCard: React.FC<DishCardProps> = ({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Gérer les suppléments</p>
+                    <p>{t("plats.tooltip.addons")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -319,11 +321,11 @@ const DishCard: React.FC<DishCardProps> = ({
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Modifier le plat</DialogTitle>
+            <DialogTitle>{t("plats.edit.title")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label>Photo du plat</Label>
+              <Label>{t("plats.field.photo")}</Label>
               <div className="relative w-full">
                 {editPhotoUrl ? (
                   <img
@@ -333,14 +335,14 @@ const DishCard: React.FC<DishCardProps> = ({
                   />
                 ) : (
                   <div className="flex h-40 w-full items-center justify-center rounded-md border bg-muted/50 text-sm text-muted-foreground">
-                    Aucune photo
+                    {t("plats.noPhoto")}
                   </div>
                 )}
                 <Button
                   size="icon"
                   type="button"
-                  title="Modifier la photo"
-                  aria-label="Modifier la photo"
+                  title={t("plats.editPhoto")}
+                  aria-label={t("plats.editPhoto")}
                   disabled={uploadingPhoto}
                   onClick={() => document.getElementById(`dish-photo-${id}`)?.click()}
                   className="absolute top-2 right-2 rounded-full bg-background/90 text-foreground shadow-none opacity-90 hover:bg-background hover:text-foreground"
@@ -361,7 +363,7 @@ const DishCard: React.FC<DishCardProps> = ({
               </div>
             </div>
             <div className="grid gap-2">
-              <Label htmlFor={`dish-name-${id}`}>Nom</Label>
+              <Label htmlFor={`dish-name-${id}`}>{t("plats.field.name")}</Label>
               <Input
                 id={`dish-name-${id}`}
                 value={editName}
@@ -370,7 +372,7 @@ const DishCard: React.FC<DishCardProps> = ({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor={`dish-desc-${id}`}>Description</Label>
+              <Label htmlFor={`dish-desc-${id}`}>{t("plats.field.description")}</Label>
               <Textarea
                 id={`dish-desc-${id}`}
                 value={editDescription}
@@ -379,7 +381,7 @@ const DishCard: React.FC<DishCardProps> = ({
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor={`dish-price-${id}`}>Prix</Label>
+              <Label htmlFor={`dish-price-${id}`}>{t("plats.field.price")}</Label>
               <Input
                 id={`dish-price-${id}`}
                 type="number"
@@ -396,7 +398,7 @@ const DishCard: React.FC<DishCardProps> = ({
               onClick={handleSaveEdit}
               disabled={saving}
             >
-              {saving ? "Enregistrement..." : "Enregistrer"}
+              {saving ? t("common.saving") : t("common.save")}
             </Button>
           </DialogFooter>
         </DialogContent>

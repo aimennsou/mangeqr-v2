@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 interface CreateCategorieProps {
   menuId: string;
@@ -24,6 +25,7 @@ interface CreateCategorieProps {
 const ICON_OPTIONS = ["🍽️", "🥗", "🍕", "🍔", "🍰", "🥤", "🍷", "🍜", "🌮", "🍤"];
 
 const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory }) => {
+  const { t } = useI18n();
   const [categoryName, setCategoryName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("🍽️");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -32,7 +34,7 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
     event.preventDefault();
 
     if (!categoryName || !selectedIcon || !menuId) {
-      toast.error("Veuillez remplir tous les champs requis.");
+      toast.error(t("menus.requiredFields"));
       return;
     }
 
@@ -53,11 +55,11 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
       const result = await response.json();
 
       if (!response.ok) {
-        toast.error("Une erreur est survenue.");
+        toast.error(t("categories.toast.createError"));
         return;
       }
 
-      toast.success(`La catégorie "${result.name}" a été ajoutée avec succès.`);
+      toast.success(t("categories.toast.created"));
       onAddCategory(result);
 
       // Reset form
@@ -65,7 +67,7 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
       setSelectedIcon("🍽️");
     } catch (error) {
       console.error("Error creating category:", error);
-      toast.error("Une erreur est survenue lors de l'envoi de votre demande.");
+      toast.error(t("menus.toast.submitError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -76,21 +78,21 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
       <div className="max-h-[400px] max-w-full overflow-y-auto p-4">
         <form className={cn("grid items-start gap-4")} onSubmit={handleSubmit}>
           <div className="grid gap-2">
-            <Label htmlFor="categoryName">Nom de la catégorie</Label>
+            <Label htmlFor="categoryName">{t("categories.field.name")}</Label>
             <Input
               type="text"
               id="categoryName"
-              placeholder="e.g. Entrées"
+              placeholder={t("categories.namePlaceholder")}
               value={categoryName}
               onChange={(e) => setCategoryName(e.target.value)}
             />
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="icon">Icône</Label>
+            <Label htmlFor="icon">{t("categories.field.icon")}</Label>
             <Select value={selectedIcon} onValueChange={(value) => setSelectedIcon(value)}>
               <SelectTrigger>
-                <SelectValue placeholder="Choisissez une icône" />
+                <SelectValue placeholder={t("categories.chooseIcon")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -109,7 +111,7 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
             type="submit"
             disabled={isSubmitting}
           >
-            {isSubmitting ? "Enregistrement" : "Enregistrer"}
+            {isSubmitting ? t("common.saving") : t("common.save")}
           </Button>
         </form>
       </div>

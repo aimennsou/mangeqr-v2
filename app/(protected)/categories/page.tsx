@@ -59,6 +59,7 @@ import CreatePlat from "../_components/plats/CreatePlat";
 import { ContentLayout } from "../_admin-panel/content-layout";
 import Logo from "@/components/Logo";
 import { currencySymbol } from "@/lib/currency";
+import { useI18n } from "@/lib/i18n";
 
 type Dish = {
   id: string;
@@ -142,6 +143,7 @@ function SortableDish({
 
 export default function CategoriesPage() {
   const { theme } = useTheme();
+  const { t } = useI18n();
 
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [menus, setMenus] = useState<any[]>([]);
@@ -327,7 +329,7 @@ export default function CategoriesPage() {
       });
     } catch (error) {
       console.error("Failed to persist category order", error);
-      toast.error("Échec de l'enregistrement de l'ordre des catégories.");
+      toast.error(t("categories.orderSaveError"));
     }
   };
 
@@ -349,7 +351,7 @@ export default function CategoriesPage() {
       });
     } catch (error) {
       console.error("Failed to persist dish order", error);
-      toast.error("Échec de l'enregistrement de l'ordre des plats.");
+      toast.error(t("plats.orderSaveError"));
     }
   };
 
@@ -476,7 +478,7 @@ export default function CategoriesPage() {
   const categoryOptions = categories.map((cat) => ({ id: cat.id, name: cat.name }));
 
   return (
-    <ContentLayout title="Categories et plats">
+    <ContentLayout title={t("categories.title")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -488,7 +490,7 @@ export default function CategoriesPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Categories et plats</BreadcrumbPage>
+            <BreadcrumbPage>{t("categories.title")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -498,14 +500,14 @@ export default function CategoriesPage() {
             {/* Restaurant + menu selectors and the single top-level add-category action */}
             <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6">
               <div className="grid gap-2 w-full md:max-w-xs">
-                <label className="text-sm font-medium">Restaurant</label>
+                <label className="text-sm font-medium">{t("common.restaurant")}</label>
                 <Select value={selectedRestaurantId} onValueChange={setSelectedRestaurantId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choisissez un restaurant" />
+                    <SelectValue placeholder={t("common.chooseRestaurant")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectLabel>Mes restaurants</SelectLabel>
+                      <SelectLabel>{t("common.myRestaurants")}</SelectLabel>
                       {restaurants.map((restaurant) => (
                         <SelectItem key={restaurant.id} value={restaurant.id}>
                           {restaurant.name}
@@ -517,18 +519,18 @@ export default function CategoriesPage() {
               </div>
 
               <div className="grid gap-2 w-full md:max-w-xs">
-                <label className="text-sm font-medium">Menu</label>
+                <label className="text-sm font-medium">{t("common.menu")}</label>
                 <Select
                   value={selectedMenuId}
                   onValueChange={setSelectedMenuId}
                   disabled={!selectedRestaurantId || menus.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choisissez un menu" />
+                    <SelectValue placeholder={t("common.chooseMenu")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectLabel>Mes menus</SelectLabel>
+                      <SelectLabel>{t("common.myMenus")}</SelectLabel>
                       {menus.map((menu) => (
                         <SelectItem key={menu.id} value={menu.id}>
                           {menu.name}
@@ -544,14 +546,14 @@ export default function CategoriesPage() {
                   <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                     <DialogTrigger asChild>
                       <Button className="bg-yellow-400 hover:bg-yellow-400 text-black">
-                        <Plus className="w-4 h-4 mr-2" /> Ajouter une catégorie
+                        <Plus className="w-4 h-4 mr-2" /> {t("categories.add")}
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-[425px]">
                       <DialogHeader>
-                        <DialogTitle>Créer une catégorie</DialogTitle>
+                        <DialogTitle>{t("categories.create.title")}</DialogTitle>
                         <DialogDescription>
-                          Ajoutez les détails de votre catégorie ici.
+                          {t("categories.create.desc")}
                         </DialogDescription>
                       </DialogHeader>
                       <CreateCategorie menuId={selectedMenuId} onAddCategory={handleAddCategory} />
@@ -564,7 +566,7 @@ export default function CategoriesPage() {
             {loading ? (
               <div className="flex justify-center items-center py-16 text-gray-500">
                 <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                <span>Chargement...</span>
+                <span>{t("common.loading")}</span>
               </div>
             ) : selectedMenuId && categories.length > 0 ? (
               <DndContext
@@ -611,14 +613,14 @@ export default function CategoriesPage() {
                                       size="sm"
                                       className="bg-yellow-400 hover:bg-yellow-400 text-black whitespace-nowrap"
                                     >
-                                      <Plus className="w-4 h-4 mr-1" /> Ajouter un plat
+                                      <Plus className="w-4 h-4 mr-1" /> {t("plats.add")}
                                     </Button>
                                   </DialogTrigger>
                                   <DialogContent className="sm:max-w-[425px]">
                                     <DialogHeader>
-                                      <DialogTitle>Ajouter un plat</DialogTitle>
+                                      <DialogTitle>{t("plats.add")}</DialogTitle>
                                       <DialogDescription>
-                                        Ajoutez un plat à la catégorie « {category.name} ».
+                                        {t("plats.addTo").replace("{name}", category.name)}
                                       </DialogDescription>
                                     </DialogHeader>
                                     <CreatePlat
@@ -669,7 +671,7 @@ export default function CategoriesPage() {
                                   </div>
                                 ) : (
                                   <p className="py-4 text-center text-sm text-muted-foreground">
-                                    Aucun plat dans cette catégorie. Glissez-en un ici ou ajoutez-en un.
+                                    {t("plats.empty")}
                                   </p>
                                 )}
                               </SortableContext>
@@ -708,9 +710,9 @@ export default function CategoriesPage() {
             ) : selectedMenuId ? (
               // Menu selected but no categories yet — prompt to add the first one.
               <div className="text-center text-gray-500 py-16">
-                <p className="text-lg font-semibold">Aucune catégorie pour ce menu.</p>
+                <p className="text-lg font-semibold">{t("categories.noCategories.title")}</p>
                 <p className="mt-2">
-                  Utilisez le bouton « Ajouter une catégorie » pour commencer.
+                  {t("categories.noCategories.subtitle")}
                 </p>
               </div>
             ) : (
@@ -725,10 +727,10 @@ export default function CategoriesPage() {
                   />
                 </div>
                 <p className="text-lg  font-semibold mt-4">
-                  Sélectionnez un restaurant et un menu.
+                  {t("categories.emptySelection.title")}
                 </p>
                 <p className="mt-2">
-                  Choisissez un restaurant puis un menu pour gérer ses catégories et plats.
+                  {t("categories.emptySelection.subtitle")}
                 </p>
               </div>
             )}

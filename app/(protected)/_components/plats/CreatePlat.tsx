@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/toggle-group";
 import ImageUpload from "@/components/ImageUpload";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n/dictionaries";
 
 interface CreatePlatProps {
   categories: { id: string; name: string }[];
@@ -32,6 +34,7 @@ interface CreatePlatProps {
 }
 
 const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCategoryId }) => {
+  const { t } = useI18n();
   const [selectedCategory, setSelectedCategory] = useState(fixedCategoryId ?? "");
   const [dishName, setDishName] = useState("");
   const [dishDescription, setDishDescription] = useState("");
@@ -44,7 +47,7 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
     event.preventDefault();
 
     if (!dishName || !selectedCategory) {
-      toast.error("Veuillez remplir tous les champs requis.");
+      toast.error(t("menus.requiredFields"));
       return;
     }
 
@@ -67,11 +70,11 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
       const result = await response.json();
 
       if (!response.ok) {
-        toast.error(result?.error || "Une erreur est survenue.");
+        toast.error(result?.error || t("restaurants.toast.genericError"));
         return;
       }
 
-      toast.success(`Le plat "${result.name}" a été ajouté avec succès.`);
+      toast.success(t("plats.toast.created"));
       onAddDish(result);
 
       // Reset form
@@ -83,7 +86,7 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
       setFileKey(null);
     } catch (error) {
       console.error("Error creating dish:", error);
-      toast.error("Une erreur est survenue lors de l'envoi de votre demande.");
+      toast.error(t("plats.toast.createError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -96,14 +99,14 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
           <div className="flex flex-col gap-4 p-4">
             {!fixedCategoryId && (
               <div className="grid gap-2">
-                <Label>Catégorie de plat</Label>
+                <Label>{t("plats.field.category")}</Label>
                 <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value)}>
                   <SelectTrigger className="w-full bg-white">
-                    <SelectValue placeholder="Catégorie" />
+                    <SelectValue placeholder={t("plats.field.categoryPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectLabel>Catégorie</SelectLabel>
+                      <SelectLabel>{t("plats.field.categoryPlaceholder")}</SelectLabel>
                       {categories.map((category) => (
                         <SelectItem key={category.id} value={category.id}>
                           {category.name}
@@ -116,26 +119,26 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
             )}
 
             <div className="flex gap-2 flex-col">
-              <Label>Nom</Label>
+              <Label>{t("plats.field.name")}</Label>
               <Input
                 type="text"
                 value={dishName}
                 onChange={(e) => setDishName(e.target.value)}
-                placeholder="Plat du jour"
+                placeholder={t("plats.field.namePlaceholder")}
               />
             </div>
 
             <div className="flex gap-2 flex-col">
-              <Label>Description</Label>
+              <Label>{t("plats.field.description")}</Label>
               <Textarea
                 value={dishDescription}
                 onChange={(e) => setDishDescription(e.target.value)}
-                placeholder="Un plat oriental"
+                placeholder={t("plats.field.descPlaceholder")}
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="input-16">Prix</Label>
+              <Label htmlFor="input-16">{t("plats.field.price")}</Label>
               <div className="relative flex rounded-lg shadow-sm shadow-black/5">
                 <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-sm text-muted-foreground">
                   €
@@ -154,7 +157,7 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
             </div>
 
             <div className="flex gap-2 flex-col">
-              <Label>Allergènes & tags</Label>
+              <Label>{t("plats.field.allergens")}</Label>
               <ToggleGroup
                 size={"lg"}
                 type="multiple"
@@ -162,38 +165,39 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
                 value={allergenes}
                 onValueChange={(values) => setAllergenes(values)}
               >
+                {/* value stays French (stored in DB); label is translated + keeps its emoji. */}
                 <ToggleGroupItem value="Arachides" aria-label="Toggle Arachides">
-                  Arachides 🥜
+                  {t("allergens.Arachides")} 🥜
                 </ToggleGroupItem>
                 <ToggleGroupItem value="Fruits à coque" aria-label="Toggle Fruits à coque">
-                  Fruits à coque 🌰
+                  {t("allergens.Fruits à coque" as TranslationKey)} 🌰
                 </ToggleGroupItem>
                 <ToggleGroupItem value="Lait" aria-label="Toggle Lait">
-                  Lait 🥛
+                  {t("allergens.Lait")} 🥛
                 </ToggleGroupItem>
                 <ToggleGroupItem value="Œufs" aria-label="Toggle Œufs">
-                  Œufs 🥚
+                  {t("allergens.Œufs" as TranslationKey)} 🥚
                 </ToggleGroupItem>
                 <ToggleGroupItem value="Blé" aria-label="Toggle Blé">
-                  Blé 🍚
+                  {t("allergens.Blé" as TranslationKey)} 🍚
                 </ToggleGroupItem>
                 <ToggleGroupItem value="Soja" aria-label="Toggle Soja">
-                  Soja 🌾
+                  {t("allergens.Soja")} 🌾
                 </ToggleGroupItem>
                 <ToggleGroupItem value="Piquant" aria-label="Toggle Piquant">
-                  Piquant 🌶️
+                  {t("allergens.Piquant")} 🌶️
                 </ToggleGroupItem>
                 <ToggleGroupItem value="Poisson" aria-label="Toggle Poisson">
-                  Poisson 🐟
+                  {t("allergens.Poisson")} 🐟
                 </ToggleGroupItem>
                 <ToggleGroupItem value="Vegetarian" aria-label="Toggle Vegetarian">
-                  Vegetarian 🥦
+                  {t("allergens.Vegetarian")} 🥦
                 </ToggleGroupItem>
               </ToggleGroup>
             </div>
 
             <div className="flex gap-2 flex-col">
-              <Label>Photo du plat</Label>
+              <Label>{t("plats.field.photo")}</Label>
               <ImageUpload setFileKey={setFileKey} />
             </div>
 
@@ -202,7 +206,7 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
               className="w-full bg-yellow-400 hover:bg-yellow-400 text-black"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Ajout en cours" : "Ajouter"}
+              {isSubmitting ? t("plats.adding") : t("common.add")}
             </Button>
           </div>
         </form>

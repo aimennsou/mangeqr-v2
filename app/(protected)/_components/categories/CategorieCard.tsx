@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { GripVertical, Trash, CopyPlus, Pencil, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n";
 import { toast } from "sonner"; // Import Sonner's toast function
 
 const ICON_OPTIONS = ["🍽️", "🥗", "🍕", "🍔", "🍰", "🥤", "🍷", "🍜", "🌮", "🍤"];
@@ -78,6 +79,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   collapsed = false,
   onToggleCollapse,
 }) => {
+  const { t } = useI18n();
   const [status, setStatus] = useState(state === "ACTIVE");
   const [editOpen, setEditOpen] = useState(false);
   const [editName, setEditName] = useState(name);
@@ -94,12 +96,12 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 
       if (!response.ok) throw new Error("Failed to delete category");
 
-      toast.success("La catégorie a été supprimée.");
+      toast.success(t("categories.toast.deleted"));
       onDelete?.(id);
       onChanged?.();
     } catch (error) {
       console.error("Failed to delete category", error);
-      toast.error("Échec de la suppression de la catégorie.");
+      toast.error(t("categories.toast.deleteError"));
     }
   };
 
@@ -113,12 +115,12 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 
       if (!response.ok) throw new Error("Failed to duplicate category");
 
-      toast.success("La catégorie a été dupliquée avec succès.");
+      toast.success(t("categories.toast.duplicated"));
       onDuplicate?.(id);
       onChanged?.();
     } catch (error) {
       console.error("Failed to duplicate category", error);
-      toast.error("Échec de la duplication de la catégorie.");
+      toast.error(t("categories.toast.duplicateError"));
     }
   };
 
@@ -134,12 +136,12 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 
       if (!response.ok) throw new Error("Failed to update category status");
 
-      toast.success(`La catégorie est maintenant ${newState}.`);
+      toast.success(checked ? t("categories.toast.stateActive") : t("categories.toast.stateInactive"));
       onToggleState?.(id, newState);
     } catch (error) {
       console.error("Failed to update category status", error);
       setStatus(!checked);
-      toast.error("Échec de la mise à jour du statut de la catégorie.");
+      toast.error(t("categories.toast.stateError"));
     }
   };
 
@@ -153,7 +155,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 
   const handleSaveEdit = async () => {
     if (!editName.trim()) {
-      toast.error("Le nom de la catégorie est requis.");
+      toast.error(t("categories.nameRequired"));
       return;
     }
     setSaving(true);
@@ -164,12 +166,12 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
         body: JSON.stringify({ id, name: editName.trim(), logo: editIcon }),
       });
       if (!response.ok) throw new Error("Failed to update category");
-      toast.success("La catégorie a été mise à jour.");
+      toast.success(t("categories.toast.updated"));
       setEditOpen(false);
       onChanged?.();
     } catch (error) {
       console.error("Failed to update category", error);
-      toast.error("Échec de la mise à jour de la catégorie.");
+      toast.error(t("categories.toast.updateError"));
     } finally {
       setSaving(false);
     }
@@ -227,7 +229,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
         <div className="flex justify-between items-center space-x-2">
           {headerAction}
           <Badge variant="secondary">
-            {dishCount} plat{dishCount !== 1 ? "s" : ""}
+            {dishCount} {t("categories.dishCount")}
           </Badge>
           <Switch checked={status} onCheckedChange={handleToggle} />
 
@@ -245,7 +247,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Supprimer la catégorie</p>
+                  <p>{t("categories.tooltip.delete")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -263,7 +265,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Dupliquer la catégorie</p>
+                  <p>{t("categories.tooltip.duplicate")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -281,7 +283,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Modifier la catégorie</p>
+                  <p>{t("categories.tooltip.edit")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -293,23 +295,23 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Modifier la catégorie</DialogTitle>
+            <DialogTitle>{t("categories.edit.title")}</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
-              <Label htmlFor={`cat-name-${id}`}>Nom de la catégorie</Label>
+              <Label htmlFor={`cat-name-${id}`}>{t("categories.field.name")}</Label>
               <Input
                 id={`cat-name-${id}`}
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                placeholder="e.g. Entrées"
+                placeholder={t("categories.namePlaceholder")}
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor={`cat-icon-${id}`}>Icône</Label>
+              <Label htmlFor={`cat-icon-${id}`}>{t("categories.field.icon")}</Label>
               <Select value={editIcon} onValueChange={setEditIcon}>
                 <SelectTrigger id={`cat-icon-${id}`}>
-                  <SelectValue placeholder="Choisissez une icône" />
+                  <SelectValue placeholder={t("categories.chooseIcon")} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectGroup>
@@ -329,7 +331,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
               onClick={handleSaveEdit}
               disabled={saving}
             >
-              {saving ? "Enregistrement..." : "Enregistrer"}
+              {saving ? t("common.saving") : t("common.save")}
             </Button>
           </DialogFooter>
         </DialogContent>
