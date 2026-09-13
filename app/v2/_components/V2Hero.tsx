@@ -1,12 +1,12 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import PhoneFrame from '../../(landing)/_components/ui/PhoneFrame';
 import LiveMenu from '../../(landing)/_components/ui/LiveMenu';
 import Reveal from './Reveal';
+import V2Button from './V2Button';
 
 const STATS = [
   { value: '+22%', label: 'de clients fidélisés' },
@@ -59,16 +59,10 @@ export default function V2Hero() {
           </Reveal>
 
           <Reveal delay={0.15}>
-            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <Link href="/auth/sign-up">
-                <Button
-                  size="lg"
-                  className="group w-full bg-yellow-400 text-black hover:bg-yellow-400/90 sm:w-auto"
-                >
-                  Créer ma carte
-                  <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                </Button>
-              </Link>
+            <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">
+              <V2Button href="/auth/sign-up" className="w-full sm:w-auto">
+                Créer ma carte
+              </V2Button>
               <Link href="/artisto">
                 <Button variant="ghost" size="lg" className="w-full sm:w-auto">
                   Voir un vrai menu

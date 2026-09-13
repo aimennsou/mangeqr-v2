@@ -1,10 +1,7 @@
-import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
-
-import { Button } from '@/components/ui/button';
 import PhoneFrame from '../../(landing)/_components/ui/PhoneFrame';
 import EditorMockup from '../../(landing)/_components/ui/EditorMockup';
 import Reveal from './Reveal';
+import V2Button from './V2Button';
 
 const POINTS = [
   {
@@ -72,12 +69,11 @@ export default function V2Editor() {
           </div>
 
           <Reveal delay={0.1}>
-            <Link href="/auth/sign-up" className="mt-10 inline-block">
-              <Button className="group bg-yellow-400 text-black hover:bg-yellow-400/90">
+            <div className="mt-10">
+              <V2Button href="/auth/sign-up">
                 Modifier depuis mon téléphone
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Button>
-            </Link>
+              </V2Button>
+            </div>
           </Reveal>
         </div>
       </div>

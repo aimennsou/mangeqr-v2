@@ -6,6 +6,7 @@ import V2Values from './_components/V2Values';
 import V2Editor from './_components/V2Editor';
 import V2Proof from './_components/V2Proof';
 import V2Features from './_components/V2Features';
+import V2GoogleMaps from './_components/V2GoogleMaps';
 import V2Reach from './_components/V2Reach';
 import V2Pricing from './_components/V2Pricing';
 import V2Faq from './_components/V2Faq';
@@ -51,6 +52,7 @@ export default function V2LandingPage() {
         <V2Editor />
         <V2Proof />
         <V2Features />
+        <V2GoogleMaps />
         <V2Reach />
         <V2Pricing />
         <V2Faq />

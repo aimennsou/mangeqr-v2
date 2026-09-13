@@ -1,8 +1,8 @@
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import Reveal from './Reveal';
+import V2Button from './V2Button';
 
 /**
  * Closing marquee band. The one place the gold becomes a full surface, so the
@@ -22,15 +22,13 @@ export default function V2Cta() {
             menu que vous pourrez modifier en dix secondes.
           </p>
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <Link href="/auth/sign-up">
-              <Button
-                size="lg"
-                className="group w-full bg-black text-white hover:bg-black/90 sm:w-auto"
-              >
-                Commencer maintenant
-                <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-              </Button>
-            </Link>
+            <V2Button
+              href="/auth/sign-up"
+              variant="dark"
+              className="w-full sm:w-auto"
+            >
+              Commencer maintenant
+            </V2Button>
             <Link href="/artisto">
               <Button
                 size="lg"

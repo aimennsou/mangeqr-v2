@@ -1,77 +1,107 @@
-import { Instagram, MapPin } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { FaInstagram, FaTiktok, FaWhatsapp } from 'react-icons/fa';
 
+import PhoneFrame from '../../(landing)/_components/ui/PhoneFrame';
+import LiveMenu from '../../(landing)/_components/ui/LiveMenu';
 import Reveal from './Reveal';
+import V2Button from './V2Button';
+
+// Channels where the restaurateur drops their shareable menu link.
+const CHANNELS = [
+  {
+    icon: FaInstagram,
+    tile: 'bg-gradient-to-br from-fuchsia-500 via-red-500 to-yellow-400 text-white',
+    title: 'Bio Instagram',
+    sample: 'monresto.mangeqr.com'
+  },
+  {
+    icon: FaTiktok,
+    tile: 'bg-black text-white',
+    title: 'Profil TikTok',
+    sample: 'monresto.mangeqr.com'
+  },
+  {
+    icon: FaWhatsapp,
+    tile: 'bg-green-500 text-white',
+    title: 'Réponse WhatsApp Business',
+    sample: 'monresto.mangeqr.com'
+  }
+];
 
 /**
- * Full-width band that resets the rhythm after the feature index. Editorial
- * stack: a centered statement, then two offset panels (Google Maps + link in
- * bio) sharing one shareable URL idea.
+ * Link-in-bio section. Asymmetric split: editorial copy + branded channel rows
+ * on the left, the live phone on the right, then a big shareable-link CTA.
  */
 export default function V2Reach() {
   return (
-    <section className="border-t border-border">
-      <div className="mx-auto max-w-6xl px-6 py-24 lg:py-32">
-        <Reveal>
-          <div className="mx-auto max-w-[42ch] text-center">
+    <section className="border-t border-border px-6 py-24 lg:py-32">
+      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-2 lg:gap-16">
+        {/* Left: copy + channel cards */}
+        <div>
+          <Reveal>
             <p className="text-sm font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
-              Soyez trouvé. Soyez choisi.
+              Instagram · Lien dans la bio
             </p>
-            <h2 className="font-serif-display mt-4 text-4xl font-light leading-tight tracking-[-0.02em] text-foreground sm:text-5xl">
-              Un seul lien. Partout où vos clients vous cherchent.
+          </Reveal>
+
+          <Reveal delay={0.05}>
+            <h2 className="font-serif-display mt-4 max-w-[18ch] text-4xl font-light leading-[1.1] tracking-[-0.02em] text-foreground sm:text-5xl">
+              Le lien de votre bio devrait montrer le menu du jour, pas un PDF
+              figé.
             </h2>
+          </Reveal>
+
+          <Reveal delay={0.1}>
+            <p className="mt-6 max-w-[54ch] text-lg font-light leading-relaxed text-muted-foreground">
+              Mettez votre lien MangeQR dans votre bio Instagram, TikTok,
+              WhatsApp Business ou Facebook, partout où vos clients vous
+              trouvent. Un seul clic, et ils consultent le menu du jour.
+            </p>
+          </Reveal>
+
+          <div className="mt-8 space-y-3">
+            {CHANNELS.map((c, i) => {
+              const Icon = c.icon;
+              return (
+                <Reveal key={c.title} delay={0.15 + i * 0.06}>
+                  <div className="group flex items-center gap-4 rounded-xl border border-border bg-card p-4 transition-colors hover:border-yellow-400">
+                    <span
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-lg ${c.tile}`}
+                    >
+                      <Icon />
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-foreground">{c.title}</p>
+                      <p className="truncate font-mono text-sm text-muted-foreground">
+                        {c.sample}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1" />
+                  </div>
+                </Reveal>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right: phone with the live menu */}
+        <Reveal delay={0.1}>
+          <div className="flex justify-center lg:justify-end">
+            <PhoneFrame>
+              <LiveMenu />
+            </PhoneFrame>
           </div>
         </Reveal>
-
-        <div className="mt-14 grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Reveal>
-            <article className="h-full rounded-2xl border border-border bg-card p-8">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-400/15 text-yellow-600 dark:text-yellow-500">
-                <MapPin className="h-5 w-5" strokeWidth={1.75} />
-              </span>
-              <h3 className="mt-6 text-xl font-semibold text-foreground">
-                Google Maps et Business
-              </h3>
-              <p className="mt-2 max-w-[52ch] leading-relaxed text-muted-foreground">
-                Collez votre lien de carte directement dans votre profil Google
-                Business. Le bouton « Afficher la carte » pointe vers une page
-                toujours à jour, au lieu d&apos;un PDF cassé.
-              </p>
-              <div className="mt-6 inline-flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2 font-mono text-sm text-foreground">
-                <span className="text-muted-foreground">↳</span>
-                monresto.mangeqr.com/menu
-              </div>
-            </article>
-          </Reveal>
-
-          <Reveal delay={0.06}>
-            <article className="h-full rounded-2xl border border-border bg-card p-8">
-              <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-yellow-400/15 text-yellow-600 dark:text-yellow-500">
-                <Instagram className="h-5 w-5" strokeWidth={1.75} />
-              </span>
-              <h3 className="mt-6 text-xl font-semibold text-foreground">
-                Le lien dans la bio
-              </h3>
-              <p className="mt-2 max-w-[52ch] leading-relaxed text-muted-foreground">
-                Instagram, TikTok, WhatsApp Business, Facebook. Un seul clic et
-                vos clients consultent le menu du jour, pas un fichier figé
-                d&apos;il y a six mois.
-              </p>
-              <div className="mt-6 flex flex-wrap gap-2">
-                {['Bio Instagram', 'Profil TikTok', 'WhatsApp Business'].map(
-                  (c) => (
-                    <span
-                      key={c}
-                      className="rounded-full border border-border bg-background px-3 py-1 text-xs font-medium text-muted-foreground"
-                    >
-                      {c}
-                    </span>
-                  )
-                )}
-              </div>
-            </article>
-          </Reveal>
-        </div>
       </div>
+
+      {/* CTA */}
+      <Reveal delay={0.1}>
+        <div className="mt-14 flex justify-center">
+          <V2Button href="/auth/sign-up">
+            Obtenez votre lien de menu partageable
+          </V2Button>
+        </div>
+      </Reveal>
     </section>
   );
 }
