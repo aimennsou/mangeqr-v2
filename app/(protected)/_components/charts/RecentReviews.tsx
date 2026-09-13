@@ -66,33 +66,53 @@ export function RecentReviews({ restaurantId }: { restaurantId?: string }) {
 
   return (
     <div className="h-[400px]">
-      <ScrollArea className="h-full px-1">
-        <div className="space-y-4">
+      <ScrollArea className="h-full pr-3">
+        <div className="flex flex-col gap-3">
           {reviews.map((r) => {
             const label = r.clientEmail || r.clientNumero || "Client anonyme";
+            const date = new Date(r.createdAt);
+            const dateStr = Number.isNaN(date.getTime())
+              ? null
+              : date.toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                });
             return (
-              <div key={r.id} className="flex items-start gap-3">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium">
+              <div
+                key={r.id}
+                className="flex items-start gap-4 rounded-lg border bg-card p-4 transition-colors hover:bg-muted/40"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
                   {label.slice(0, 2).toUpperCase()}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1">
+                    <span className="truncate text-sm font-medium text-foreground">
+                      {label}
+                    </span>
+                    {dateStr ? (
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {dateStr}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="mt-1 flex items-center gap-0.5">
                     {[1, 2, 3, 4, 5].map((i) => (
                       <Star
                         key={i}
                         className={
                           i <= r.review
-                            ? "h-3.5 w-3.5 fill-yellow-400 text-yellow-400"
-                            : "h-3.5 w-3.5 text-gray-300"
+                            ? "h-4 w-4 fill-yellow-400 text-yellow-400"
+                            : "h-4 w-4 text-muted-foreground/30"
                         }
                       />
                     ))}
-                    <span className="ml-2 text-xs text-muted-foreground truncate">
-                      {label}
-                    </span>
                   </div>
                   {r.message ? (
-                    <p className="mt-1 text-sm text-foreground/90">{r.message}</p>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground/90">
+                      {r.message}
+                    </p>
                   ) : null}
                 </div>
               </div>
