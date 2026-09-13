@@ -4,7 +4,7 @@ import * as z from 'zod';
 import type { OrderStatus, OrderType } from '@prisma/client';
 
 import { db } from '@/lib/db';
-import { SetOrderStatusSchema } from '@/schemas';
+import { SetOrderStatusSchema, SetOrderPaidSchema } from '@/schemas';
 import { currentUserId } from '@/lib/authentication';
 import { getWorkspaceOwnerId } from '@/data/workspace';
 import { assertOrderOwned } from '@/data/orders';
@@ -82,4 +82,44 @@ export async function setOrderStatus(
   }
 
   return { success: 'Statut mis à jour.' };
+}
+
+
+/**
+ * Mark an order as paid / not paid (FEAT-1, pay-in-person). Allowed for the
+ * workspace OWNER and its MEMBERS. Stamps `paidAt` when marking paid, clears it
+ * when un-marking. Scoped to the caller's workspace.
+ */
+export async function setOrderPaid(
+  values: z.infer<typeof SetOrderPaidSchema>
+): Promise<ActionResult> {
+  const userId = await currentUserId();
+  if (!userId) {
+    return { error: 'Non autorisé.' };
+  }
+
+  const parsed = SetOrderPaidSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: 'Données invalides.' };
+  }
+
+  const { orderId, paid } = parsed.data;
+
+  const ownerId = await getWorkspaceOwnerId(userId);
+  const owned = await assertOrderOwned(orderId, ownerId);
+  if (!owned) {
+    return { error: 'Commande introuvable.' };
+  }
+
+  try {
+    await db.order.update({
+      where: { id: orderId },
+      data: { paid, paidAt: paid ? new Date() : null }
+    });
+  } catch (error) {
+    console.error('Error updating order payment:', error);
+    return { error: 'Impossible de mettre à jour le paiement.' };
+  }
+
+  return { success: paid ? 'Commande marquée payée.' : 'Paiement annulé.' };
 }

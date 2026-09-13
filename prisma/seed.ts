@@ -394,6 +394,11 @@ async function main() {
 
         const table = isDelivery ? null : pick(seedTables);
         const createdAt = daysAgo(day, Math.random() < 0.5 ? 13 : 20);
+        // Settled orders (served/delivered/completed) are marked paid; others
+        // are unpaid — realistic mix for the demo.
+        const isSettled = ['SERVED', 'DELIVERED', 'COMPLETED'].includes(
+          finalStatus
+        );
 
         await prisma.order.create({
           data: {
@@ -409,6 +414,8 @@ async function main() {
             address: isDelivery ? '10 Rue de Rivoli, 75001 Paris' : null,
             note: null,
             total,
+            paid: isSettled,
+            paidAt: isSettled ? createdAt : null,
             createdAt,
             updatedAt: createdAt,
             items: { create: items },

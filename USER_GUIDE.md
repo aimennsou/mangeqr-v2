@@ -226,6 +226,8 @@ Le client scanne le QR ou ouvre le lien — **aucune connexion requise**. Il voi
 - File des commandes **groupées par table** + un groupe **Livraison**, avec numéro de commande, articles, statut.
 - Faites avancer le statut : **Reçue → En préparation → Prête → Servie → Terminée** (sur place) ou **… → En livraison → Livrée → Terminée** (livraison), + **Annuler**.
 - **Nouvelle commande** = **son** + indication visuelle (badge pulsé). Le son est activable/désactivable.
+- **Paiement** : chaque commande affiche un badge **Payé / Non payé**. Utilisez **Marquer payé / Marquer non payé** (paiement sur place). Un badge vert « Payé » apparaît une fois réglée.
+- **Imprimer l'addition** : le bouton **Imprimer l'addition** ouvre un ticket imprimable (format 80 mm) — nom du restaurant, n° de commande, table/livraison, articles + suppléments + total, et le statut **PAYÉ / NON PAYÉ** — puis lance l'impression. Fonctionne avec une imprimante ticket ou en PDF via le navigateur.
 
 👤 **Cuisine** (propriétaire **et** membres)
 - Tableau des commandes **actives** organisé par colonnes de statut, pour un affichage type « écran cuisine ». Mise à jour automatique.

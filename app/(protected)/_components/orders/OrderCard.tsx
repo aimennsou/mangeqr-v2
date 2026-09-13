@@ -3,23 +3,27 @@
 import { useTransition } from 'react';
 import { toast } from 'sonner';
 import {
+  BadgeCheck,
   Check,
   ChevronRight,
   Clock,
   MapPin,
   Phone,
+  Printer,
+  Wallet,
   X as XIcon
 } from 'lucide-react';
 import type { OrderView } from '@/data/orders';
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { setOrderStatus } from '@/actions/orders';
+import { setOrderStatus, setOrderPaid } from '@/actions/orders';
 import {
   ORDER_STATUS_LABEL,
   nextStatus,
   statusBadgeClass
 } from './order-status';
+import { printOrderTicket } from './print-ticket';
 
 interface OrderCardProps {
   order: OrderView;
@@ -64,6 +68,18 @@ export function OrderCard({ order, isNew, onChanged, onSeen }: OrderCardProps) {
     });
   };
 
+  const togglePaid = () => {
+    startTransition(async () => {
+      const result = await setOrderPaid({ orderId: order.id, paid: !order.paid });
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result?.success ?? 'Paiement mis à jour.');
+      onChanged();
+    });
+  };
+
   const isTerminal =
     order.status === 'COMPLETED' || order.status === 'CANCELLED';
 
@@ -89,6 +105,16 @@ export function OrderCard({ order, isNew, onChanged, onSeen }: OrderCardProps) {
             >
               {ORDER_STATUS_LABEL[order.status]}
             </span>
+            {order.paid ? (
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700 dark:bg-green-950/50 dark:text-green-300">
+                <BadgeCheck className="h-3 w-3" />
+                Payé
+              </span>
+            ) : (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                Non payé
+              </span>
+            )}
           </div>
           <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
@@ -199,6 +225,30 @@ export function OrderCard({ order, isNew, onChanged, onSeen }: OrderCardProps) {
           </Button>
         </div>
       ) : null}
+
+      {/* Payment + ticket actions (always available, incl. terminal orders). */}
+      <div className="mt-2 flex flex-wrap items-center gap-2 border-t pt-2">
+        <Button
+          size="sm"
+          variant={order.paid ? 'outline' : 'default'}
+          className={cn(
+            !order.paid && 'bg-green-600 text-white hover:bg-green-700'
+          )}
+          disabled={isPending}
+          onClick={togglePaid}
+        >
+          <Wallet className="mr-1 h-4 w-4" />
+          {order.paid ? 'Marquer non payé' : 'Marquer payé'}
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => printOrderTicket(order)}
+        >
+          <Printer className="mr-1 h-4 w-4" />
+          Imprimer l&apos;addition
+        </Button>
+      </div>
     </div>
   );
 }

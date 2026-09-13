@@ -527,6 +527,11 @@ model Order {
   // client.
   total         Float            @default(0)
 
+  // Payment tracking (pay-in-person). Staff mark an order paid from the
+  // Commandes view / after printing the addition. `paidAt` stamps when.
+  paid          Boolean          @default(false)
+  paidAt        DateTime?
+
   items         OrderItem[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt

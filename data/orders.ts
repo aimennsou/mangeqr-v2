@@ -25,6 +25,8 @@ export interface OrderView {
   orderNumber: number;
   restaurantId: string;
   restaurantName: string | null;
+  restaurantAddress: string | null;
+  restaurantPhone: string | null;
   type: OrderType;
   status: OrderStatus;
   tableLabel: string | null;
@@ -36,6 +38,8 @@ export interface OrderView {
   note: string | null;
   total: number;
   currency: string;
+  paid: boolean;
+  paidAt: Date | null;
   createdAt: Date;
   items: OrderItemView[];
 }
@@ -59,6 +63,8 @@ function mapOrder(o: any): OrderView {
     orderNumber: o.orderNumber,
     restaurantId: o.restaurantId,
     restaurantName: o.restaurant?.name ?? null,
+    restaurantAddress: o.restaurant?.address ?? null,
+    restaurantPhone: o.restaurant?.phone ?? null,
     type: o.type,
     status: o.status,
     tableLabel: o.tableLabel,
@@ -70,6 +76,8 @@ function mapOrder(o: any): OrderView {
     note: o.note,
     total: o.total,
     currency: currencySymbol(o.restaurant?.currency),
+    paid: o.paid,
+    paidAt: o.paidAt,
     createdAt: o.createdAt,
     items: (o.items ?? []).map((it: any) => ({
       id: it.id,
@@ -112,7 +120,9 @@ export async function listOrders({
       orderBy: { createdAt: 'desc' },
       take,
       include: {
-        restaurant: { select: { name: true, currency: true } },
+        restaurant: {
+          select: { name: true, currency: true, address: true, phone: true }
+        },
         items: true
       }
     });

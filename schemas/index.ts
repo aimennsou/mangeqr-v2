@@ -334,6 +334,16 @@ export const SetOrderStatusSchema = z.object({
 export type SetOrderStatusValues = z.infer<typeof SetOrderStatusSchema>;
 
 /**
+ * FEAT-1 — Mark an order as paid / not paid (pay-in-person). Owner + members.
+ */
+export const SetOrderPaidSchema = z.object({
+  orderId: z.string().uuid({ message: 'Commande invalide.' }),
+  paid: z.boolean()
+});
+
+export type SetOrderPaidValues = z.infer<typeof SetOrderPaidSchema>;
+
+/**
  * Order for a physical QR-code design (Menu numérique → "Commander un design").
  * `designId` references a product in config `DESIGN_PRODUCTS`.
  */
