@@ -125,7 +125,7 @@ async function main() {
       website: 'www.lepetitgourmet.fr',
       instagram: 'lepetitgourmet',
       google: 'https://g.page/r/le-petit-gourmet',
-      coverPhoto: 'uploads/1735415131028bg-food.jpg',
+      coverPhoto: '/images/seed/cover.jpg',
       // Ordering on for the demo (account flag is also on above).
       orderingEnabled: true,
     },
@@ -189,8 +189,9 @@ async function main() {
       logo: '🥗',
       position: 1,
       dishes: [
-        { name: 'Salade César', description: 'Salade romaine, poulet grillé, parmesan', price: 9.5, allergenes: ['Œufs', 'Lait'] },
-        { name: 'Soupe à l’oignon', description: 'Gratinée au comté', price: 7.0, allergenes: ['Lait', 'Blé'] },
+        { name: 'Salade César', description: 'Salade romaine, poulet grillé, parmesan', price: 9.5, allergenes: ['Fait maison', 'Œufs', 'Lait'], photo: '/images/seed/salad.jpg' },
+        { name: 'Soupe à l’oignon', description: 'Gratinée au comté', price: 7.0, allergenes: ['De saison', 'Fait maison', 'Lait', 'Blé'], photo: '/images/seed/soup.jpg' },
+        { name: 'Bruschetta', description: 'Pain grillé aux tomates fraîches et basilic', price: 7.5, allergenes: ['Vegetarian', 'Fait maison', 'Blé'], photo: '/images/seed/bruschetta.jpg' },
       ],
     },
     {
@@ -199,9 +200,9 @@ async function main() {
       logo: '🍽️',
       position: 2,
       dishes: [
-        { name: 'Steak frites', description: 'Entrecôte, frites maison', price: 18.5, allergenes: [] },
-        { name: 'Risotto aux champignons', description: 'Risotto crémeux, cèpes', price: 15.0, allergenes: ['Lait'] },
-        { name: 'Saumon grillé', description: 'Saumon, légumes de saison', price: 19.0, allergenes: ['Poisson'] },
+        { name: 'Steak frites', description: 'Entrecôte, frites maison', price: 18.5, allergenes: ['Fait maison'], photo: '/images/seed/steak.jpg' },
+        { name: 'Risotto aux champignons', description: 'Risotto crémeux, cèpes', price: 15.0, allergenes: ['Vegetarian', 'Lait'], photo: '/images/seed/risotto.jpg' },
+        { name: 'Saumon grillé', description: 'Saumon, légumes de saison', price: 19.0, allergenes: ['De saison', 'Poisson'], photo: '/images/seed/salmon.jpg' },
       ],
     },
     {
@@ -210,8 +211,8 @@ async function main() {
       logo: '🍰',
       position: 1,
       dishes: [
-        { name: 'Crème brûlée', description: 'Vanille de Madagascar', price: 6.5, allergenes: ['Œufs', 'Lait'] },
-        { name: 'Fondant au chocolat', description: 'Cœur coulant, glace vanille', price: 7.5, allergenes: ['Œufs', 'Lait', 'Blé'] },
+        { name: 'Crème brûlée', description: 'Vanille de Madagascar', price: 6.5, allergenes: ['Fait maison', 'Œufs', 'Lait'], photo: '/images/seed/cremebrulee.jpg' },
+        { name: 'Fondant au chocolat', description: 'Cœur coulant, glace vanille', price: 7.5, allergenes: ['Fait maison', 'Œufs', 'Lait', 'Blé'], photo: '/images/seed/fondant.jpg' },
       ],
     },
   ];
@@ -242,6 +243,7 @@ async function main() {
           description: dish.description,
           price: dish.price,
           allergenes: dish.allergenes,
+          photo: (dish as any).photo ?? null,
           position: dishPos++,
           state: 'ACTIVE',
         },

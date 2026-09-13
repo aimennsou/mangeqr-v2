@@ -279,10 +279,81 @@ export function PublicMenu({
       className={cn("mx-auto min-h-screen max-w-lg pb-16", previewMode && "relative")}
       style={{ ...styles.screen, color: theme.text }}
     >
-      {/* Cover / header */}
+      {/* Top bar: logo + centered active-menu title + language switcher.
+          Mirrors the reference (logo square, centered "Plats" title). */}
+      <header
+        className="sticky top-0 z-20 flex items-center gap-2 px-4 py-3 backdrop-blur"
+        style={{ backgroundColor: theme.background, borderColor: theme.border }}
+      >
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg"
+          style={{ backgroundColor: theme.accent, color: theme.onAccent }}
+          aria-hidden
+        >
+          🍽️
+        </div>
+        <h1
+          className="flex-1 truncate text-center text-lg font-bold"
+          style={{ color: theme.text }}
+        >
+          {activeMenu?.name ?? name}
+        </h1>
+        {/* Language switcher (diner-controlled, independent of the owner app) */}
+        <div
+          className="flex shrink-0 gap-1 rounded-full p-0.5"
+          style={{ backgroundColor: theme.surface }}
+        >
+          {LOCALES.map((l: Locale) => (
+            <button
+              key={l}
+              onClick={() => setLocale(l)}
+              aria-label={LOCALE_LABELS[l]}
+              className="flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition-colors"
+              style={
+                l === locale
+                  ? { backgroundColor: theme.accent, color: theme.onAccent }
+                  : { color: theme.muted }
+              }
+            >
+              <span aria-hidden className="leading-none">
+                {LOCALE_FLAGS[l]}
+              </span>
+              {l.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      </header>
+
+      {/* Menu tabs as pills (the active one is a filled pill). */}
+      {menus.length > 1 ? (
+        <nav
+          className="flex gap-2 overflow-x-auto px-4 pb-2 pt-1"
+          style={{ backgroundColor: theme.background }}
+        >
+          {menus.map((menu) => {
+            const isActive = menu.id === activeMenu?.id;
+            return (
+              <button
+                key={menu.id}
+                onClick={() => setActiveMenuId(menu.id)}
+                className="whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-semibold transition-colors"
+                style={
+                  isActive
+                    ? { backgroundColor: theme.accent, color: theme.onAccent }
+                    : { color: theme.muted, backgroundColor: theme.surface }
+                }
+              >
+                {menu.name}
+              </button>
+            );
+          })}
+        </nav>
+      ) : null}
+
+      {/* Cover with the restaurant name + address overlaid bottom-left. */}
       <header className="relative">
         <div
-          className="relative h-44 w-full"
+          className="relative mx-4 mt-2 h-40 overflow-hidden rounded-2xl"
           style={{ backgroundColor: theme.surface }}
         >
           {coverUrl ? (
@@ -295,46 +366,24 @@ export function PublicMenu({
               sizes="(max-width: 512px) 100vw, 512px"
             />
           ) : null}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-4">
+            <h2 className="text-2xl font-extrabold leading-tight text-white drop-shadow">
+              {name}
+            </h2>
+            {show.showAddress && address ? (
+              <p className="mt-0.5 flex items-center gap-1 text-sm text-white/85">
+                <MapPin className="h-3.5 w-3.5 shrink-0" />
+                {address}
+              </p>
+            ) : null}
+          </div>
         </div>
-        {/* Language switcher (diner-controlled, independent of the owner app) */}
-        <div className="absolute right-3 top-3 flex gap-1 rounded-full bg-black/40 p-1 backdrop-blur">
-          {LOCALES.map((l: Locale) => (
-            <button
-              key={l}
-              onClick={() => setLocale(l)}
-              aria-label={LOCALE_LABELS[l]}
-              className={cn(
-                "flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium transition-colors",
-                l === locale
-                  ? "bg-white text-black"
-                  : "text-white/80 hover:text-white"
-              )}
-            >
-              <span aria-hidden className="leading-none">
-                {LOCALE_FLAGS[l]}
-              </span>
-              {l.toUpperCase()}
-            </button>
-          ))}
-        </div>
-        <div className="px-4 pt-3">
-          <h1 className="text-2xl font-bold" style={styles.accent}>
-            {name}
-          </h1>
-          {show.showAddress && address ? (
-            <div
-              className="mt-1 flex items-center gap-1.5 text-sm"
-              style={{ color: theme.muted }}
-            >
-              <MapPin className="h-4 w-4 shrink-0" />
-              <span>{address}</span>
-            </div>
-          ) : null}
 
+        <div className="px-4 pt-3">
           {/* Contact chips (phone / wifi keep their value labels). */}
           {(show.showPhone && phone) || (show.showWifi && wifi) ? (
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               {show.showPhone && phone ? (
                 <a href={`tel:${phone}`}>
                   <Chip icon={<Phone className="h-3.5 w-3.5" />} label={phone} theme={theme} />
@@ -345,90 +394,68 @@ export function PublicMenu({
               ) : null}
             </div>
           ) : null}
-
-          {/* Socials as a compact "Suivez-nous" icon row (like the reference). */}
-          {(show.showInstagram && instagram) ||
-          (show.showTiktok && tiktok) ||
-          (show.showWebsite && website) ||
-          (show.showGoogle && google) ? (
-            <div
-              className="mt-3 flex items-center gap-3"
-              style={{ color: theme.muted }}
-            >
-              <span className="text-xs font-medium">{t("diner.followUs")}</span>
-              {show.showInstagram && instagram ? (
-                <a
-                  href={`https://instagram.com/${instagram.replace(/^@/, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={t("diner.instagram")}
-                  className="transition-opacity hover:opacity-70"
-                >
-                  <Instagram className="h-4 w-4" />
-                </a>
-              ) : null}
-              {show.showTiktok && tiktok ? (
-                <a
-                  href={`https://tiktok.com/@${tiktok.replace(/^@/, "")}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={t("diner.tiktok")}
-                  className="transition-opacity hover:opacity-70"
-                >
-                  <FaTiktok className="h-3.5 w-3.5" />
-                </a>
-              ) : null}
-              {show.showWebsite && website ? (
-                <a
-                  href={ensureHttp(website)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={t("diner.website")}
-                  className="transition-opacity hover:opacity-70"
-                >
-                  <Globe className="h-4 w-4" />
-                </a>
-              ) : null}
-              {show.showGoogle && google ? (
-                <a
-                  href={ensureHttp(google)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label={t("diner.googleReviews")}
-                  className="transition-opacity hover:opacity-70"
-                >
-                  <Star className="h-4 w-4" />
-                </a>
-              ) : null}
-            </div>
-          ) : null}
         </div>
       </header>
 
-      {/* Menu tabs (only when more than one menu) */}
-      {menus.length > 1 ? (
-        <nav
-          className="sticky top-0 z-10 mt-4 flex gap-2 overflow-x-auto border-b px-4 py-2 backdrop-blur"
-          style={{ backgroundColor: theme.surface, borderColor: theme.border }}
+      {/* "Suivez-nous" social row — a full-width light bar like the reference. */}
+      {(show.showInstagram && instagram) ||
+      (show.showTiktok && tiktok) ||
+      (show.showWebsite && website) ||
+      (show.showGoogle && google) ? (
+        <div
+          className="mx-4 mt-3 flex items-center justify-between rounded-xl px-4 py-2.5"
+          style={{ backgroundColor: theme.surface }}
         >
-          {menus.map((menu) => {
-            const isActive = menu.id === activeMenu?.id;
-            return (
-              <button
-                key={menu.id}
-                onClick={() => setActiveMenuId(menu.id)}
-                className="whitespace-nowrap rounded-full px-4 py-1.5 text-sm font-medium transition-colors"
-                style={
-                  isActive
-                    ? { backgroundColor: theme.accent, color: theme.onAccent }
-                    : { color: theme.muted }
-                }
+          <span className="text-sm font-medium" style={{ color: theme.muted }}>
+            {t("diner.followUs")}
+          </span>
+          <div className="flex items-center gap-4" style={{ color: theme.text }}>
+            {show.showInstagram && instagram ? (
+              <a
+                href={`https://instagram.com/${instagram.replace(/^@/, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("diner.instagram")}
+                className="transition-opacity hover:opacity-70"
               >
-                {menu.name}
-              </button>
-            );
-          })}
-        </nav>
+                <Instagram className="h-5 w-5" />
+              </a>
+            ) : null}
+            {show.showTiktok && tiktok ? (
+              <a
+                href={`https://tiktok.com/@${tiktok.replace(/^@/, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("diner.tiktok")}
+                className="transition-opacity hover:opacity-70"
+              >
+                <FaTiktok className="h-4 w-4" />
+              </a>
+            ) : null}
+            {show.showWebsite && website ? (
+              <a
+                href={ensureHttp(website)}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("diner.website")}
+                className="transition-opacity hover:opacity-70"
+              >
+                <Globe className="h-5 w-5" />
+              </a>
+            ) : null}
+            {show.showGoogle && google ? (
+              <a
+                href={ensureHttp(google)}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t("diner.googleReviews")}
+                className="transition-opacity hover:opacity-70"
+              >
+                <Star className="h-5 w-5" />
+              </a>
+            ) : null}
+          </div>
+        </div>
       ) : null}
 
       {/* Menu content */}
@@ -473,6 +500,8 @@ export function PublicMenu({
                         orderingEnabled={orderingEnabled}
                         onAddToCart={() => openAddToCart(dish)}
                         addLabel={t("order.add")}
+                        containsLabel={t("diner.contains")}
+                        tagLabel={(k) => t(k as any)}
                       />
                     ))
                   )}
@@ -589,6 +618,18 @@ export function PublicMenu({
   );
 }
 
+// Colors for the diet/quality tag badges (reference: green Végétarien, orange
+// Fait maison). These are semantic accent chips independent of the owner theme.
+const TAG_STYLES: Record<
+  DietTag["variant"],
+  { bg: string; fg: string; icon: string }
+> = {
+  veg: { bg: "rgba(34,197,94,0.14)", fg: "#15803d", icon: "🌱" },
+  home: { bg: "rgba(249,115,22,0.14)", fg: "#c2410c", icon: "🏠" },
+  spicy: { bg: "rgba(239,68,68,0.14)", fg: "#b91c1c", icon: "🌶️" },
+  season: { bg: "rgba(234,179,8,0.16)", fg: "#a16207", icon: "🍂" },
+};
+
 function DishRow({
   dish,
   currency,
@@ -601,6 +642,8 @@ function DishRow({
   orderingEnabled,
   onAddToCart,
   addLabel,
+  containsLabel,
+  tagLabel,
 }: {
   dish: Dish;
   currency: string;
@@ -613,9 +656,14 @@ function DishRow({
   orderingEnabled: boolean;
   onAddToCart: () => void;
   addLabel: string;
+  containsLabel: string;
+  tagLabel: (key: string) => string;
 }) {
-  // The row opens the dish detail. It's a role="button" div (not a <button>)
-  // so it can safely contain the favorite <button> without nesting buttons.
+  const { tags, contains } = splitAllergenes(dish.allergenes);
+
+  // Card layout mirrors the reference: white rounded card, left thumbnail,
+  // name + right-aligned price, description, diet-tag badges, a "Contient :"
+  // allergen row, and a heart + count (with an add button when ordering is on).
   return (
     <div
       role="button"
@@ -627,113 +675,123 @@ function DishRow({
           onOpen();
         }
       }}
-      className="flex w-full cursor-pointer gap-3 rounded-lg border p-3 text-left transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      className="w-full cursor-pointer rounded-2xl border p-3 text-left shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
       style={{
         borderColor: theme.border,
         backgroundColor: theme.surface,
-        // Keep the focus ring visible + on-brand over any themed surface.
         // @ts-expect-error CSS custom prop for tailwind ring color.
         "--tw-ring-color": theme.accent,
       }}
     >
-      {dish.photo ? (
-        <div
-          className="relative h-20 w-20 shrink-0 overflow-hidden rounded-md"
-          style={{ backgroundColor: theme.surface }}
-        >
-          <Image
-            src={dish.photo}
-            alt={dish.name}
-            fill
-            className="object-cover"
-            sizes="80px"
-          />
+      <div className="flex gap-3">
+        {dish.photo ? (
+          <div
+            className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl"
+            style={{ backgroundColor: theme.background }}
+          >
+            <Image
+              src={dish.photo}
+              alt={dish.name}
+              fill
+              className="object-cover"
+              sizes="64px"
+            />
+          </div>
+        ) : null}
+
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Name + price */}
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold leading-tight" style={{ color: theme.text }}>
+              {dish.name}
+            </h3>
+            <span className="whitespace-nowrap font-bold" style={{ color: theme.text }}>
+              {formatPrice(dish.price)} {currency}
+            </span>
+          </div>
+
+          {dish.description ? (
+            <p className="mt-0.5 line-clamp-2 text-sm" style={{ color: theme.muted }}>
+              {dish.description}
+            </p>
+          ) : null}
+
+          {/* Diet / quality tag badges */}
+          {tags.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {tags.map((tag, i) => {
+                const s = TAG_STYLES[tag.variant];
+                return (
+                  <span
+                    key={`${tag.key}-${i}`}
+                    className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
+                    style={{ backgroundColor: s.bg, color: s.fg }}
+                  >
+                    <span aria-hidden>{s.icon}</span>
+                    {tagLabel(tag.key)}
+                  </span>
+                );
+              })}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {/* "Contient :" allergen chips */}
+      {contains.length > 0 ? (
+        <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+          <span className="text-xs" style={{ color: theme.muted }}>
+            {containsLabel} :
+          </span>
+          {contains.map((a) => (
+            <span
+              key={a}
+              className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
+              style={{ borderColor: theme.border, color: theme.muted }}
+            >
+              {a}
+            </span>
+          ))}
         </div>
       ) : null}
-      <div className="flex flex-1 flex-col">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-medium" style={{ color: theme.text }}>
-            {dish.name}
-          </h3>
-          <span
-            className="whitespace-nowrap font-semibold"
-            style={accent}
-          >
-            {formatPrice(dish.price)} {currency}
+
+      {/* Heart + count (bottom-left) and add-to-cart (bottom-right). */}
+      <div className="mt-2 flex items-center justify-between">
+        <button
+          type="button"
+          aria-label={favoriteLabel}
+          aria-pressed={isFavorite}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleFavorite();
+          }}
+          className="flex items-center gap-1.5 rounded-full px-1 py-1 transition-colors hover:bg-black/5"
+        >
+          <Heart
+            className={cn(
+              "h-5 w-5 transition-colors",
+              isFavorite ? "fill-red-500 text-red-500" : "text-neutral-400"
+            )}
+          />
+          <span className="text-xs tabular-nums" style={{ color: theme.muted }}>
+            {(dish.favoriteCount ?? 0) + (isFavorite ? 1 : 0)}
           </span>
-        </div>
-        {dish.description ? (
-          <p className="mt-0.5 line-clamp-2 text-sm" style={{ color: theme.muted }}>
-            {dish.description}
-          </p>
+        </button>
+
+        {orderingEnabled ? (
+          <button
+            type="button"
+            aria-label={addLabel}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddToCart();
+            }}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-90"
+            style={{ backgroundColor: theme.accent, color: theme.onAccent }}
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         ) : null}
-        <div className="mt-2 flex items-end justify-between gap-2">
-          {dish.allergenes.length > 0 ? (
-            <div className="flex flex-wrap gap-1">
-              {dish.allergenes.map((a) => (
-                <Badge
-                  key={a}
-                  variant="secondary"
-                  className="text-xs"
-                  style={{
-                    backgroundColor: theme.surface,
-                    color: theme.muted,
-                    borderColor: theme.border,
-                  }}
-                >
-                  {a}
-                </Badge>
-              ))}
-            </div>
-          ) : (
-            <span />
-          )}
-
-          {/* Favorite (heart) button + running count — stops propagation so it
-              doesn't open the dish detail. Filled/red when favorited. The count
-              shows the DB total plus this diner's optimistic +1 when favorited. */}
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              type="button"
-              aria-label={favoriteLabel}
-              aria-pressed={isFavorite}
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleFavorite();
-              }}
-              className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 transition-colors hover:bg-black/5"
-            >
-              <Heart
-                className={cn(
-                  "h-5 w-5 transition-colors",
-                  isFavorite ? "fill-red-500 text-red-500" : "text-neutral-400"
-                )}
-              />
-              <span
-                className="text-xs tabular-nums"
-                style={{ color: theme.muted }}
-              >
-                {(dish.favoriteCount ?? 0) + (isFavorite ? 1 : 0)}
-              </span>
-            </button>
-
-            {/* Add-to-cart (FEAT-1) — only when ordering is enabled. */}
-            {orderingEnabled ? (
-              <button
-                type="button"
-                aria-label={addLabel}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onAddToCart();
-                }}
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-90"
-                style={{ backgroundColor: theme.accent, color: theme.onAccent }}
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            ) : null}
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -877,4 +935,44 @@ function formatPrice(price: number) {
 
 function ensureHttp(url: string) {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
+}
+
+/**
+ * Diet/quality "tags" (rendered as colored badges) vs true allergens (rendered
+ * under "Contient :"). The owner stores everything in one `allergenes[]` array,
+ * so we classify known dietary/quality values as tags and treat the rest as
+ * allergens — matching the reference card (Végétarien/Fait maison badges +
+ * "Contient : Gluten, Sulfites").
+ */
+type DietTag = {
+  key: string;
+  variant: "veg" | "home" | "spicy" | "season";
+};
+
+// Normalized lookup: known values (FR + EN spellings) → a tag descriptor.
+const DIET_TAG_MAP: Record<string, DietTag> = {
+  vegetarian: { key: "diner.tag.vegetarian", variant: "veg" },
+  végétarien: { key: "diner.tag.vegetarian", variant: "veg" },
+  vegetarien: { key: "diner.tag.vegetarian", variant: "veg" },
+  "fait maison": { key: "diner.tag.homemade", variant: "home" },
+  homemade: { key: "diner.tag.homemade", variant: "home" },
+  piquant: { key: "diner.tag.spicy", variant: "spicy" },
+  épicé: { key: "diner.tag.spicy", variant: "spicy" },
+  spicy: { key: "diner.tag.spicy", variant: "spicy" },
+  "de saison": { key: "diner.tag.seasonal", variant: "season" },
+  seasonal: { key: "diner.tag.seasonal", variant: "season" },
+};
+
+function splitAllergenes(allergenes: string[]): {
+  tags: DietTag[];
+  contains: string[];
+} {
+  const tags: DietTag[] = [];
+  const contains: string[] = [];
+  for (const raw of allergenes) {
+    const tag = DIET_TAG_MAP[raw.trim().toLowerCase()];
+    if (tag) tags.push(tag);
+    else contains.push(raw);
+  }
+  return { tags, contains };
 }

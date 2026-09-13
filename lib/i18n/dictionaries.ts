@@ -86,6 +86,11 @@ const fr: Dict = {
   "diner.close": "Fermer",
   "diner.favorite": "Ajouter aux favoris",
   "diner.followUs": "Suivez-nous",
+  "diner.contains": "Contient",
+  "diner.tag.vegetarian": "Végétarien",
+  "diner.tag.homemade": "Fait maison",
+  "diner.tag.spicy": "Épicé",
+  "diner.tag.seasonal": "De saison",
 
   // --- Diner ordering (FEAT-1) ---
   "order.add": "Ajouter",
@@ -554,6 +559,11 @@ const ar: Dict = {
   "diner.close": "إغلاق",
   "diner.favorite": "أضف إلى المفضلة",
   "diner.followUs": "تابعنا",
+  "diner.contains": "يحتوي على",
+  "diner.tag.vegetarian": "نباتي",
+  "diner.tag.homemade": "صناعة منزلية",
+  "diner.tag.spicy": "حار",
+  "diner.tag.seasonal": "موسمي",
 
   // --- Diner ordering (FEAT-1) ---
   "order.add": "أضف",
@@ -1011,6 +1021,11 @@ const en: Dict = {
   "diner.close": "Close",
   "diner.favorite": "Add to favorites",
   "diner.followUs": "Follow us",
+  "diner.contains": "Contains",
+  "diner.tag.vegetarian": "Vegetarian",
+  "diner.tag.homemade": "Homemade",
+  "diner.tag.spicy": "Spicy",
+  "diner.tag.seasonal": "Seasonal",
 
   // --- Diner ordering (FEAT-1) ---
   "order.add": "Add",

@@ -4,6 +4,18 @@ import { getS3Url } from "@/lib/s3";
 import type { MenuAppearance } from "@/schemas";
 import { currencySymbol } from "@/lib/currency";
 
+/**
+ * Resolve a stored photo reference to a displayable URL. S3 keys ("uploads/…")
+ * go through getS3Url; already-absolute URLs (http/https) and local public
+ * paths ("/images/…", used by the demo seed) are passed through unchanged so
+ * dummy photos render without S3 configured.
+ */
+function resolvePhoto(photo: string | null): string | null {
+  if (!photo) return null;
+  if (/^https?:\/\//i.test(photo) || photo.startsWith("/")) return photo;
+  return getS3Url(photo) || null;
+}
+
 // French weekday names, indexed by JS getDay() (0 = Sunday ... 6 = Saturday),
 // matching the values stored in Menu.availability.
 const FRENCH_DAYS = [
@@ -103,7 +115,7 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
     name: restaurant.name,
     address: restaurant.address,
     phone: restaurant.phone,
-    coverUrl: restaurant.coverPhoto ? getS3Url(restaurant.coverPhoto) || null : null,
+    coverUrl: resolvePhoto(restaurant.coverPhoto),
     wifi: restaurant.wifi,
     website: restaurant.website,
     instagram: restaurant.instagram,
@@ -128,7 +140,7 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
           name: dish.name,
           description: dish.description,
           price: dish.price,
-          photo: dish.photo ? getS3Url(dish.photo) || null : null,
+          photo: resolvePhoto(dish.photo),
           allergenes: dish.allergenes,
           favoriteCount: favoriteCountByDish.get(dish.id) ?? 0,
           // Add-on groups for the diner order builder (FEAT-1/D12).
