@@ -426,8 +426,10 @@ const fr: Dict = {
   "account.onlinePayment": "Paiement en ligne",
   "account.onlinePaymentDesc": "Votre abonnement est géré en ligne.",
   "account.usage": "Utilisation",
+  "account.profile": "Profil",
   "account.profileSettings": "Paramètres du profil",
   "account.updatePassword": "Mettre à jour le mot de passe",
+  "account.defaultUser": "Utilisateur",
   "account.name": "Nom",
   "account.email": "Email",
   "account.role": "Rôle",
@@ -441,6 +443,8 @@ const fr: Dict = {
   "account.confirmPassword": "Confirmer le nouveau mot de passe",
   "account.genericError": "Oups ! Quelque chose s'est mal passé.",
   "account.signOut": "Déconnexion",
+  "account.verifyEmailDesc":
+    "Veuillez vérifier votre nouvelle adresse e-mail ou annuler pour utiliser l'ancienne adresse e-mail.",
   "tour.welcome.desc":
     "Voici un tour rapide pour découvrir l'essentiel. Vous pourrez le relancer à tout moment via le bouton d'aide en haut à droite.",
   "tour.nav.title": "Votre navigation",
@@ -881,8 +885,10 @@ const ar: Dict = {
   "account.onlinePayment": "الدفع عبر الإنترنت",
   "account.onlinePaymentDesc": "تتم إدارة اشتراكك عبر الإنترنت.",
   "account.usage": "الاستخدام",
+  "account.profile": "الملف الشخصي",
   "account.profileSettings": "إعدادات الملف الشخصي",
   "account.updatePassword": "تحديث كلمة المرور",
+  "account.defaultUser": "مستخدم",
   "account.name": "الاسم",
   "account.email": "البريد الإلكتروني",
   "account.role": "الدور",
@@ -895,6 +901,8 @@ const ar: Dict = {
   "account.confirmPassword": "تأكيد كلمة المرور الجديدة",
   "account.genericError": "عذراً! حدث خطأ ما.",
   "account.signOut": "تسجيل الخروج",
+  "account.verifyEmailDesc":
+    "يرجى التحقق من عنوان بريدك الإلكتروني الجديد أو الإلغاء لاستخدام العنوان القديم.",
   "tour.welcome.desc":
     "إليك جولة سريعة لاكتشاف الأساسيات. يمكنك إعادة تشغيلها في أي وقت عبر زر المساعدة في الأعلى.",
   "tour.nav.title": "التنقّل",
@@ -1336,8 +1344,10 @@ const en: Dict = {
   "account.onlinePayment": "Online payment",
   "account.onlinePaymentDesc": "Your subscription is managed online.",
   "account.usage": "Usage",
+  "account.profile": "Profile",
   "account.profileSettings": "Profile settings",
   "account.updatePassword": "Update password",
+  "account.defaultUser": "User",
   "account.name": "Name",
   "account.email": "Email",
   "account.role": "Role",
@@ -1350,6 +1360,8 @@ const en: Dict = {
   "account.confirmPassword": "Confirm new password",
   "account.genericError": "Oops! Something went wrong.",
   "account.signOut": "Sign out",
+  "account.verifyEmailDesc":
+    "Please verify your new email address or cancel to keep the old one.",
   "tour.welcome.desc":
     "Here's a quick tour to discover the essentials. You can replay it anytime from the help button at the top right.",
   "tour.nav.title": "Your navigation",

@@ -1,5 +1,9 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { KeyRound, ShieldCheck, UserCog } from "lucide-react";
+import { translate } from "@/lib/i18n";
+import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, type Locale } from "@/lib/i18n/config";
+import type { TranslationKey } from "@/lib/i18n/dictionaries";
 
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,11 +42,6 @@ function buildRedeemLink(code: string): string {
   return origin ? `${origin}${path}` : path;
 }
 
-const ROLE_LABELS: Record<string, string> = {
-  ADMIN: "Administrateur",
-  USER: "Utilisateur"
-};
-
 function getInitials(name?: string | null, email?: string | null) {
   const source = (name || email || "").trim();
   if (!source) return "?";
@@ -54,6 +53,12 @@ function getInitials(name?: string | null, email?: string | null) {
 }
 
 export default async function SettingsPage() {
+  // Server component: resolve the locale from the cookie and translate with the
+  // shared (pure) translator, since useI18n is client-only.
+  const cookieLocale = cookies().get(LOCALE_COOKIE)?.value;
+  const locale: Locale = isLocale(cookieLocale) ? cookieLocale : DEFAULT_LOCALE;
+  const t = (key: TranslationKey) => translate(locale, key);
+
   const sessionUser = await currentUser();
   const user = sessionUser?.id ? await getUserById(sessionUser.id) : null;
 
@@ -129,7 +134,7 @@ export default async function SettingsPage() {
   }
 
   return (
-    <ContentLayout title="Mon compte">
+    <ContentLayout title={t("nav.account")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -141,7 +146,7 @@ export default async function SettingsPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Mon compte</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.account")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -157,7 +162,7 @@ export default async function SettingsPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-              <h3 className="text-lg md:text-xl font-semibold">Profil</h3>
+              <h3 className="text-lg md:text-xl font-semibold">{t("account.profile")}</h3>
             </div>
           </CardHeader>
           <CardContent>
@@ -170,13 +175,17 @@ export default async function SettingsPage() {
               </Avatar>
               <div className="min-w-0">
                 <p className="truncate text-base font-semibold">
-                  {name ?? "Utilisateur"}
+                  {name ?? t("account.defaultUser")}
                 </p>
                 <p className="truncate text-sm text-muted-foreground">
                   {email ?? "—"}
                 </p>
                 <Badge variant="secondary" className="mt-2">
-                  {ROLE_LABELS[role] ?? role}
+                  {role === "ADMIN"
+                    ? t("account.roleAdmin")
+                    : role === "USER"
+                    ? t("account.roleUser")
+                    : role}
                 </Badge>
                 {userId ? (
                   <div className="mt-2 flex items-center gap-1.5 text-xs text-muted-foreground">
@@ -211,7 +220,7 @@ export default async function SettingsPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <UserCog className="h-5 w-5 text-muted-foreground" />
-              <h3 className="text-lg md:text-xl font-semibold">Paramètres du profil</h3>
+              <h3 className="text-lg md:text-xl font-semibold">{t("account.profileSettings")}</h3>
             </div>
           </CardHeader>
           <CardContent>
@@ -224,7 +233,7 @@ export default async function SettingsPage() {
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <KeyRound className="h-5 w-5 text-muted-foreground" />
-              <h3 className="text-lg md:text-xl font-semibold">Mettre à jour le mot de passe</h3>
+              <h3 className="text-lg md:text-xl font-semibold">{t("account.updatePassword")}</h3>
             </div>
           </CardHeader>
           <CardContent>

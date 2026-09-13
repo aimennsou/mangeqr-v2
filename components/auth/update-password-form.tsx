@@ -22,8 +22,10 @@ import { FormError } from '@/components/form-error';
 import { FormSuccess } from '@/components/form-success';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { updatePassword } from '@/actions/update-password';
+import { useI18n } from '@/lib/i18n';
 
 export default function UpdatePasswordForm() {
+  const { t } = useI18n();
   const user = useCurrentUser();
   const { update } = useSession();
 
@@ -53,7 +55,7 @@ export default function UpdatePasswordForm() {
             setSuccess(data.success);
           }
         })
-        .catch(() => setError('Oups ! Quelque chose s\'est mal passé.'));
+        .catch(() => setError(t('account.genericError')));
     });
   };
 
@@ -68,7 +70,7 @@ export default function UpdatePasswordForm() {
                 name='currentPassword'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Votre mot de passe actuel</FormLabel>
+                    <FormLabel>{t('account.currentPassword')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -87,7 +89,7 @@ export default function UpdatePasswordForm() {
                 name='newPassword'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Nouveau mot de passe</FormLabel>
+                    <FormLabel>{t('account.newPassword')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -105,7 +107,7 @@ export default function UpdatePasswordForm() {
                 name='confirmPassword'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Confirmer le nouveau mot de passe</FormLabel>
+                    <FormLabel>{t('account.confirmPassword')}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
@@ -129,7 +131,7 @@ export default function UpdatePasswordForm() {
               <Loader2 className='animate-spin mr-2' size={18} />
             </>
           )}
-          {!isPending && <>Enregistrer</>}
+          {!isPending && <>{t('common.save')}</>}
         </Button>
       </form>
     </Form>

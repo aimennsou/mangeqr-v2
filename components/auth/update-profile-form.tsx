@@ -24,8 +24,10 @@ import { updateProfile } from '@/actions/update-profile';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { cancelNewEmail } from '@/actions/cancel-new-email';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n';
 
 export default function UpdateProfileForm() {
+  const { t } = useI18n();
   const user = useCurrentUser();
   const { update } = useSession();
 
@@ -53,7 +55,7 @@ export default function UpdateProfileForm() {
             toast.success(data.success);
           }
         })
-        .catch(() => toast.error('Oups ! Quelque chose s\'est mal passé.'));
+        .catch(() => toast.error(t('account.genericError')));
     });
   };
 
@@ -71,7 +73,7 @@ export default function UpdateProfileForm() {
             form.reset();
           }
         })
-        .catch(() => toast.error('Oups ! Quelque chose s\'est mal passé.'));
+        .catch(() => toast.error(t('account.genericError')));
     });
   };
 
@@ -84,7 +86,7 @@ export default function UpdateProfileForm() {
             name='name'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nom</FormLabel>
+                <FormLabel>{t('account.name')}</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -103,7 +105,7 @@ export default function UpdateProfileForm() {
               name='email'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t('account.email')}</FormLabel>
                   <div className='gap-2'>
                     <FormControl>
                       <Input
@@ -119,13 +121,13 @@ export default function UpdateProfileForm() {
                         onClick={onCancelEmailUpdate}
                         disabled={isPending}
                       >
-                        Annuler
+                        {t('common.cancel')}
                       </Button>
                     )}
                   </div>
                   {!!user.tempEmail && (
                     <FormDescription>
-                      Veuillez vérifier votre nouvelle adresse e-mail ou annuler pour utiliser l'ancienne adresse e-mail.
+                      {t('account.verifyEmailDesc')}
                     </FormDescription>
                   )}
                   <FormMessage />
@@ -141,9 +143,9 @@ export default function UpdateProfileForm() {
               render={({ field }) => (
                 <FormItem className='flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm'>
                   <div className='space-y-0.5'>
-                    <FormLabel>Authentification à deux facteurs</FormLabel>
+                    <FormLabel>{t('account.twoFactor')}</FormLabel>
                     <FormDescription>
-                      Activez l'authentification à deux facteurs pour votre compte
+                      {t('account.twoFactorDesc')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -162,10 +164,10 @@ export default function UpdateProfileForm() {
           {isPending && (
             <>
               <Loader2 className='animate-spin mr-2' size={18} />
-              Enregistrement...
+              {t('common.saving')}
             </>
           )}
-          {!isPending && <>Enregistrer</>}
+          {!isPending && <>{t('common.save')}</>}
         </Button>
       </form>
     </Form>
