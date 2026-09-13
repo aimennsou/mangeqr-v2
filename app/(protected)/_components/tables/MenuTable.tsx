@@ -68,6 +68,8 @@ import { Switch } from "@/components/ui/switch";
 import { title } from "process";
 import { toast } from "sonner";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n/dictionaries";
 
 export type Menu = {
   position: any;
@@ -103,6 +105,7 @@ interface Dish {
 
 
 export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
+  const { t } = useI18n();
   const [menus, setMenus] = useState<Menu[]>(initialMenus); 
   const [shops, setShops] = useState<{ id: string; name: string }[]>(
     initialMenus.map((menu) => menu.shop)
@@ -210,19 +213,19 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
     {
       accessorKey: "name",
       enableSorting: true,
-      header: "Menu",
+      header: t("common.menu"),
       cell: ({ row }) => <div>{row.getValue("name")}</div>,
     },
     {
       accessorKey: "shopName",
       enableSorting: true,
-      header: "Restaurant",
+      header: t("common.restaurant"),
       cell: ({ row }) => <div>{row.original.shop?.name ?? row.original.shopName ?? ""}</div>,
     },
     {
       accessorKey: "availability",
       enableSorting: false,
-      header: "Jours de disponibilités",
+      header: t("menus.col.availDays"),
       cell: ({ row }) => {
         const availability = row.getValue("availability") as string[];
         return (
@@ -232,7 +235,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                 key={index}
                 className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400 "
               >
-                <span>{item}</span>
+                <span>{t(`common.days.${item}` as TranslationKey)}</span>
               </Badge>
             ))}
           </div>
@@ -242,12 +245,12 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
     {
       accessorKey: "numberOfCategories",
       enableSorting: false,
-      header: "Nombre de Catégories",
+      header: t("menus.col.categoriesCount"),
       cell: ({ row }) => {
         const count = menuCategoryCounts[row.original.id] || 0;
         return (
           <Badge variant="secondary">
-         <span className="whitespace-nowrap">     {count} catégorie{count !== 1 ? "s" : ""}</span> 
+         <span className="whitespace-nowrap">     {count} {t("menus.count.categories")}</span> 
           </Badge>
         );
       },
@@ -256,13 +259,13 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
     {
       accessorKey: "numberOfDishes",
       enableSorting: false,
-      header: "Nombre de Plats",
+      header: t("menus.col.dishesCount"),
       cell: ({ row }) => {
         const count = menuDishCounts[row.original.id] || 0;
 
         return (
           <Badge variant="secondary">
-     <span className="whitespace-nowrap"> {count} plat{count !== 1 ? "s" : ""}</span>      
+     <span className="whitespace-nowrap"> {count} {t("menus.count.dishes")}</span>      
           </Badge>
         );
       },
@@ -270,7 +273,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
     {
       accessorKey: "state",
       enableSorting: false,
-      header: "Statut",
+      header: t("menus.col.state"),
       cell: ({ row }) => {
         const [status, setStatus] = useState(row.getValue("state") === "ACTIVE");
      
@@ -297,11 +300,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
      
 
             toast.success(
- 
-     
-     `Le menu est maintenant ${
-                checked ? "ACTIVE" : "INACTIVE"
-              }.`,
+              checked ? t("menus.toast.stateActive") : t("menus.toast.stateInactive"),
             );
          
 
@@ -318,7 +317,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
             setStatus(!checked);
 
 
-            toast.error("Échec de la mise à jour du statut du menu."); 
+            toast.error(t("menus.toast.stateError")); 
 
         
 
@@ -338,7 +337,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
     },
     {
       accessorKey: "state", //  using state, but actual logic is for duplication
-      header: "Dupliquer",
+      header: t("menus.col.duplicate"),
       cell: ({ row }) => {
 
 
@@ -358,7 +357,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
 
             if (!response.ok) {
               // Surface the specific server message (e.g. plan limit reached).
-              toast.error(result?.error || "Échec de la duplication du menu.");
+              toast.error(result?.error || t("menus.toast.duplicateError"));
               return;
             }
 
@@ -382,7 +381,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
 
 
 
-            toast.success("Le menu a été dupliqué avec succès."); // Toast for duplicate action
+            toast.success(t("menus.toast.duplicated"));
         
 
 
@@ -390,7 +389,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
  
           } catch (error) {
             console.error("Failed to duplicate menu", error);
-            toast.error("Échec de la duplication du menu.");
+            toast.error(t("menus.toast.duplicateError"));
           }
         };
 
@@ -408,7 +407,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
 
     {
       id: "actions",
-      header: "Modifier",
+      header: t("menus.col.edit"),
       enableHiding: false,
       cell: ({ row }) => {
         const [dialogOpen, setDialogOpen] = useState(false);
@@ -467,13 +466,13 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
 
 
 
-            toast.success("Menu mis à jour avec succès!"); // Toast for duplicate action
+            toast.success(t("menus.toast.updated"));
         
             
 
       
           } catch (error) {
-            toast.error("Erreur lors de la mise à jour"); 
+            toast.error(t("menus.toast.deleteError")); 
 
           } finally {
             setIsSubmitting(false);
@@ -508,17 +507,16 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
             {/* Same shadcn Dialog as the Add form → same fade/zoom animation. */}
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
-                <DialogTitle>Modifier votre menu</DialogTitle>
+                <DialogTitle>{t("menus.edit.title")}</DialogTitle>
                 <DialogDescription>
-                  Modifiez les détails de votre menu ici. Enregistrez lorsque
-                  vous avez terminé.
+                  {t("menus.create.desc")}
                 </DialogDescription>
               </DialogHeader>
 
               <div className="max-h-[400px] max-w-full overflow-y-auto p-4">
                     <form className={cn("grid items-start gap-4")} onSubmit={handleSubmit}>
                       <div className="grid gap-2">
-                        <Label htmlFor="name">Nom</Label>
+                        <Label htmlFor="name">{t("menus.field.name")}</Label>
                         <Input
                           type="text"
                           id="name"
@@ -529,7 +527,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                         />
                       </div>
 
-                      <Label htmlFor="restaurant">Restaurant</Label>
+                      <Label htmlFor="restaurant">{t("common.restaurant")}</Label>
                       <Select
                         value={editData.shop.id}
                         onValueChange={(value) =>
@@ -542,7 +540,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                         <SelectTrigger>
                           <SelectValue
                             className="text-foreground"
-                            placeholder="Choisissez un restaurant"
+                            placeholder={t("common.chooseRestaurant")}
                           />
                         </SelectTrigger>
                         <SelectContent>
@@ -556,7 +554,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                         </SelectContent>
                       </Select>
 
-                      <Label htmlFor="availability">Disponibilité</Label>
+                      <Label htmlFor="availability">{t("menus.field.availability")}</Label>
                       <ToggleGroup
                         size="lg"
                         type="multiple"
@@ -567,7 +565,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                         {["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map(
                           (day) => (
                             <ToggleGroupItem key={day} value={day} aria-label={`Toggle ${day}`}>
-                              {day}
+                              {t(`common.days.${day}` as TranslationKey)}
                             </ToggleGroupItem>
                           )
                         )}
@@ -578,7 +576,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                         type="submit"
                         disabled={isSubmitting}
                       >
-                        {isSubmitting ? "Enregistrement" : "Enregistrer"}
+                        {isSubmitting ? t("common.saving") : t("common.save")}
                       </Button>
                     </form>
                   </div>
@@ -616,7 +614,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
 
     if (selectedMenuIds.length === 0) {
 
-      toast.error("Merci de selectionné les menus a supprimé"); 
+      toast.error(t("menus.delete.selectError")); 
 
  
       return;
@@ -645,7 +643,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
       );
 
 
-      toast.error("Votre menu est supprimé"); 
+      toast.success(t("menus.toast.deleted")); 
 
   
 
@@ -704,7 +702,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
     <div className="w-full">
       <div className="flex items-center py-4">
         <Input
-          placeholder="Trouver un menu..."
+          placeholder={t("menus.search")}
           value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
           onChange={(event) =>
             table.getColumn("name")?.setFilterValue(event.target.value)
@@ -718,27 +716,25 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                 variant="outline"
                 className="text-red-400 bg-inherit  border-none shadow-none  rounded-full hover:bg-inherit hover:text-red-500"
               >
-                Supprimer
+                {t("common.delete")}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+                <AlertDialogTitle>{t("common.confirmDeleteTitle")}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Cette action est irréversible. Elle supprimera
-                  définitivement votre menu, ainsi que toutes les catégories et
-                  les plats associés.
+                  {t("menus.delete.desc")}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex flex-row justify-end  items-center">
                 <AlertDialogCancel className="border-none bg-muted text-foreground my-auto mr-2 hover:bg-muted/80 shadow-none">
-                  Annuler
+                  {t("common.cancel")}
                 </AlertDialogCancel>
                 <AlertDialogAction
                   onClick={handleDeleteMenu}
                   className="bg-red-50 border border-red-500 shadow-none text-red-500 hover:bg-red-100"
                 >
-                  Supprimer
+                  {t("common.delete")}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
@@ -827,7 +823,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    Aucun résultat.
+                    {t("common.noResults")}
                   </TableCell>
                 </TableRow>
               )}
@@ -840,8 +836,8 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
         <div className="flex-1 text-sm text-muted-foreground">
-          {table.getFilteredSelectedRowModel().rows.length} de{" "}
-          {table.getFilteredRowModel().rows.length} ligne(s) sélectionnée(s).
+          {table.getFilteredSelectedRowModel().rows.length} {t("menus.rowsOf")}{" "}
+          {table.getFilteredRowModel().rows.length} {t("menus.rowsSelected")}
         </div>
         <div className="space-x-2">
           <Button
@@ -850,7 +846,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
-            Précédent
+            {t("common.previous")}
           </Button>
           <Button
             variant="outline"
@@ -858,7 +854,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
-            Suivant
+            {t("common.next")}
           </Button>
         </div>
       </div>

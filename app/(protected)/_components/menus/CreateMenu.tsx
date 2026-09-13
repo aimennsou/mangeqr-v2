@@ -15,6 +15,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner"; // Import Sonner's toast function
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n/dictionaries";
 
 
 
@@ -24,6 +26,7 @@ interface DrawerDialogDemoProps {
 }
 
 const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) => {
+  const { t } = useI18n();
   const [name, setName] = useState("");
   const [restaurantId, setShopId] = useState("");
   const [availability, setAvailability] = useState<string[]>([]);
@@ -33,7 +36,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
     event.preventDefault();
 
     if (!name || !restaurantId || availability.length === 0) {
-          toast.error("Veuillez remplir tous les champs requis."); 
+          toast.error(t("menus.requiredFields")); 
       
 
       return;
@@ -60,12 +63,12 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
       if (!response.ok) {
         // Surface the specific server message (e.g. plan limit reached)
         // instead of a generic error.
-        toast.error(result?.error || "Une erreur est survenue.");
+        toast.error(result?.error || t("restaurants.toast.genericError"));
         return;
       }
 
 
-          toast.success(`Le menu "${result.name}" a été ajouté avec succès.`); // Toast for duplicate action
+          toast.success(t("menus.toast.added"));
 
 
       const restaurant = shops.find((restaurant) => restaurant.id === result.restaurantId);
@@ -84,7 +87,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
       setAvailability([]);
     } catch (error) {
       console.error("Error submitting form:", error);
-      toast.error("Une erreur est survenue lors de l'envoi de votre demande."); 
+      toast.error(t("menus.toast.submitError")); 
 
       
     }
@@ -102,7 +105,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
       } catch (error) {
         console.error("Error fetching shops:", error);
 
-        toast.error("Impossible de charger les restaurants."); 
+        toast.error(t("menus.toast.loadRestaurantsError")); 
 
 
       }
@@ -117,7 +120,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
       <div className="max-h-[400px] max-w-full overflow-y-auto p-4">
         <form className={cn("grid items-start gap-4")} onSubmit={handleSubmit}>
           <div className="grid gap-2">
-            <Label htmlFor="name">Nom</Label>
+            <Label htmlFor="name">{t("menus.field.name")}</Label>
             <Input
               type="text"
               id="name"
@@ -127,12 +130,12 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
             />
           </div>
 
-          <Label htmlFor="restaurant">Restaurant</Label>
+          <Label htmlFor="restaurant">{t("common.restaurant")}</Label>
           <Select onValueChange={(value) => setShopId(value)}>
             <SelectTrigger>
               <SelectValue
                 className="text-foreground"
-                placeholder="Choisissez un restaurant"
+                placeholder={t("common.chooseRestaurant")}
               />
             </SelectTrigger>
             <SelectContent>
@@ -146,17 +149,19 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
             </SelectContent>
           </Select>
 
-          <Label htmlFor="availability">Disponibilité</Label>
+          <Label htmlFor="availability">{t("menus.field.availability")}</Label>
           <ToggleGroup
             size="lg"
             type="multiple"
             className="grid grid-cols-3"
             onValueChange={(values) => setAvailability(values)}
           >
+            {/* Value stays the French weekday (stored in DB); only the label is
+                translated so availability data remains consistent. */}
             {["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map(
               (day) => (
                 <ToggleGroupItem key={day} value={day} aria-label={`Toggle ${day}`}>
-                  {day}
+                  {t(`common.days.${day}` as TranslationKey)}
                 </ToggleGroupItem>
               )
             )}
@@ -166,7 +171,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
             className="bg-yellow-400 hover:bg-yellow-400 text-black"
             type="submit"
           >
-            Enregistrer
+            {t("common.save")}
           </Button>
         </form>
       </div>

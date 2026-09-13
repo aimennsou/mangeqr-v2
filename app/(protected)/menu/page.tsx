@@ -30,6 +30,7 @@ import MenuTableSkeleton from "../_components/tables/MenuTableSkeleton";
 import { ContentLayout } from "../_admin-panel/content-layout";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n";
 
 // Map a menu returned by /api/menu (with a `restaurant` relation) to the shape
 // the MenuTable expects (a `shop` object + `shopName`), keeping real fields.
@@ -43,6 +44,7 @@ const mapMenu = (menu: any) => ({
 
 export default function MenusPage() {
   const { theme } = useTheme();
+  const { t } = useI18n();
   const [menus, setMenus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState(false);
@@ -79,7 +81,7 @@ export default function MenusPage() {
   };
 
   return (
-    <ContentLayout title="Menus">
+    <ContentLayout title={t("nav.menus")}>
       <Breadcrumb>
         <BreadcrumbList>
         <BreadcrumbItem>
@@ -91,7 +93,7 @@ export default function MenusPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Menus</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.menus")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -103,14 +105,14 @@ export default function MenusPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button size="lg" className="bg-yellow-400 hover:bg-yellow-400 text-black">
-                <Plus className="w-4 h-4 mr-2" /> Ajouter un menu
+                <Plus className="w-4 h-4 mr-2" /> {t("menus.add")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] ">
               <DialogHeader>
-                <DialogTitle>Créer votre menu</DialogTitle>
+                <DialogTitle>{t("menus.create.title")}</DialogTitle>
                 <DialogDescription>
-                  Ajoutez les détails de votre menu ici. Enregistrez lorsque vous avez terminé.
+                  {t("menus.create.desc")}
                 </DialogDescription>
               </DialogHeader>
 
@@ -134,8 +136,8 @@ export default function MenusPage() {
                 height={400}
               />
             </div>
-            <p className="text-lg  font-semibold mt-4">Aucun menu disponible..</p>
-            <p className="mt-2">Créez votre premier restaurant pour pouvoir ajouter des menus.</p>
+            <p className="text-lg  font-semibold mt-4">{t("menus.empty.title")}</p>
+            <p className="mt-2">{t("menus.empty.subtitle")}</p>
           </div>
         )}
 
