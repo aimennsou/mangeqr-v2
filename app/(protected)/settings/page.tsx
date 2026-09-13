@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import { KeyRound, ShieldCheck, UserCog } from "lucide-react";
-import { translate } from "@/lib/i18n";
+import { translate } from "@/lib/i18n/translate";
 import { DEFAULT_LOCALE, LOCALE_COOKIE, isLocale, type Locale } from "@/lib/i18n/config";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
 

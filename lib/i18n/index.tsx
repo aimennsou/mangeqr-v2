@@ -15,19 +15,13 @@ import {
   isLocale,
   type Locale,
 } from "./config";
-import { DICTIONARIES, type TranslationKey } from "./dictionaries";
+import { type TranslationKey } from "./dictionaries";
+// `translate` lives in a pure (React-free) module so server components can import
+// it without tripping over this file's client-only exports (I18nProvider/useI18n).
+// Re-exported here for backward compatibility with existing `@/lib/i18n` imports.
+import { translate } from "./translate";
 
-/**
- * Translate a key for a locale, falling back to French (the source of truth)
- * when the key is missing in the target locale, and finally to the raw key.
- */
-export function translate(locale: Locale, key: TranslationKey): string {
-  return (
-    DICTIONARIES[locale]?.[key] ??
-    DICTIONARIES[DEFAULT_LOCALE]?.[key] ??
-    (key as string)
-  );
-}
+export { translate };
 
 interface I18nContextValue {
   locale: Locale;
