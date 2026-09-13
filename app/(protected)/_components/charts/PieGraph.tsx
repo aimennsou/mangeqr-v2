@@ -46,11 +46,13 @@ export function PieGraph({ data }: PieChartProps) {
 
   return (
     <Card className="flex flex-col">
-      <CardHeader className="items-start pb-0">
-        <CardTitle> Visiteurs par période de la semaine : Weekend vs En Semaine</CardTitle>
-        <CardDescription>Affichage des visiteurs sur la période selectionnée</CardDescription>
+      <CardHeader className="flex flex-col items-stretch space-y-2 border-b p-0">
+        <div className="flex flex-1 flex-col justify-center gap-2 px-6 py-5 sm:py-6">
+          <CardTitle>Visiteurs par période de la semaine : Weekend vs en semaine</CardTitle>
+          <CardDescription>Affichage des visiteurs sur la période sélectionnée</CardDescription>
+        </div>
       </CardHeader>
-      <CardContent className="flex-1 pb-0">
+      <CardContent className="flex-1 pb-0 pt-6">
         {isEmpty ? (
           <div className="mx-auto flex aspect-square max-h-[360px] items-center justify-center text-sm text-muted-foreground">
             Aucune donnée sur la période.

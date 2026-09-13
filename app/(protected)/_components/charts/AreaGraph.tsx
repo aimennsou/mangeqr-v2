@@ -42,13 +42,15 @@ export function AreaGraph({ data }: AreaChartProps) {
 
   return (
     <Card>
-      <CardHeader>
-      <CardTitle>Visiteurs par Période : Jour vs Nuit</CardTitle>
-        <CardDescription>
-          Affichage des visiteurs par jour de la semaine et période de la journée
-        </CardDescription>
+      <CardHeader className="flex flex-col items-stretch space-y-2 border-b p-0 sm:flex-row sm:space-y-0">
+        <div className="flex flex-1 flex-col justify-center gap-2 px-6 py-5 sm:py-6">
+          <CardTitle>Visiteurs par période : Jour vs Nuit</CardTitle>
+          <CardDescription>
+            Affichage des visiteurs par jour de la semaine et période de la journée
+          </CardDescription>
+        </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="px-2 sm:p-6">
         {isEmpty ? (
           <div className="flex h-[310px] items-center justify-center text-sm text-muted-foreground">
             Aucune donnée sur la période.
@@ -56,7 +58,7 @@ export function AreaGraph({ data }: AreaChartProps) {
         ) : (
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto h-[310px]  space-y-6 w-full"
+          className="aspect-auto h-[310px] w-full"
         >
           <AreaChart
             accessibilityLayer
