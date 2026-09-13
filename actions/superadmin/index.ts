@@ -8,7 +8,9 @@ import { currentRole, currentUserId } from '@/lib/authentication';
 import {
   SuperadminSetPlanSchema,
   SuperadminSetSuspendedSchema,
-  SuperadminDeleteUserSchema
+  SuperadminDeleteUserSchema,
+  SuperadminSetDesignOrderStatusSchema,
+  SuperadminSetOrderingEnabledSchema
 } from '@/schemas';
 
 /**
@@ -179,4 +181,72 @@ export async function superadminDeleteUser(
   }
 
   return { success: 'Utilisateur supprimé.' };
+}
+
+
+/**
+ * Update a design order's fulfillment status (FEAT-6). SUPERADMIN-only. The
+ * superadmin fulfills every account's QR-design orders centrally, so this is
+ * NOT workspace-scoped — any order can be advanced through
+ * PENDING → IN_PROGRESS → SHIPPED → DELIVERED (or CANCELLED).
+ */
+export async function superadminSetDesignOrderStatus(
+  values: z.infer<typeof SuperadminSetDesignOrderStatusSchema>
+): Promise<ActionResult> {
+  if (!(await requireSuperadmin())) {
+    return FORBIDDEN;
+  }
+
+  const parsed = SuperadminSetDesignOrderStatusSchema.safeParse(values);
+  if (!parsed.success) {
+    return INVALID;
+  }
+
+  const { orderId, status } = parsed.data;
+
+  try {
+    await db.designOrder.update({
+      where: { id: orderId },
+      data: { status }
+    });
+  } catch {
+    return { error: 'Impossible de mettre à jour la commande.' };
+  }
+
+  return { success: 'Statut de la commande mis à jour.' };
+}
+
+
+/**
+ * Enable/disable ORDERING for an account (FEAT-1/D16). SUPERADMIN-only. Turning
+ * this off hides the ordering nav + disables diner ordering for all the
+ * account's restaurants (the per-restaurant toggle is only effective when the
+ * account is enabled).
+ */
+export async function superadminSetOrderingEnabled(
+  values: z.infer<typeof SuperadminSetOrderingEnabledSchema>
+): Promise<ActionResult> {
+  if (!(await requireSuperadmin())) {
+    return FORBIDDEN;
+  }
+
+  const parsed = SuperadminSetOrderingEnabledSchema.safeParse(values);
+  if (!parsed.success) {
+    return INVALID;
+  }
+
+  const { userId, enabled } = parsed.data;
+
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: { orderingEnabled: enabled }
+    });
+  } catch {
+    return { error: "Impossible de mettre à jour l'accès aux commandes." };
+  }
+
+  return {
+    success: enabled ? 'Commandes activées.' : 'Commandes désactivées.'
+  };
 }

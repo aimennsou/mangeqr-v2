@@ -67,6 +67,27 @@ export async function getWorkspaceContext(
   return { ownerId: userId, role: 'OWNER' };
 }
 
+/**
+ * Whether the workspace OWNER's account has ordering enabled (FEAT-1/D16). The
+ * superadmin flips `User.orderingEnabled` per account; this resolves the caller
+ * to their owner and reads that flag. UX/nav gating only — server routes and
+ * the diner order endpoints re-check authoritatively.
+ */
+export async function isOrderingEnabledForUser(
+  userId: string
+): Promise<boolean> {
+  try {
+    const ownerId = await getWorkspaceOwnerId(userId);
+    const owner = await db.user.findUnique({
+      where: { id: ownerId },
+      select: { orderingEnabled: true }
+    });
+    return owner?.orderingEnabled ?? false;
+  } catch {
+    return false;
+  }
+}
+
 /** True when the user is a member of some workspace (has a Membership row). */
 export async function isWorkspaceMember(userId: string): Promise<boolean> {
   try {

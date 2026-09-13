@@ -12,9 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { GripVertical, Trash, CopyPlus, Pencil, Loader2 } from "lucide-react";
+import { GripVertical, Trash, CopyPlus, Pencil, Loader2, ListPlus } from "lucide-react";
 import { toast } from "sonner";
 import { getS3Url, uploadToS3 } from "@/lib/s3";
+import { useOrderingEnabled } from "@/hooks/use-workspace-role";
+import { DishAddonsDialog } from "./DishAddonsDialog";
 
 interface DishCardProps {
   id: string;
@@ -28,6 +30,8 @@ interface DishCardProps {
   photoValue?: string | null;
   allergenes: string;
   state?: "ACTIVE" | "INACTIVE";
+  /** Currency symbol for the add-ons price hint (display only). */
+  currencySymbol?: string;
   onDelete?: (id: string) => void;
   onDuplicate?: (id: string) => void;
   onToggleState?: (id: string, state: "ACTIVE" | "INACTIVE") => void;
@@ -47,6 +51,7 @@ const DishCard: React.FC<DishCardProps> = ({
   photoValue,
   allergenes,
   state = "ACTIVE",
+  currencySymbol = "€",
   onDelete,
   onDuplicate,
   onToggleState,
@@ -54,8 +59,10 @@ const DishCard: React.FC<DishCardProps> = ({
   onChanged,
   dragHandleProps,
 }) => {
+  const orderingEnabled = useOrderingEnabled();
   const [status, setStatus] = useState(state === "ACTIVE");
   const [editOpen, setEditOpen] = useState(false);
+  const [addonsOpen, setAddonsOpen] = useState(false);
   const [editName, setEditName] = useState(name);
   const [editDescription, setEditDescription] = useState(description);
   const [editPrice, setEditPrice] = useState<number>(priceValue ?? 0);
@@ -269,6 +276,27 @@ const DishCard: React.FC<DishCardProps> = ({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
+
+            {/* Add-ons (FEAT-1/D12) — only relevant when the account takes
+                orders, so it's hidden unless ordering is enabled. */}
+            {orderingEnabled ? (
+              <TooltipProvider>
+                <Tooltip delayDuration={100}>
+                  <TooltipTrigger>
+                    <Button
+                      size="icon"
+                      className="text-muted-foreground bg-inherit shadow-none rounded-full opacity-80 hover:text-foreground hover:bg-muted"
+                      onClick={() => setAddonsOpen(true)}
+                    >
+                      <ListPlus />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Gérer les suppléments</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
           </div>
         </div>
         <div className="flex-shrink-0">
@@ -373,6 +401,17 @@ const DishCard: React.FC<DishCardProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Add-ons management dialog (mounted only when ordering is enabled) */}
+      {orderingEnabled ? (
+        <DishAddonsDialog
+          dishId={id}
+          dishName={name}
+          open={addonsOpen}
+          onOpenChange={setAddonsOpen}
+          currencySymbol={currencySymbol}
+        />
+      ) : null}
     </div>
   );
 };

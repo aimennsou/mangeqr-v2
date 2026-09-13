@@ -35,6 +35,12 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
   const restaurant = await db.restaurant.findUnique({
     where,
     include: {
+      // Owner account, to know whether ordering is enabled for this account
+      // (FEAT-1/D16). Ordering is ON for diners only when BOTH the account and
+      // this restaurant have it enabled.
+      user: { select: { orderingEnabled: true } },
+      // Tables (for the dine-in table picker). Diner-facing: id + label only.
+      tables: { select: { id: true, label: true } },
       menus: {
         where: { state: "ACTIVE" },
         orderBy: { position: "asc" },
@@ -46,6 +52,13 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
               dishes: {
                 where: { state: "ACTIVE" },
                 orderBy: { position: "asc" },
+                include: {
+                  // Add-on groups + options (FEAT-1/D12) for the order builder.
+                  addonGroups: {
+                    orderBy: { position: "asc" },
+                    include: { options: { orderBy: { position: "asc" } } },
+                  },
+                },
               },
             },
           },
@@ -55,6 +68,20 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
   });
 
   if (!restaurant) return null;
+
+  // Ordering is available to diners only when the account is enabled AND this
+  // restaurant has its per-restaurant toggle on (D9 + D16).
+  const orderingEnabled =
+    (restaurant.user?.orderingEnabled ?? false) &&
+    restaurant.orderingEnabled;
+
+  // Diner table picker list, sorted numerically when labels are numbers.
+  const tables = [...restaurant.tables].sort((a, b) => {
+    const na = Number(a.label);
+    const nb = Number(b.label);
+    if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
+    return a.label.localeCompare(b.label);
+  });
 
   const availableMenus = restaurant.menus.filter((menu) =>
     isAvailableToday(menu.availability)
@@ -86,6 +113,9 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
     // (null when unset); PublicMenu normalizes it against the shared defaults.
     menuAppearance: (restaurant.menuAppearance as MenuAppearance | null) ?? null,
     currency: currencySymbol(restaurant.currency),
+    // FEAT-1: diner ordering context.
+    orderingEnabled,
+    tables: tables.map((t) => ({ id: t.id, label: t.label })),
     menus: availableMenus.map((menu) => ({
       id: menu.id,
       name: menu.name,
@@ -101,6 +131,18 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
           photo: dish.photo ? getS3Url(dish.photo) || null : null,
           allergenes: dish.allergenes,
           favoriteCount: favoriteCountByDish.get(dish.id) ?? 0,
+          // Add-on groups for the diner order builder (FEAT-1/D12).
+          addonGroups: dish.addonGroups.map((g) => ({
+            id: g.id,
+            name: g.name,
+            type: g.type,
+            required: g.required,
+            options: g.options.map((o) => ({
+              id: o.id,
+              name: o.name,
+              priceDelta: o.priceDelta,
+            })),
+          })),
         })),
       })),
     })),

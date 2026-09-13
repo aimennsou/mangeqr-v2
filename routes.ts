@@ -11,7 +11,16 @@ export const publicRoutes: string[] = ['/','/pricing', '/auth/email-verification
  * never require authentication.
  * @type {string[]}
  */
-export const publicRoutePrefixes: string[] = ['/restaurant', '/embed', '/api/track', '/api/review'];
+export const publicRoutePrefixes: string[] = [
+  '/restaurant',
+  '/embed',
+  '/api/track',
+  '/api/review',
+  // FEAT-1 diner ordering: the order-submit API and the diner live status page
+  // are used by unauthenticated diners (from the QR menu), so they're public.
+  '/api/orders',
+  '/order',
+];
 
 /**
  * An array of routes that are used for authentication

@@ -155,6 +155,20 @@ export default function CategoriesPage() {
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [dishDialogCategoryId, setDishDialogCategoryId] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // IMPROVEMENT-5: which categories are expanded. Collapsed by default (empty
+  // set = all collapsed) and NOT persisted, so every visit starts collapsed.
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set()
+  );
+
+  const toggleCategoryCollapse = (categoryId: string) => {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) next.delete(categoryId);
+      else next.add(categoryId);
+      return next;
+    });
+  };
 
   const selectedRestaurant = useMemo(
     () => restaurants.find((r) => r.id === selectedRestaurantId),
@@ -270,7 +284,13 @@ export default function CategoriesPage() {
 
   // Optimistically insert the newly created dish into its category.
   const handleAddDish = (newDish?: any) => {
+    const targetCategoryId = newDish?.categoryId ?? dishDialogCategoryId;
     setDishDialogCategoryId(null);
+    // Expand the category so the freshly added dish is visible (IMPROVEMENT-5:
+    // categories are collapsed by default).
+    if (targetCategoryId) {
+      setExpandedCategories((prev) => new Set(prev).add(targetCategoryId));
+    }
     if (newDish?.id && newDish?.categoryId) {
       setCategories((prev) =>
         prev.map((cat) =>
@@ -559,7 +579,9 @@ export default function CategoriesPage() {
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="flex flex-col gap-6">
-                    {categories.map((category) => (
+                    {categories.map((category) => {
+                      const isExpanded = expandedCategories.has(category.id);
+                      return (
                       <SortableCategory key={category.id} category={category}>
                         {(dragHandleProps) => (
                           <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
@@ -574,6 +596,9 @@ export default function CategoriesPage() {
                               onChanged={fetchCategories}
                               dragHandleProps={dragHandleProps}
                               bare
+                              collapsible
+                              collapsed={!isExpanded}
+                              onToggleCollapse={() => toggleCategoryCollapse(category.id)}
                               headerAction={
                                 <Dialog
                                   open={dishDialogCategoryId === category.id}
@@ -606,7 +631,10 @@ export default function CategoriesPage() {
                               }
                             />
 
-                            {/* Category body: dishes live visually inside the category */}
+                            {/* Category body: dishes live visually inside the
+                                category. Only rendered when expanded
+                                (IMPROVEMENT-5). Collapsed by default. */}
+                            {isExpanded && (
                             <div className="border-t bg-muted/30 p-4">
                               <SortableContext
                                 items={category.dishes.map((d) => dishId(d.id))}
@@ -631,6 +659,7 @@ export default function CategoriesPage() {
                                             photoValue={dish.photo}
                                             allergenes={(dish.allergenes || []).join(", ")}
                                             state={dish.state}
+                                            currencySymbol={symbol}
                                             onChanged={fetchCategories}
                                             dragHandleProps={dishHandleProps}
                                           />
@@ -645,10 +674,12 @@ export default function CategoriesPage() {
                                 )}
                               </SortableContext>
                             </div>
+                            )}
                           </div>
                         )}
                       </SortableCategory>
-                    ))}
+                      );
+                    })}
                   </div>
                 </SortableContext>
 

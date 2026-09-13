@@ -51,10 +51,12 @@ import {
   AlertDialogTitle
 } from '@/components/ui/alert-dialog';
 import type { SuperadminUserRow } from '@/data/superadmin';
+import { Switch } from '@/components/ui/switch';
 import {
   superadminSetUserPlan,
   superadminSetSuspended,
-  superadminDeleteUser
+  superadminDeleteUser,
+  superadminSetOrderingEnabled
 } from '@/actions/superadmin';
 
 interface UsersTableProps {
@@ -235,6 +237,33 @@ export function UsersTable({
     });
   };
 
+  // ---- Ordering enable/disable (FEAT-1/D16) ----
+  const toggleOrdering = (user: SuperadminUserRow, enabled: boolean) => {
+    // Optimistically reflect the toggle.
+    setUsers((prev) =>
+      prev.map((u) =>
+        u.id === user.id ? { ...u, orderingEnabled: enabled } : u
+      )
+    );
+    startTransition(async () => {
+      const result = await superadminSetOrderingEnabled({
+        userId: user.id,
+        enabled
+      });
+      if (result?.error) {
+        toast.error(result.error);
+        // Revert on failure.
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === user.id ? { ...u, orderingEnabled: !enabled } : u
+          )
+        );
+        return;
+      }
+      toast.success(result?.success ?? 'Mis à jour.');
+    });
+  };
+
   // ---- Delete ----
   const confirmDelete = () => {
     if (!deleteTarget) return;
@@ -278,6 +307,7 @@ export function UsersTable({
               <TableHead>Expiration</TableHead>
               <TableHead>Restaurants</TableHead>
               <TableHead>État</TableHead>
+              <TableHead>Commandes</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -285,7 +315,7 @@ export function UsersTable({
             {users.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={7}
+                  colSpan={8}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {busy ? 'Chargement…' : 'Aucun utilisateur.'}
@@ -335,6 +365,16 @@ export function UsersTable({
                       ) : (
                         <Badge variant="success">Actif</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      {/* Ordering enable/disable (FEAT-1/D16) — superadmin gates
+                          ordering per account. */}
+                      <Switch
+                        checked={user.orderingEnabled}
+                        disabled={busy || isSuperadmin}
+                        onCheckedChange={(c) => toggleOrdering(user, c)}
+                        aria-label="Activer les commandes"
+                      />
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">

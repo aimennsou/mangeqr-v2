@@ -8,6 +8,7 @@ import type { WorkspaceNavRole } from '@/lib/menu-list';
 interface TeamContext {
   role?: WorkspaceNavRole;
   appRole?: UserRole | null;
+  orderingEnabled?: boolean;
 }
 
 /**
@@ -72,4 +73,36 @@ export function useAppRole(): UserRole | null {
   }, []);
 
   return appRole;
+}
+
+/**
+ * Client hook that resolves whether ORDERING is enabled for the current
+ * workspace (FEAT-1/D16), via the same `/api/team/context` endpoint. Used to
+ * show/hide the ordering-related sidebar entries (Plan de salle, Commandes,
+ * Cuisine). Defaults to false (fail-closed) so the entries stay hidden until
+ * confirmed enabled. UX-only: server guards remain authoritative.
+ */
+export function useOrderingEnabled(): boolean {
+  const [enabled, setEnabled] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    fetch('/api/team/context')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: TeamContext | null) => {
+        if (active && data?.orderingEnabled) {
+          setEnabled(true);
+        }
+      })
+      .catch(() => {
+        // Fail closed: keep ordering entries hidden.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return enabled;
 }

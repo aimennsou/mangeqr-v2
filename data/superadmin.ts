@@ -23,6 +23,8 @@ export interface SuperadminUserRow {
   planRenewsAt: Date | null;
   suspended: boolean;
   restaurantCount: number;
+  /** FEAT-1/D16: whether ordering is enabled for this account. */
+  orderingEnabled: boolean;
 }
 
 interface ListUsersArgs {
@@ -75,6 +77,7 @@ export async function listUsers({
         planPaymentMethod: true,
         planRenewsAt: true,
         suspended: true,
+        orderingEnabled: true,
         _count: { select: { restaurants: true } }
       }
     });
@@ -88,7 +91,8 @@ export async function listUsers({
       planPaymentMethod: u.planPaymentMethod,
       planRenewsAt: u.planRenewsAt,
       suspended: u.suspended,
-      restaurantCount: u._count.restaurants
+      restaurantCount: u._count.restaurants,
+      orderingEnabled: u.orderingEnabled
     }));
   } catch {
     return [];
@@ -101,6 +105,134 @@ export async function countUsers({
 }: { search?: string } = {}): Promise<number> {
   try {
     return await db.user.count({ where: buildWhere(search) });
+  } catch {
+    return 0;
+  }
+}
+
+
+// -----------------------------------------------------------------------------
+// Design-order tracking (FEAT-6)
+// -----------------------------------------------------------------------------
+
+import type { DesignOrderStatus } from '@prisma/client';
+
+/**
+ * A design-order row for the SUPERADMIN fulfillment console. Joins the owner
+ * (who placed it) and the restaurant (whose menu the QR points to) for display.
+ * These are ALL design orders across every account — not workspace-scoped —
+ * because the superadmin fulfills them centrally.
+ */
+export interface SuperadminDesignOrderRow {
+  id: string;
+  designId: string;
+  designName: string;
+  quantity: number;
+  status: DesignOrderStatus;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string | null;
+  deliveryMethod: string | null;
+  notes: string | null;
+  restaurantId: string;
+  restaurantName: string | null;
+  ownerName: string | null;
+  ownerEmail: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface ListDesignOrdersArgs {
+  search?: string;
+  status?: DesignOrderStatus;
+  skip?: number;
+  take?: number;
+}
+
+/**
+ * Build the shared filter for the superadmin design-order list/count. Search
+ * matches (case-insensitive) on contact name/email, restaurant name, or design
+ * name. An optional exact `status` narrows further. Empty search matches all.
+ */
+function buildDesignOrderWhere(
+  search?: string,
+  status?: DesignOrderStatus
+): Prisma.DesignOrderWhereInput {
+  const where: Prisma.DesignOrderWhereInput = {};
+  if (status) {
+    where.status = status;
+  }
+  const term = search?.trim();
+  if (term) {
+    where.OR = [
+      { contactName: { contains: term, mode: Prisma.QueryMode.insensitive } },
+      { contactEmail: { contains: term, mode: Prisma.QueryMode.insensitive } },
+      { designName: { contains: term, mode: Prisma.QueryMode.insensitive } },
+      {
+        restaurant: {
+          name: { contains: term, mode: Prisma.QueryMode.insensitive }
+        }
+      }
+    ];
+  }
+  return where;
+}
+
+/**
+ * List design orders for the superadmin console, newest first, joining the
+ * owner and restaurant for display. Case-insensitive search + optional status
+ * filter. Returns `[]` on error (never throws to the caller).
+ */
+export async function listDesignOrders({
+  search,
+  status,
+  skip = 0,
+  take = 20
+}: ListDesignOrdersArgs = {}): Promise<SuperadminDesignOrderRow[]> {
+  try {
+    const orders = await db.designOrder.findMany({
+      where: buildDesignOrderWhere(search, status),
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+      include: {
+        restaurant: { select: { name: true } },
+        user: { select: { name: true, email: true } }
+      }
+    });
+
+    return orders.map((o) => ({
+      id: o.id,
+      designId: o.designId,
+      designName: o.designName,
+      quantity: o.quantity,
+      status: o.status,
+      contactName: o.contactName,
+      contactEmail: o.contactEmail,
+      contactPhone: o.contactPhone,
+      deliveryMethod: o.deliveryMethod,
+      notes: o.notes,
+      restaurantId: o.restaurantId,
+      restaurantName: o.restaurant?.name ?? null,
+      ownerName: o.user?.name ?? null,
+      ownerEmail: o.user?.email ?? null,
+      createdAt: o.createdAt,
+      updatedAt: o.updatedAt
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Count design orders matching the (optional) search/status — for pagination. */
+export async function countDesignOrders({
+  search,
+  status
+}: { search?: string; status?: DesignOrderStatus } = {}): Promise<number> {
+  try {
+    return await db.designOrder.count({
+      where: buildDesignOrderWhere(search, status)
+    });
   } catch {
     return 0;
   }

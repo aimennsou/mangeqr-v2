@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { driver, type DriveStep } from "driver.js";
+import { driver, type DriveStep, type Driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
@@ -20,6 +20,20 @@ import type { TranslationKey } from "@/lib/i18n/dictionaries";
  *    The replay path clears the flag and starts the tour immediately, so a manual
  *    replay is never blocked by the dismissed flag.
  *
+ * BUG-3 (tour rendered twice): guarded against duplicate driver instances. A
+ * module-level `activeDriver` holds the single live instance; `startTour`
+ * destroys any existing one before creating a new one, and a `tourStarting`
+ * latch prevents the deferred auto-start from firing twice (React 18 StrictMode
+ * double-invokes effects in dev, and the effect could otherwise schedule two
+ * `driver().drive()` calls).
+ *
+ * BUG-4 (broken on mobile): on small screens the sidebar nav lives inside a
+ * closed Sheet, so its anchors aren't in the DOM. Before building steps we open
+ * the mobile menu Sheet (click `[data-tour="mobile-menu-trigger"]`) and then
+ * resolve every nav anchor from WITHIN the visible Sheet
+ * (`[data-tour-mobile-menu]`), because the hidden desktop sidebar renders the
+ * same `data-tour` attributes and would otherwise be matched first.
+ *
  * SSR/hydration: this is a 'use client' component and all localStorage / driver.js
  * / window access happens inside effects (client-only). Nothing touches `window`
  * during render.
@@ -28,11 +42,48 @@ import type { TranslationKey } from "@/lib/i18n/dictionaries";
 export const TOUR_DISMISSED_KEY = "mangeqr_tour_dismissed";
 export const TOUR_START_EVENT = "mangeqr:start-tour";
 
+// Single live driver instance across the whole app. Prevents two overlapping
+// tours (BUG-3). Module-scoped so it survives StrictMode's double effect run.
+let activeDriver: Driver | null = null;
+// Latch so the deferred auto-start (rAF + setTimeout) can't be scheduled twice.
+let tourStarting = false;
+
+const isMobileViewport = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(max-width: 1023px)").matches; // < lg breakpoint
+
 export function WelcomeTour() {
   const { t } = useI18n();
 
   useEffect(() => {
     const tr = (key: TranslationKey) => t(key);
+
+    // Resolve a selector, preferring the visible mobile Sheet on small screens
+    // so we don't anchor to the hidden desktop sidebar (which renders the same
+    // data-tour attributes). Falls back to a global lookup (desktop / navbar
+    // items that live outside the Sheet).
+    const resolveEl = (selector: string): Element | null => {
+      const sheet = document.querySelector("[data-tour-mobile-menu]");
+      if (sheet) {
+        const inSheet = sheet.querySelector(selector);
+        if (inSheet) return inSheet;
+      }
+      return document.querySelector(selector);
+    };
+
+    // Open the mobile navigation Sheet if we're on a small viewport and it's not
+    // already open. Returns true if it triggered an open (so the caller can wait
+    // for the Sheet to render before anchoring).
+    const openMobileMenuIfNeeded = (): boolean => {
+      if (!isMobileViewport()) return false;
+      if (document.querySelector("[data-tour-mobile-menu]")) return false; // already open
+      const trigger = document.querySelector<HTMLElement>(
+        '[data-tour="mobile-menu-trigger"]'
+      );
+      if (!trigger) return false;
+      trigger.click();
+      return true;
+    };
 
     const buildSteps = (): DriveStep[] => {
       const steps: DriveStep[] = [
@@ -44,7 +95,7 @@ export function WelcomeTour() {
           },
         },
         {
-          element: '[data-tour="nav"]',
+          element: () => resolveEl('[data-tour="nav"]') as Element,
           popover: {
             title: tr("tour.nav.title"),
             description: tr("tour.nav.desc"),
@@ -53,7 +104,7 @@ export function WelcomeTour() {
           },
         },
         {
-          element: '[data-tour="nav-restaurants"]',
+          element: () => resolveEl('[data-tour="nav-restaurants"]') as Element,
           popover: {
             title: tr("tour.restaurants.title"),
             description: tr("tour.restaurants.desc"),
@@ -62,7 +113,7 @@ export function WelcomeTour() {
           },
         },
         {
-          element: '[data-tour="nav-menus"]',
+          element: () => resolveEl('[data-tour="nav-menus"]') as Element,
           popover: {
             title: tr("tour.menus.title"),
             description: tr("tour.menus.desc"),
@@ -71,7 +122,7 @@ export function WelcomeTour() {
           },
         },
         {
-          element: '[data-tour="nav-categories"]',
+          element: () => resolveEl('[data-tour="nav-categories"]') as Element,
           popover: {
             title: tr("tour.categories.title"),
             description: tr("tour.categories.desc"),
@@ -80,7 +131,7 @@ export function WelcomeTour() {
           },
         },
         {
-          element: '[data-tour="nav-numerique"]',
+          element: () => resolveEl('[data-tour="nav-numerique"]') as Element,
           popover: {
             title: tr("tour.numerique.title"),
             description: tr("tour.numerique.desc"),
@@ -89,7 +140,7 @@ export function WelcomeTour() {
           },
         },
         {
-          element: '[data-tour="lang"]',
+          element: () => resolveEl('[data-tour="lang"]') as Element,
           popover: {
             title: tr("tour.lang.title"),
             description: tr("tour.lang.desc"),
@@ -98,7 +149,7 @@ export function WelcomeTour() {
           },
         },
         {
-          element: '[data-tour="theme"]',
+          element: () => resolveEl('[data-tour="theme"]') as Element,
           popover: {
             title: tr("tour.theme.title"),
             description: tr("tour.theme.desc"),
@@ -109,7 +160,7 @@ export function WelcomeTour() {
         {
           // Final step — anchored to the help button so users learn where to
           // re-open the guide.
-          element: '[data-tour="help"]',
+          element: () => resolveEl('[data-tour="help"]') as Element,
           popover: {
             title: tr("tour.final.title"),
             description: tr("tour.final.desc"),
@@ -119,22 +170,35 @@ export function WelcomeTour() {
         },
       ];
 
-      // Only keep steps whose target actually exists in the current DOM (the
-      // welcome/centered step has no element and is always kept). This keeps the
-      // tour robust across responsive layouts where some anchors may be hidden.
-      return steps.filter(
-        (s) => !s.element || !!document.querySelector(s.element as string)
-      );
+      // Keep the centered welcome step (no element) plus any step whose target
+      // currently resolves in the DOM. On mobile the anchors resolve from inside
+      // the (now open) Sheet; unresolved anchors are dropped so the tour never
+      // points at missing elements (BUG-4).
+      return steps.filter((s) => {
+        if (!s.element) return true;
+        const selectorFn = s.element as () => Element | null;
+        return !!selectorFn();
+      });
     };
 
-    const startTour = () => {
-      const markDismissed = () => {
+    const markDismissed = () => {
+      try {
+        window.localStorage.setItem(TOUR_DISMISSED_KEY, "1");
+      } catch {
+        /* ignore storage errors (private mode, etc.) */
+      }
+    };
+
+    const runDriver = () => {
+      // Destroy any lingering instance before starting a fresh one (BUG-3).
+      if (activeDriver) {
         try {
-          window.localStorage.setItem(TOUR_DISMISSED_KEY, "1");
+          activeDriver.destroy();
         } catch {
-          /* ignore storage errors (private mode, etc.) */
+          /* ignore */
         }
-      };
+        activeDriver = null;
+      }
 
       const d = driver({
         showProgress: true,
@@ -143,14 +207,30 @@ export function WelcomeTour() {
         nextBtnText: tr("tour.next"),
         prevBtnText: tr("tour.prev"),
         doneBtnText: tr("tour.done"),
-        // Set the dismissed flag on ANY destroy (completed, closed, Esc, overlay).
+        // Set the dismissed flag on ANY destroy (completed, closed, Esc, overlay)
+        // and clear the singleton/latch so a later replay can start cleanly.
         onDestroyed: () => {
           markDismissed();
+          activeDriver = null;
+          tourStarting = false;
         },
         steps: buildSteps(),
       });
 
+      activeDriver = d;
       d.drive();
+    };
+
+    const startTour = () => {
+      // If a tour is already live or being started, don't start another (BUG-3).
+      if (activeDriver || tourStarting) return;
+      tourStarting = true;
+
+      // On mobile, open the nav Sheet first, then wait a tick for it to mount
+      // before building steps against its anchors (BUG-4).
+      const opened = openMobileMenuIfNeeded();
+      const delay = opened ? 350 : 0;
+      window.setTimeout(runDriver, delay);
     };
 
     // Auto-start on first visit only.
@@ -162,6 +242,7 @@ export function WelcomeTour() {
         dismissed = false;
       }
       if (dismissed) return;
+      if (activeDriver || tourStarting) return; // already running/scheduled
       // Defer until the sidebar/navbar anchors are painted.
       requestAnimationFrame(() => {
         // Extra tick so route transitions / lazy layout settle.

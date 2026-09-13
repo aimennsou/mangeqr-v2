@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { currentUser } from '@/lib/authentication';
-import { getWorkspaceContext } from '@/data/workspace';
+import { getWorkspaceContext, isOrderingEnabledForUser } from '@/data/workspace';
 
 /**
  * GET /api/team/context (mangeqr-team, T6/T9; extended for superadmin S6).
@@ -19,10 +19,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { role } = await getWorkspaceContext(user.id);
+  const [{ role }, orderingEnabled] = await Promise.all([
+    getWorkspaceContext(user.id),
+    isOrderingEnabledForUser(user.id)
+  ]);
 
   return NextResponse.json(
-    { role, appRole: user.role ?? null },
+    { role, appRole: user.role ?? null, orderingEnabled },
     { status: 200 }
   );
 }

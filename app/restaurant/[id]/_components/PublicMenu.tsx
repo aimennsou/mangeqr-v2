@@ -9,10 +9,16 @@ import {
   Instagram,
   MapPin,
   Phone,
+  Plus,
+  ShoppingBag,
   Star,
   Wifi,
   X,
 } from "lucide-react";
+import { AddToCartDialog } from "./ordering/AddToCartDialog";
+import { CartSheet } from "./ordering/CartSheet";
+import type { AddonGroup, CartLine, DinerTable, OrderableDish } from "./ordering/types";
+import { lineTotal } from "./ordering/types";
 import { FaTiktok } from "react-icons/fa6";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogPortal, DialogOverlay } from "@/components/ui/dialog";
@@ -37,6 +43,8 @@ type Dish = {
   allergenes: string[];
   /** Total times this dish was favorited (heart), shown next to the heart. */
   favoriteCount?: number;
+  /** Add-on groups for the diner order builder (FEAT-1/D12). */
+  addonGroups?: AddonGroup[];
 };
 
 type Category = {
@@ -66,6 +74,9 @@ export interface PublicMenuProps {
   currency: string;
   menus: Menu[];
   menuAppearance?: MenuAppearance | null;
+  /** FEAT-1: diner ordering context (from getPublicMenuData). */
+  orderingEnabled?: boolean;
+  tables?: DinerTable[];
   /**
    * When true (owner-facing live preview), skip the fire-and-forget scan
    * tracking POST so opening/switching the editor never inflates the owner's
@@ -94,6 +105,8 @@ export function PublicMenu({
   currency,
   menus,
   menuAppearance,
+  orderingEnabled = false,
+  tables = [],
   previewMode = false,
   previewContainer,
 }: PublicMenuProps) {
@@ -117,6 +130,39 @@ export function PublicMenu({
 
   // Dish currently opened in the detail view (null = closed).
   const [openDish, setOpenDish] = useState<Dish | null>(null);
+
+  // FEAT-1 ordering: cart lines + the add-to-cart dialog target + cart sheet.
+  const [cart, setCart] = useState<CartLine[]>([]);
+  const [addDish, setAddDish] = useState<OrderableDish | null>(null);
+  const [cartOpen, setCartOpen] = useState(false);
+  const cartCount = cart.reduce((s, l) => s + l.quantity, 0);
+  const cartTotal = cart.reduce((s, l) => s + lineTotal(l), 0);
+
+  const addToCart = useCallback((line: CartLine) => {
+    setCart((prev) => [...prev, line]);
+  }, []);
+  const changeQty = useCallback((lineId: string, qty: number) => {
+    setCart((prev) =>
+      prev.map((l) => (l.lineId === lineId ? { ...l, quantity: qty } : l))
+    );
+  }, []);
+  const removeLine = useCallback((lineId: string) => {
+    setCart((prev) => prev.filter((l) => l.lineId !== lineId));
+  }, []);
+  const clearCart = useCallback(() => setCart([]), []);
+
+  // Open the add-to-cart dialog for a dish (maps to the OrderableDish shape).
+  const openAddToCart = useCallback((dish: Dish) => {
+    setAddDish({
+      id: dish.id,
+      name: dish.name,
+      description: dish.description,
+      price: dish.price,
+      photo: dish.photo,
+      allergenes: dish.allergenes,
+      addonGroups: dish.addonGroups ?? [],
+    });
+  }, []);
 
   // Container wrapping the rendered category sections — used to (re)observe the
   // category headings for impression tracking.
@@ -424,6 +470,9 @@ export function PublicMenu({
                         isFavorite={favorited.has(dish.id)}
                         onToggleFavorite={() => toggleFavorite(dish.id)}
                         favoriteLabel={t("diner.favorite")}
+                        orderingEnabled={orderingEnabled}
+                        onAddToCart={() => openAddToCart(dish)}
+                        addLabel={t("order.add")}
                       />
                     ))
                   )}
@@ -453,6 +502,89 @@ export function PublicMenu({
           if (!open) setOpenDish(null);
         }}
       />
+
+      {/* FEAT-1 ordering: add-to-cart dialog + floating cart button + cart sheet.
+          All gated behind orderingEnabled so non-ordering menus are unaffected. */}
+      {orderingEnabled ? (
+        <>
+          <AddToCartDialog
+            dish={addDish}
+            currency={currency}
+            theme={theme}
+            accent={styles.accent}
+            previewMode={previewMode}
+            container={dialogContainer}
+            labels={{
+              addToCart: t("order.add"),
+              quantity: t("order.quantity"),
+              specialRequest: t("order.specialRequest"),
+              specialRequestPlaceholder: t("order.specialRequestPlaceholder"),
+              required: t("order.required"),
+              close: t("diner.close"),
+            }}
+            onOpenChange={(open) => {
+              if (!open) setAddDish(null);
+            }}
+            onAdd={addToCart}
+          />
+
+          {cartCount > 0 ? (
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
+              className={cn(
+                "z-40 flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-105",
+                previewMode ? "absolute bottom-4 right-4" : "fixed bottom-5 right-5"
+              )}
+              style={{ backgroundColor: theme.accent, color: theme.onAccent }}
+            >
+              <ShoppingBag className="h-5 w-5" />
+              <span>{cartCount}</span>
+              <span className="tabular-nums">
+                {Number.isInteger(cartTotal)
+                  ? cartTotal.toString()
+                  : cartTotal.toFixed(2)}{" "}
+                {currency}
+              </span>
+            </button>
+          ) : null}
+
+          <CartSheet
+            open={cartOpen}
+            onOpenChange={setCartOpen}
+            restaurantId={restaurantId}
+            currency={currency}
+            tables={tables}
+            lines={cart}
+            theme={theme}
+            accent={styles.accent}
+            previewMode={previewMode}
+            container={dialogContainer}
+            labels={{
+              title: t("order.cartTitle"),
+              empty: t("order.cartEmpty"),
+              dineIn: t("order.dineIn"),
+              delivery: t("order.delivery"),
+              chooseTable: t("order.chooseTable"),
+              name: t("order.name"),
+              phone: t("order.phone"),
+              address: t("order.address"),
+              shareLocation: t("order.shareLocation"),
+              locationShared: t("order.locationShared"),
+              note: t("order.note"),
+              notePlaceholder: t("order.notePlaceholder"),
+              total: t("order.total"),
+              submit: t("order.submit"),
+              submitting: t("order.submitting"),
+              close: t("diner.close"),
+              successTitle: t("order.successTitle"),
+            }}
+            onChangeQty={changeQty}
+            onRemove={removeLine}
+            onClear={clearCart}
+          />
+        </>
+      ) : null}
     </div>
   );
 }
@@ -466,6 +598,9 @@ function DishRow({
   isFavorite,
   onToggleFavorite,
   favoriteLabel,
+  orderingEnabled,
+  onAddToCart,
+  addLabel,
 }: {
   dish: Dish;
   currency: string;
@@ -475,6 +610,9 @@ function DishRow({
   isFavorite: boolean;
   onToggleFavorite: () => void;
   favoriteLabel: string;
+  orderingEnabled: boolean;
+  onAddToCart: () => void;
+  addLabel: string;
 }) {
   // The row opens the dish detail. It's a role="button" div (not a <button>)
   // so it can safely contain the favorite <button> without nesting buttons.
@@ -554,29 +692,47 @@ function DishRow({
           {/* Favorite (heart) button + running count — stops propagation so it
               doesn't open the dish detail. Filled/red when favorited. The count
               shows the DB total plus this diner's optimistic +1 when favorited. */}
-          <button
-            type="button"
-            aria-label={favoriteLabel}
-            aria-pressed={isFavorite}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleFavorite();
-            }}
-            className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 transition-colors hover:bg-black/5"
-          >
-            <Heart
-              className={cn(
-                "h-5 w-5 transition-colors",
-                isFavorite ? "fill-red-500 text-red-500" : "text-neutral-400"
-              )}
-            />
-            <span
-              className="text-xs tabular-nums"
-              style={{ color: theme.muted }}
+          <div className="flex shrink-0 items-center gap-1">
+            <button
+              type="button"
+              aria-label={favoriteLabel}
+              aria-pressed={isFavorite}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleFavorite();
+              }}
+              className="flex shrink-0 items-center gap-1 rounded-full px-2 py-1 transition-colors hover:bg-black/5"
             >
-              {(dish.favoriteCount ?? 0) + (isFavorite ? 1 : 0)}
-            </span>
-          </button>
+              <Heart
+                className={cn(
+                  "h-5 w-5 transition-colors",
+                  isFavorite ? "fill-red-500 text-red-500" : "text-neutral-400"
+                )}
+              />
+              <span
+                className="text-xs tabular-nums"
+                style={{ color: theme.muted }}
+              >
+                {(dish.favoriteCount ?? 0) + (isFavorite ? 1 : 0)}
+              </span>
+            </button>
+
+            {/* Add-to-cart (FEAT-1) — only when ordering is enabled. */}
+            {orderingEnabled ? (
+              <button
+                type="button"
+                aria-label={addLabel}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddToCart();
+                }}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-90"
+                style={{ backgroundColor: theme.accent, color: theme.onAccent }}
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

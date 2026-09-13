@@ -65,13 +65,23 @@ async function main() {
   // ---------------------------------------------------------------------------
   await prisma.dishData.deleteMany();
   await prisma.categoryData.deleteMany();
+  await prisma.favoriteData.deleteMany();
   await prisma.scanData.deleteMany();
   await prisma.review.deleteMany();
   await prisma.emailRecipient.deleteMany();
   await prisma.marketingCampaign.deleteMany();
+  // Ordering (FEAT-1) + tables (FEAT-2). Order items/options/addon options
+  // cascade from their parents, but delete explicitly for a clean slate.
+  await prisma.orderItem.deleteMany();
+  await prisma.order.deleteMany();
+  await prisma.restaurantTable.deleteMany();
+  await prisma.tableZone.deleteMany();
+  await prisma.dishAddonOption.deleteMany();
+  await prisma.dishAddonGroup.deleteMany();
   await prisma.dish.deleteMany();
   await prisma.menuCategory.deleteMany();
   await prisma.menu.deleteMany();
+  await prisma.designOrder.deleteMany();
   await prisma.restaurant.deleteMany();
   await prisma.user.deleteMany({ where: { email: DEMO_EMAIL } });
 
@@ -94,6 +104,8 @@ async function main() {
       emailVerified: new Date(),
       role: 'USER',
       plan: 'PRO',
+      // Demo account has ALL features on, including ordering (FEAT-1/D16).
+      orderingEnabled: true,
     },
   });
 
@@ -114,6 +126,8 @@ async function main() {
       instagram: 'lepetitgourmet',
       google: 'https://g.page/r/le-petit-gourmet',
       coverPhoto: 'uploads/1735415131028bg-food.jpg',
+      // Ordering on for the demo (account flag is also on above).
+      orderingEnabled: true,
     },
   });
 
@@ -133,6 +147,7 @@ async function main() {
       phone: '+33144556677',
       currency: 'EURO',
       subdomain: 'sushi-zen',
+      orderingEnabled: true,
     },
   });
   await prisma.restaurant.update({
@@ -150,7 +165,9 @@ async function main() {
       name: 'Menu du Midi',
       position: 1,
       state: 'ACTIVE',
-      availability: ['Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi'],
+      // Empty availability = always available, so the demo menu shows every day
+      // (including weekends) — otherwise a Sunday visit sees "Aucun menu".
+      availability: [],
     },
   });
 
@@ -230,6 +247,172 @@ async function main() {
         },
       });
       createdDishes.push({ id: created.id, categoryId: category.id });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // FEAT-2 — Table layout (zones + tables) for restaurant 1, so the demo's
+  // dine-in ordering has tables to pick from and a populated floor plan.
+  // ---------------------------------------------------------------------------
+  const salleZone = await prisma.tableZone.create({
+    data: { id: randomUUID(), restaurantId: restaurant.id, name: 'Salle', position: 0 },
+  });
+  const terrasseZone = await prisma.tableZone.create({
+    data: { id: randomUUID(), restaurantId: restaurant.id, name: 'Terrasse', position: 1 },
+  });
+
+  // 6 tables laid out on a simple grid (posX/posY on the floor-plan canvas).
+  const tableDefs = [
+    { label: '1', seats: 2, zoneId: salleZone.id, posX: 40, posY: 40 },
+    { label: '2', seats: 2, zoneId: salleZone.id, posX: 160, posY: 40 },
+    { label: '3', seats: 4, zoneId: salleZone.id, posX: 280, posY: 40 },
+    { label: '4', seats: 4, zoneId: salleZone.id, posX: 40, posY: 160 },
+    { label: '5', seats: 6, zoneId: terrasseZone.id, posX: 160, posY: 160 },
+    { label: '6', seats: 2, zoneId: terrasseZone.id, posX: 280, posY: 160 },
+  ];
+  for (const td of tableDefs) {
+    await prisma.restaurantTable.create({
+      data: {
+        id: randomUUID(),
+        restaurantId: restaurant.id,
+        zoneId: td.zoneId,
+        label: td.label,
+        seats: td.seats,
+        posX: td.posX,
+        posY: td.posY,
+      },
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // FEAT-1/D12 — Add-on groups for a couple of dishes so the diner order builder
+  // has something to show (a SINGLE required "Cuisson" and a MULTI "Extras").
+  // ---------------------------------------------------------------------------
+  const steak = createdDishes.length
+    ? await prisma.dish.findFirst({ where: { name: 'Steak frites' }, select: { id: true } })
+    : null;
+  if (steak) {
+    const cuisson = await prisma.dishAddonGroup.create({
+      data: {
+        id: randomUUID(),
+        dishId: steak.id,
+        name: 'Cuisson',
+        type: 'SINGLE',
+        required: true,
+        position: 0,
+      },
+    });
+    await prisma.dishAddonOption.createMany({
+      data: [
+        { id: randomUUID(), groupId: cuisson.id, name: 'Saignant', priceDelta: 0, position: 0 },
+        { id: randomUUID(), groupId: cuisson.id, name: 'À point', priceDelta: 0, position: 1 },
+        { id: randomUUID(), groupId: cuisson.id, name: 'Bien cuit', priceDelta: 0, position: 2 },
+      ],
+    });
+    const extras = await prisma.dishAddonGroup.create({
+      data: {
+        id: randomUUID(),
+        dishId: steak.id,
+        name: 'Extras',
+        type: 'MULTI',
+        required: false,
+        position: 1,
+      },
+    });
+    await prisma.dishAddonOption.createMany({
+      data: [
+        { id: randomUUID(), groupId: extras.id, name: 'Œuf', priceDelta: 1.5, position: 0 },
+        { id: randomUUID(), groupId: extras.id, name: 'Sauce poivre', priceDelta: 2, position: 1 },
+        { id: randomUUID(), groupId: extras.id, name: 'Supplément frites', priceDelta: 3, position: 2 },
+      ],
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // FEAT-1 — Seed a batch of orders over the last 30 days so the performances
+  // page shows real ordering KPIs (orders, revenue, avg basket, dine-in vs
+  // delivery) and the revenue chart. Prices/names are snapshotted like the real
+  // order endpoint does.
+  // ---------------------------------------------------------------------------
+  const seedDishes = await prisma.dish.findMany({
+    where: { category: { menu: { restaurantId: restaurant.id } } },
+    select: { id: true, name: true, price: true },
+  });
+  const seedTables = await prisma.restaurantTable.findMany({
+    where: { restaurantId: restaurant.id },
+    select: { id: true, label: true },
+  });
+
+  if (seedDishes.length > 0) {
+    // Terminal-ish statuses weighted toward COMPLETED so revenue is meaningful,
+    // with a few active + a couple cancelled for variety.
+    const statusPool = [
+      'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED', 'COMPLETED',
+      'SERVED', 'READY', 'IN_PREPARATION', 'RECEIVED', 'CANCELLED',
+    ] as const;
+
+    let orderNumber = 0;
+    const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
+
+    for (let day = 0; day < 30; day++) {
+      // 1–4 orders per day.
+      const perDay = 1 + Math.floor(Math.random() * 4);
+      for (let i = 0; i < perDay; i++) {
+        orderNumber += 1;
+        const isDelivery = Math.random() < 0.35;
+        const status = pick([...statusPool]);
+        // Delivery orders use the delivery lifecycle terminal (DELIVERED) in
+        // place of SERVED for realism.
+        const finalStatus =
+          isDelivery && status === 'SERVED' ? 'DELIVERED' : status;
+
+        // 1–3 line items.
+        const lineCount = 1 + Math.floor(Math.random() * 3);
+        const items = [] as {
+          dishId: string;
+          dishName: string;
+          unitPrice: number;
+          quantity: number;
+          lineTotal: number;
+        }[];
+        let total = 0;
+        for (let l = 0; l < lineCount; l++) {
+          const dish = pick(seedDishes);
+          const qty = 1 + Math.floor(Math.random() * 2);
+          const lineTotal = dish.price * qty;
+          total += lineTotal;
+          items.push({
+            dishId: dish.id,
+            dishName: dish.name,
+            unitPrice: dish.price,
+            quantity: qty,
+            lineTotal,
+          });
+        }
+
+        const table = isDelivery ? null : pick(seedTables);
+        const createdAt = daysAgo(day, Math.random() < 0.5 ? 13 : 20);
+
+        await prisma.order.create({
+          data: {
+            id: randomUUID(),
+            restaurantId: restaurant.id,
+            orderNumber,
+            type: isDelivery ? 'DELIVERY' : 'DINE_IN',
+            status: finalStatus,
+            tableId: table?.id ?? null,
+            tableLabel: table?.label ?? null,
+            customerName: isDelivery ? 'Client Démo' : null,
+            customerPhone: isDelivery ? '+33600000123' : null,
+            address: isDelivery ? '10 Rue de Rivoli, 75001 Paris' : null,
+            note: null,
+            total,
+            createdAt,
+            updatedAt: createdAt,
+            items: { create: items },
+          },
+        });
+      }
     }
   }
 

@@ -31,8 +31,9 @@ import { AreaGraph } from "../_components/charts/AreaGraph";
 import { BarGraph } from "../_components/charts/BarGraph";
 import { PieGraph } from "../_components/charts/PieGraph";
 import KpiCard from "../_components/charts/KpiCard";
+import { OrderRevenueChart } from "../_components/charts/OrderRevenueChart";
 import PerformancesSkeleton from "../_components/charts/PerformancesSkeleton";
-import { QrCode, Star, Heart, LayoutGrid } from "lucide-react";
+import { QrCode, Star, Heart, LayoutGrid, ShoppingCart, Euro, Receipt, Truck } from "lucide-react";
 
 
 
@@ -82,6 +83,41 @@ export default function PerformancesPage() {
   const [topDishName, setTopDishName] = useState<string | null>(null);
   const [topDishFavorites, setTopDishFavorites] = useState<number>(0);
   const [topCategoryName, setTopCategoryName] = useState<string | null>(null);
+
+  // FEAT-1 order metrics (only rendered when ordering is enabled for the shop).
+  const [orderMetrics, setOrderMetrics] = useState<{
+    orderingEnabled: boolean;
+    currency: string;
+    totalOrders: number;
+    revenue: number;
+    avgOrderValue: number;
+    dineInCount: number;
+    deliveryCount: number;
+    daily: { date: string; orders: number; revenue: number }[];
+  } | null>(null);
+
+  const getOrderMetrics = async (
+    shopId: string,
+    startDate: Date,
+    endDate: Date
+  ) => {
+    try {
+      const response = await fetch("/api/order-metrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shopId, startDate, endDate }),
+      });
+      if (!response.ok) {
+        setOrderMetrics(null);
+        return;
+      }
+      const data = await response.json();
+      setOrderMetrics(data);
+    } catch (error) {
+      console.error("Error fetching order metrics:", error);
+      setOrderMetrics(null);
+    }
+  };
 
   const getcardsData = async (shopId: string, startDate: Date, endDate: Date) => {
     try {
@@ -293,6 +329,7 @@ export default function PerformancesPage() {
       getpiegraphData(shopId, from, to);
       getCardsData(shopId, from, to);
       getcardsData(shopId, from, to).then(setData);
+      getOrderMetrics(shopId, from, to);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dateRange, shopId]);
   
@@ -396,6 +433,48 @@ export default function PerformancesPage() {
               }
             />
           </div>
+
+          {/* Order KPIs (FEAT-1) — only when ordering is enabled for this shop */}
+          {orderMetrics?.orderingEnabled ? (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <KpiCard
+                title="Commandes"
+                number={orderMetrics.totalOrders}
+                icon={<ShoppingCart />}
+                description="Total des commandes sur la période"
+              />
+              <KpiCard
+                title="Revenu"
+                number={`${
+                  Number.isInteger(orderMetrics.revenue)
+                    ? orderMetrics.revenue
+                    : orderMetrics.revenue.toFixed(2)
+                } ${orderMetrics.currency}`}
+                icon={<Euro />}
+                description="Revenu des commandes (hors annulées)"
+              />
+              <KpiCard
+                title="Panier moyen"
+                number={`${orderMetrics.avgOrderValue.toFixed(2)} ${orderMetrics.currency}`}
+                icon={<Receipt />}
+                description="Valeur moyenne par commande"
+              />
+              <KpiCard
+                title="Sur place / Livraison"
+                number={`${orderMetrics.dineInCount} / ${orderMetrics.deliveryCount}`}
+                icon={<Truck />}
+                description="Répartition des commandes"
+              />
+            </div>
+          ) : null}
+
+          {/* Order revenue chart (FEAT-1) */}
+          {orderMetrics?.orderingEnabled ? (
+            <OrderRevenueChart
+              data={orderMetrics.daily}
+              currency={orderMetrics.currency}
+            />
+          ) : null}
 
           {/* Charts */}
           <div className="grid gap-4 lg:grid-cols-2">

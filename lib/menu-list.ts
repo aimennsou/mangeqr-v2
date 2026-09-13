@@ -16,6 +16,9 @@ import {
   Menu,
   Palette,
   ShieldAlert,
+  Package,
+  UtensilsCrossed,
+  LayoutDashboard,
  
 } from "lucide-react";
 import type { UserRole } from "@prisma/client";
@@ -60,12 +63,16 @@ const OWNER_ONLY_HREFS = new Set<string>([
   "/restaurant",
   "/marketing",
   "/numerique",
+  // Managing the floor plan is a restaurant-structure action (FEAT-2). Members
+  // can take/manage orders and use the kitchen board, but not edit tables.
+  "/tables",
 ]);
 
 export function getMenuList(
   pathname: string,
   role: WorkspaceNavRole = "OWNER",
-  appRole?: UserRole | null
+  appRole?: UserRole | null,
+  orderingEnabled: boolean = false
 ): Group[] {
   const groups: Group[] = [
     {
@@ -193,6 +200,55 @@ export function getMenuList(
     }
   ];
 
+  // Ordering (FEAT-1/FEAT-2): the "Prise de commande" group is shown ONLY when
+  // the account has ordering enabled (superadmin-gated, resolved client-side via
+  // useOrderingEnabled → /api/team/context). UX hiding only — the pages and
+  // order/table routes remain guarded server-side. Members see it too so staff
+  // can take orders and use the kitchen board (D6).
+  if (orderingEnabled) {
+    // Insert just before the "Parametres" group so ordering sits with the
+    // operational sections.
+    const settingsIdx = groups.findIndex(
+      (gGroup) => gGroup.groupLabelKey === "nav.group.settings"
+    );
+    const orderingGroup: Group = {
+      groupLabel: "Prise de commande",
+      groupLabelKey: "nav.group.ordering",
+      menus: [
+        {
+          href: "/commandes",
+          label: "Commandes",
+          labelKey: "nav.orders",
+          active: pathname.includes("/commandes"),
+          icon: ShoppingCart,
+          submenus: [],
+        },
+        {
+          href: "/cuisine",
+          label: "Cuisine",
+          labelKey: "nav.kitchen",
+          active: pathname.includes("/cuisine"),
+          icon: UtensilsCrossed,
+          submenus: [],
+        },
+        {
+          href: "/tables",
+          label: "Plan de salle",
+          labelKey: "nav.tables",
+          active: pathname.includes("/tables"),
+          icon: LayoutDashboard,
+          // Owner-only: managing the floor plan is a restaurant-structure action.
+          submenus: [],
+        },
+      ],
+    };
+    if (settingsIdx >= 0) {
+      groups.splice(settingsIdx, 0, orderingGroup);
+    } else {
+      groups.push(orderingGroup);
+    }
+  }
+
   // Super Admin console (superadmin, S6): visible ONLY to the SUPERADMIN app
   // role. UX hiding only — /superadmin is guarded by middleware + server-side.
   if (appRole === "SUPERADMIN") {
@@ -202,10 +258,21 @@ export function getMenuList(
       menus: [
         {
           href: "/superadmin",
+          // Exact match so this entry isn't also marked active on the nested
+          // /superadmin/design-orders route (which has its own entry).
           label: "Super Admin",
           labelKey: "nav.superadmin",
-          active: pathname.includes("/superadmin"),
+          active:
+            pathname === "/superadmin" || pathname === "/superadmin/",
           icon: ShieldAlert,
+          submenus: [],
+        },
+        {
+          href: "/superadmin/design-orders",
+          label: "Commandes de designs",
+          labelKey: "nav.superadmin.designOrders",
+          active: pathname.includes("/superadmin/design-orders"),
+          icon: Package,
           submenus: [],
         },
       ],

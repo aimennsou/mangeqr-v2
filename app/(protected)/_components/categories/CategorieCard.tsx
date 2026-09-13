@@ -20,7 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { GripVertical, Trash, CopyPlus, Pencil } from "lucide-react";
+import { GripVertical, Trash, CopyPlus, Pencil, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner"; // Import Sonner's toast function
 
 const ICON_OPTIONS = ["🍽️", "🥗", "🍕", "🍔", "🍰", "🥤", "🍷", "🍜", "🌮", "🍤"];
@@ -47,6 +48,15 @@ interface CategoryCardProps {
   bare?: boolean;
   /** Optional element rendered in the header action row (e.g. "Ajouter un plat"). */
   headerAction?: React.ReactNode;
+  /**
+   * Collapsible support (IMPROVEMENT-5). When `collapsible` is true, a chevron
+   * toggle is rendered before the drag handle; `collapsed` controls its
+   * rotation and `onToggleCollapse` is fired on click. The caller owns the
+   * collapse state and decides whether to render the dish body.
+   */
+  collapsible?: boolean;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const CategoryCard: React.FC<CategoryCardProps> = ({
@@ -64,6 +74,9 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
   dragHandleProps,
   bare = false,
   headerAction,
+  collapsible = false,
+  collapsed = false,
+  onToggleCollapse,
 }) => {
   const [status, setStatus] = useState(state === "ACTIVE");
   const [editOpen, setEditOpen] = useState(false);
@@ -172,6 +185,25 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
     >
       <div className="flex flex-col md:flex-row justify-between gap-8 w-full">
         <div className="flex w-full justify-start items-center space-x-2">
+          {/* Collapse chevron (IMPROVEMENT-5) — toggles the dish body. Collapsed
+              by default; rotates 90° when expanded. */}
+          {collapsible ? (
+            <button
+              type="button"
+              aria-label={collapsed ? "Développer la catégorie" : "Réduire la catégorie"}
+              aria-expanded={!collapsed}
+              onClick={onToggleCollapse}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-inherit hover:bg-muted"
+            >
+              <ChevronRight
+                className={cn(
+                  "h-5 w-5 text-muted-foreground transition-transform duration-200",
+                  !collapsed && "rotate-90"
+                )}
+              />
+            </button>
+          ) : null}
+
           {/* Drag Handle */}
           <button
             type="button"

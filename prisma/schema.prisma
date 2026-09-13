@@ -47,6 +47,10 @@ model User {
   suspended               Boolean                 @default(false)
   suspendedAt             DateTime?
   suspendedReason         String?
+  // FEAT-1/D16: ordering is enabled per ACCOUNT by the SUPERADMIN. Owners can
+  // then toggle it per restaurant (Restaurant.orderingEnabled). Defaults off so
+  // ordering is opt-in and centrally gated.
+  orderingEnabled         Boolean                 @default(false)
   accounts                Account[]
   isTwoFactorEnabled      Boolean                 @default(false)
   twoFactorConfirmation   TwoFactorConfirmation?
@@ -168,6 +172,9 @@ model Restaurant {
   tiktokstate    Settings      @default(ACTIVE)
   googlestate    Settings      @default(ACTIVE)
   menuAppearance Json?
+  // FEAT-1/D9: per-restaurant ordering on/off toggle (only effective when the
+  // account is ordering-enabled by the superadmin — see User.orderingEnabled).
+  orderingEnabled Boolean      @default(false)
   menus          Menu[]
   campaigns      MarketingCampaign[]
   reviews        Review[]
@@ -176,6 +183,9 @@ model Restaurant {
   dishData       DishData[]
   favoriteData   FavoriteData[]
   designOrders   DesignOrder[]
+  zones          TableZone[]
+  tables         RestaurantTable[]
+  orders         Order[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }
@@ -217,6 +227,8 @@ model Dish {
   photo         String?
   price         Float
   allergenes    String[]
+  // FEAT-1/D12: owner-defined add-on groups (single/multi-select) for ordering.
+  addonGroups   DishAddonGroup[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -370,5 +382,177 @@ enum DesignOrderStatus {
   PENDING
   IN_PROGRESS
   SHIPPED
+  DELIVERED
   CANCELLED
+}
+
+// =============================================================================
+// FEAT-2 — Table layout (zones + tables). Owner defines a drag-to-arrange floor
+// plan per restaurant: named zones (e.g. Terrasse, Salle) and tables with a
+// label/number, optional seat count, and x/y position on the plan.
+// =============================================================================
+
+model TableZone {
+  id            String            @id @default(uuid()) @db.Uuid
+  restaurantId  String            @db.Uuid
+  restaurant    Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name          String
+  position      Int               @default(0)
+  tables        RestaurantTable[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([restaurantId])
+}
+
+model RestaurantTable {
+  id            String       @id @default(uuid()) @db.Uuid
+  restaurantId  String       @db.Uuid
+  restaurant    Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  // Optional zone grouping (terrace / indoor / …). Null = unzoned.
+  zoneId        String?      @db.Uuid
+  zone          TableZone?   @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  // Diner-facing label, usually a number ("7"). Unique per restaurant so the
+  // diner's table pick is unambiguous.
+  label         String
+  seats         Int?
+  // Position on the owner's floor-plan canvas (drag-to-arrange).
+  posX          Float        @default(0)
+  posY          Float        @default(0)
+  orders        Order[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([restaurantId, label])
+  @@index([restaurantId])
+  @@index([zoneId])
+}
+
+// =============================================================================
+// FEAT-1/D12 — Per-dish add-on groups. Each group is single- or multi-select
+// (e.g. "Taille" single S/M/L, "Suppléments" multi cheese/bacon). Each option
+// carries a priceDelta added to the line total when selected.
+// =============================================================================
+
+enum AddonGroupType {
+  SINGLE
+  MULTI
+}
+
+model DishAddonGroup {
+  id          String           @id @default(uuid()) @db.Uuid
+  dishId      String           @db.Uuid
+  dish        Dish             @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  name        String
+  type        AddonGroupType   @default(SINGLE)
+  // SINGLE groups may be required (diner must choose one). MULTI groups are
+  // always optional in v1.
+  required    Boolean          @default(false)
+  position    Int              @default(0)
+  options     DishAddonOption[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([dishId])
+}
+
+model DishAddonOption {
+  id          String          @id @default(uuid()) @db.Uuid
+  groupId     String          @db.Uuid
+  group       DishAddonGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name        String
+  // Price added to the line when this option is selected (can be 0).
+  priceDelta  Float           @default(0)
+  position    Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([groupId])
+}
+
+// =============================================================================
+// FEAT-1 — Diner orders. An order is placed from the public menu, either
+// DINE_IN (attached to a table the diner picked) or DELIVERY (with contact +
+// address or geolocation). Line items snapshot the dish name/price and the
+// chosen add-ons (denormalized JSON) so historical orders stay accurate even if
+// the menu changes later.
+// =============================================================================
+
+enum OrderType {
+  DINE_IN
+  DELIVERY
+}
+
+// Shared lifecycle covering both branches (D13b):
+//   dine-in : RECEIVED → IN_PREPARATION → READY → SERVED → COMPLETED (+ CANCELLED)
+//   delivery: RECEIVED → IN_PREPARATION → READY → OUT_FOR_DELIVERY → DELIVERED → COMPLETED (+ CANCELLED)
+enum OrderStatus {
+  RECEIVED
+  IN_PREPARATION
+  READY
+  SERVED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id            String           @id @default(uuid()) @db.Uuid
+  restaurantId  String           @db.Uuid
+  restaurant    Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  // Per-restaurant incrementing order number for staff reference (e.g. #42).
+  orderNumber   Int
+  type          OrderType        @default(DINE_IN)
+  status        OrderStatus      @default(RECEIVED)
+
+  // Dine-in: the table the diner picked (kept even if the table is later
+  // deleted, hence SetNull + denormalized label).
+  tableId       String?          @db.Uuid
+  table         RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableLabel    String?
+
+  // Delivery: customer contact + destination (address text and/or geolocation).
+  customerName  String?
+  customerPhone String?
+  address       String?
+  latitude      Float?
+  longitude     Float?
+
+  // Optional order-level note from the diner.
+  note          String?
+
+  // Denormalized total (sum of line totals) at submit time, in the restaurant's
+  // currency. Recomputed server-side from menu prices — never trusted from the
+  // client.
+  total         Float            @default(0)
+
+  items         OrderItem[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([restaurantId, orderNumber])
+  @@index([restaurantId, status])
+  @@index([restaurantId, createdAt])
+  @@index([tableId])
+}
+
+model OrderItem {
+  id            String    @id @default(uuid()) @db.Uuid
+  orderId       String    @db.Uuid
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dishId        String    @db.Uuid
+  // Snapshots so historical orders are stable if the menu changes.
+  dishName      String
+  unitPrice     Float
+  quantity      Int       @default(1)
+  // Chosen add-ons, denormalized as JSON:
+  //   [{ groupName, optionName, priceDelta }]
+  addons        Json?
+  specialRequest String?
+  // (unitPrice + sum(addon priceDelta)) * quantity, computed server-side.
+  lineTotal     Float     @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([orderId])
 }
