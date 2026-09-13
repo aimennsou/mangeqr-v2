@@ -83,8 +83,8 @@ export default function NumeriquePage() {
   const handleCopy = () => {
     navigator.clipboard
       .writeText(ensureHttp(qrUrl))
-      .then(() => toast.success("Lien copié dans le presse-papiers !"))
-      .catch(() => toast.error("Impossible de copier le lien."));
+      .then(() => toast.success(t("numerique.copySuccess")))
+      .catch(() => toast.error(t("numerique.copyError")));
   };
 
   const handleDownloadPng = () => {
@@ -96,7 +96,7 @@ export default function NumeriquePage() {
   };
 
   return (
-    <ContentLayout title="Menu numérique">
+    <ContentLayout title={t("nav.numerique")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -108,7 +108,7 @@ export default function NumeriquePage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Menu numérique</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.numerique")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -116,15 +116,15 @@ export default function NumeriquePage() {
         <CardContent className="p-6">
           <Tabs defaultValue="qr" className="w-full">
             <TabsList>
-              <TabsTrigger value="qr">QR code</TabsTrigger>
-              <TabsTrigger value="appearance">Apparence</TabsTrigger>
-              <TabsTrigger value="design">Commander un design</TabsTrigger>
+              <TabsTrigger value="qr">{t("numerique.tab.qr")}</TabsTrigger>
+              <TabsTrigger value="appearance">{t("numerique.tab.appearance")}</TabsTrigger>
+              <TabsTrigger value="design">{t("numerique.tab.design")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="qr">
           <div className="mt-6">
             {loading ? (
-              <div className="text-center text-gray-500 py-16">Chargement...</div>
+              <div className="text-center text-gray-500 py-16">{t("common.loading")}</div>
             ) : restaurants.length === 0 ? (
               <div className="text-center text-gray-500 py-6">
                 <div className="flex justify-center">
@@ -137,14 +137,14 @@ export default function NumeriquePage() {
                     priority
                   />
                 </div>
-                <p className="text-lg  font-semibold mt-4">Aucun menu disponible..</p>
-                <p className="mt-2">Créez votre premier restaurant pour générer votre QR code.</p>
+                <p className="text-lg  font-semibold mt-4">{t("numerique.empty.title")}</p>
+                <p className="mt-2">{t("numerique.empty.subtitle")}</p>
               </div>
             ) : (
               <div className="mx-auto max-w-md space-y-6">
                 <Select value={selectedId} onValueChange={setSelectedId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choisissez un restaurant" />
+                    <SelectValue placeholder={t("common.chooseRestaurant")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -163,7 +163,7 @@ export default function NumeriquePage() {
                     <img src={qrDataUrl} alt="QR code" className="h-56 w-56" />
                   ) : (
                     <div className="flex h-56 w-56 items-center justify-center text-sm text-muted-foreground">
-                      QR indisponible
+                      {t("numerique.qrUnavailable")}
                     </div>
                   )}
 
@@ -184,7 +184,7 @@ export default function NumeriquePage() {
                     <Tooltip delayDuration={100}>
                       <TooltipTrigger asChild>
                         <Button onClick={handleDownloadPng} className="flex-1 text-black">
-                          <Download className="mr-2 h-4 w-4" /> Télécharger le QR
+                          <Download className="mr-2 h-4 w-4" /> {t("numerique.downloadQr")}
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>{t("tooltip.downloadQr")}</TooltipContent>
@@ -193,7 +193,7 @@ export default function NumeriquePage() {
                       <TooltipTrigger asChild>
                         <Button asChild variant="outline" className="flex-1">
                           <a href={ensureHttp(qrUrl)} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="mr-2 h-4 w-4" /> Aperçu du menu
+                            <ExternalLink className="mr-2 h-4 w-4" /> {t("numerique.previewMenu")}
                           </a>
                         </Button>
                       </TooltipTrigger>

@@ -357,6 +357,14 @@ const fr: Dict = {
   // --- Digital menu (numérique) page (owner) ---
   "numerique.copySuccess": "Lien copié dans le presse-papiers !",
   "numerique.copyError": "Impossible de copier le lien.",
+  "numerique.tab.qr": "QR code",
+  "numerique.tab.appearance": "Apparence",
+  "numerique.tab.design": "Commander un design",
+  "numerique.empty.title": "Aucun menu disponible..",
+  "numerique.empty.subtitle": "Créez votre premier restaurant pour générer votre QR code.",
+  "numerique.qrUnavailable": "QR indisponible",
+  "numerique.downloadQr": "Télécharger le QR",
+  "numerique.previewMenu": "Aperçu du menu",
 
   // --- Physical menu (cartes) page (owner) ---
   "cartes.exportPdf": "Exporter en PDF",
@@ -802,6 +810,14 @@ const ar: Dict = {
   // --- Digital menu (numérique) page (owner) ---
   "numerique.copySuccess": "تم نسخ الرابط إلى الحافظة!",
   "numerique.copyError": "تعذّر نسخ الرابط.",
+  "numerique.tab.qr": "رمز QR",
+  "numerique.tab.appearance": "المظهر",
+  "numerique.tab.design": "طلب تصميم",
+  "numerique.empty.title": "لا توجد قائمة متاحة..",
+  "numerique.empty.subtitle": "أنشئ مطعمك الأول لإنشاء رمز QR الخاص بك.",
+  "numerique.qrUnavailable": "رمز QR غير متاح",
+  "numerique.downloadQr": "تنزيل رمز QR",
+  "numerique.previewMenu": "معاينة القائمة",
 
   // --- Physical menu (cartes) page (owner) ---
   "cartes.exportPdf": "تصدير بصيغة PDF",
@@ -1246,6 +1262,14 @@ const en: Dict = {
   // --- Digital menu (numérique) page (owner) ---
   "numerique.copySuccess": "Link copied to clipboard!",
   "numerique.copyError": "Could not copy the link.",
+  "numerique.tab.qr": "QR code",
+  "numerique.tab.appearance": "Appearance",
+  "numerique.tab.design": "Order a design",
+  "numerique.empty.title": "No menu available..",
+  "numerique.empty.subtitle": "Create your first restaurant to generate your QR code.",
+  "numerique.qrUnavailable": "QR unavailable",
+  "numerique.downloadQr": "Download QR",
+  "numerique.previewMenu": "Menu preview",
 
   // --- Physical menu (cartes) page (owner) ---
   "cartes.exportPdf": "Export as PDF",
