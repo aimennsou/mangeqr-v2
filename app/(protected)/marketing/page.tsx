@@ -49,6 +49,7 @@ import { notFound } from "next/navigation";
 import { ContentLayout } from "../_admin-panel/content-layout";
 import Logo from "@/components/Logo";
 import { MARKETING_ENABLED } from "@/config";
+import { useI18n } from "@/lib/i18n";
 
 const PRIMARY_BUTTON = "bg-yellow-400 hover:bg-yellow-400 text-black";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -93,6 +94,7 @@ export default function MarketingPage() {
   }
 
   const { theme } = useTheme();
+  const { t } = useI18n();
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -147,7 +149,7 @@ export default function MarketingPage() {
 
   async function handleCreate() {
     if (!name.trim() || !restaurantId || !subject.trim() || !body.trim()) {
-      toast.error("Veuillez remplir tous les champs obligatoires.");
+      toast.error(t("marketing.requiredFields"));
       return;
     }
 
@@ -168,16 +170,16 @@ export default function MarketingPage() {
       });
 
       if (!res.ok) {
-        toast.error("Impossible de créer la campagne.");
+        toast.error(t("marketing.toast.createError"));
         return;
       }
 
-      toast.success("Campagne créée avec succès.");
+      toast.success(t("marketing.toast.created"));
       resetForm();
       setDialogOpen(false);
       await loadCampaigns();
     } catch {
-      toast.error("Une erreur est survenue lors de la création.");
+      toast.error(t("marketing.toast.createException"));
     } finally {
       setSubmitting(false);
     }
@@ -195,19 +197,21 @@ export default function MarketingPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data?.error || "Échec de l'envoi de la campagne.");
+        toast.error(data?.error || t("marketing.toast.sendError"));
         return;
       }
 
       if (typeof data?.sent === "number") {
-        toast.success(`Campagne envoyée à ${data.sent} destinataire(s).`);
+        toast.success(
+          t("marketing.toast.sentCount").replace("{count}", String(data.sent))
+        );
       } else {
-        toast.success(data?.message || "Campagne envoyée.");
+        toast.success(data?.message || t("marketing.toast.sent"));
       }
 
       await loadCampaigns();
     } catch {
-      toast.error("Une erreur est survenue lors de l'envoi.");
+      toast.error(t("marketing.toast.sendException"));
     } finally {
       setSendingId(null);
     }
@@ -223,21 +227,21 @@ export default function MarketingPage() {
       });
 
       if (!res.ok) {
-        toast.error("Impossible de supprimer la campagne.");
+        toast.error(t("marketing.toast.deleteError"));
         return;
       }
 
-      toast.success("Campagne supprimée.");
+      toast.success(t("marketing.toast.deleted"));
       await loadCampaigns();
     } catch {
-      toast.error("Une erreur est survenue lors de la suppression.");
+      toast.error(t("marketing.toast.deleteException"));
     } finally {
       setDeletingId(null);
     }
   }
 
   return (
-    <ContentLayout title="Campagnes marketing">
+    <ContentLayout title={t("marketing.heading")}>
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
@@ -252,7 +256,7 @@ export default function MarketingPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Campagne marketing</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.marketing")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -261,9 +265,9 @@ export default function MarketingPage() {
         <CardContent className="p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-semibold">Campagnes marketing</h2>
+              <h2 className="text-xl font-semibold">{t("marketing.heading")}</h2>
               <p className="text-sm text-muted-foreground">
-                Créez et envoyez des campagnes email à vos clients.
+                {t("marketing.subtitle")}
               </p>
             </div>
 
@@ -271,36 +275,36 @@ export default function MarketingPage() {
               <DialogTrigger asChild>
                 <Button className={PRIMARY_BUTTON}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Créer une campagne
+                  {t("marketing.create")}
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[520px]">
                 <DialogHeader>
-                  <DialogTitle>Créer une campagne</DialogTitle>
+                  <DialogTitle>{t("marketing.create")}</DialogTitle>
                   <DialogDescription>
-                    Composez votre email et ajoutez vos destinataires.
+                    {t("marketing.create.desc")}
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-4 py-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="name">Nom de la campagne</Label>
+                    <Label htmlFor="name">{t("marketing.field.name")}</Label>
                     <Input
                       id="name"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Ex : Offre de printemps"
+                      placeholder={t("marketing.field.namePlaceholder")}
                     />
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="restaurant">Restaurant</Label>
+                    <Label htmlFor="restaurant">{t("common.restaurant")}</Label>
                     <Select
                       value={restaurantId}
                       onValueChange={setRestaurantId}
                     >
                       <SelectTrigger id="restaurant">
-                        <SelectValue placeholder="Sélectionnez un restaurant" />
+                        <SelectValue placeholder={t("marketing.field.restaurantPlaceholder")} />
                       </SelectTrigger>
                       <SelectContent>
                         {restaurants.map((restaurant) => (
@@ -313,38 +317,37 @@ export default function MarketingPage() {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="subject">Objet de l&apos;email</Label>
+                    <Label htmlFor="subject">{t("marketing.field.subject")}</Label>
                     <Input
                       id="subject"
                       value={subject}
                       onChange={(e) => setSubject(e.target.value)}
-                      placeholder="Ex : Découvrez notre nouveau menu"
+                      placeholder={t("marketing.field.subjectPlaceholder")}
                     />
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="body">Message</Label>
+                    <Label htmlFor="body">{t("marketing.field.message")}</Label>
                     <Textarea
                       id="body"
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
-                      placeholder="Le contenu de votre email..."
+                      placeholder={t("marketing.field.messagePlaceholder")}
                       rows={5}
                     />
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="recipients">Destinataires</Label>
+                    <Label htmlFor="recipients">{t("marketing.field.recipients")}</Label>
                     <Textarea
                       id="recipients"
                       value={recipientsRaw}
                       onChange={(e) => setRecipientsRaw(e.target.value)}
-                      placeholder="Collez les adresses email séparées par une virgule ou un retour à la ligne"
+                      placeholder={t("marketing.field.recipientsPlaceholder")}
                       rows={3}
                     />
                     <p className="text-xs text-muted-foreground">
-                      {parseRecipients(recipientsRaw).length} adresse(s) valide(s)
-                      détectée(s).
+                      {parseRecipients(recipientsRaw).length} {t("marketing.recipientsDetected")}
                     </p>
                   </div>
                 </div>
@@ -358,7 +361,7 @@ export default function MarketingPage() {
                     {submitting && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     )}
-                    Créer la campagne
+                    {t("marketing.submit")}
                   </Button>
                 </DialogFooter>
               </DialogContent>
@@ -383,23 +386,22 @@ export default function MarketingPage() {
                   />
                 </div>
                 <p className="text-lg text-gray-700 font-semibold mt-4">
-                  Aucune campagne pour le moment.
+                  {t("marketing.empty.title")}
                 </p>
                 <p className="mt-2">
-                  Créez une campagne email pour réengager vos clients et les
-                  inviter à revenir dans votre restaurant.
+                  {t("marketing.empty.subtitle")}
                 </p>
               </div>
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Nom</TableHead>
-                    <TableHead>Restaurant</TableHead>
-                    <TableHead>Objet</TableHead>
-                    <TableHead>Destinataires</TableHead>
-                    <TableHead>Statut</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead>{t("marketing.col.name")}</TableHead>
+                    <TableHead>{t("common.restaurant")}</TableHead>
+                    <TableHead>{t("marketing.col.subject")}</TableHead>
+                    <TableHead>{t("marketing.col.recipients")}</TableHead>
+                    <TableHead>{t("marketing.col.status")}</TableHead>
+                    <TableHead className="text-right">{t("marketing.col.actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -413,9 +415,9 @@ export default function MarketingPage() {
                       <TableCell>{campaign.emailRecipients.length}</TableCell>
                       <TableCell>
                         {campaign.sent ? (
-                          <Badge variant="success">Envoyée</Badge>
+                          <Badge variant="success">{t("marketing.status.sent")}</Badge>
                         ) : (
-                          <Badge variant="secondary">Brouillon</Badge>
+                          <Badge variant="secondary">{t("marketing.status.draft")}</Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
@@ -432,7 +434,7 @@ export default function MarketingPage() {
                               ) : (
                                 <Send className="h-4 w-4" />
                               )}
-                              <span className="ml-2">Envoyer</span>
+                              <span className="ml-2">{t("marketing.send")}</span>
                             </Button>
                           )}
                           <Button
