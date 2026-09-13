@@ -482,6 +482,34 @@ const fr: Dict = {
   "tooltip.copyLink": "Copier le lien du menu",
   "tooltip.previewMenu": "Ouvrir l'aperçu du menu",
   "tooltip.downloadQr": "Télécharger le QR code",
+
+  // --- Ticket printer configuration (account/settings) ---
+  "printer.title": "Imprimante des tickets",
+  "printer.subtitle":
+    "Configurez la mise en page et l'impression des tickets de caisse (l'addition).",
+  "printer.noRestaurant":
+    "Créez d'abord un restaurant pour configurer l'imprimante.",
+  "printer.paperWidth": "Largeur du papier",
+  "printer.paperNarrow": "étroit",
+  "printer.paperStandard": "standard",
+  "printer.copies": "Nombre de copies",
+  "printer.printerName": "Nom de l'imprimante",
+  "printer.printerNamePlaceholder": "ex : Epson TM-T20",
+  "printer.printerNameHelp":
+    "À titre indicatif : le navigateur ne peut pas sélectionner l'imprimante automatiquement. Choisissez-la dans la fenêtre d'impression.",
+  "printer.headerText": "Texte d'en-tête",
+  "printer.headerPlaceholder": "ex : Merci de votre visite !",
+  "printer.footerText": "Texte de pied de page",
+  "printer.footerPlaceholder": "ex : À bientôt !",
+  "printer.autoPrint": "Impression automatique",
+  "printer.autoPrintHelp":
+    "Imprimer automatiquement le ticket à l'arrivée d'une nouvelle commande.",
+  "printer.showLogo": "Afficher le nom du restaurant",
+  "printer.showPrices": "Afficher les prix",
+  "printer.showPricesHelp":
+    "Décochez pour un ticket cuisine sans prix.",
+  "printer.testPrint": "Test d'impression",
+  "printer.saved": "Configuration de l'imprimante enregistrée.",
 };
 
 const ar: Dict = {
@@ -944,6 +972,30 @@ const ar: Dict = {
   "tooltip.copyLink": "نسخ رابط القائمة",
   "tooltip.previewMenu": "فتح معاينة القائمة",
   "tooltip.downloadQr": "تنزيل رمز QR",
+
+  // --- إعدادات طابعة التذاكر ---
+  "printer.title": "طابعة التذاكر",
+  "printer.subtitle": "اضبط تنسيق وطباعة تذاكر الحساب.",
+  "printer.noRestaurant": "أنشئ مطعمًا أولاً لإعداد الطابعة.",
+  "printer.paperWidth": "عرض الورق",
+  "printer.paperNarrow": "ضيق",
+  "printer.paperStandard": "قياسي",
+  "printer.copies": "عدد النسخ",
+  "printer.printerName": "اسم الطابعة",
+  "printer.printerNamePlaceholder": "مثال: Epson TM-T20",
+  "printer.printerNameHelp":
+    "للإرشاد فقط: لا يمكن للمتصفح اختيار الطابعة تلقائيًا. اخترها من نافذة الطباعة.",
+  "printer.headerText": "نص الرأس",
+  "printer.headerPlaceholder": "مثال: شكرًا لزيارتكم!",
+  "printer.footerText": "نص التذييل",
+  "printer.footerPlaceholder": "مثال: إلى اللقاء!",
+  "printer.autoPrint": "طباعة تلقائية",
+  "printer.autoPrintHelp": "طباعة التذكرة تلقائيًا عند وصول طلب جديد.",
+  "printer.showLogo": "إظهار اسم المطعم",
+  "printer.showPrices": "إظهار الأسعار",
+  "printer.showPricesHelp": "ألغِ التحديد لتذكرة مطبخ بدون أسعار.",
+  "printer.testPrint": "طباعة تجريبية",
+  "printer.saved": "تم حفظ إعدادات الطابعة.",
 };
 
 const en: Dict = {
@@ -1408,6 +1460,32 @@ const en: Dict = {
   "tooltip.copyLink": "Copy menu link",
   "tooltip.previewMenu": "Open menu preview",
   "tooltip.downloadQr": "Download QR code",
+
+  // --- Ticket printer configuration (account/settings) ---
+  "printer.title": "Ticket printer",
+  "printer.subtitle":
+    "Configure the layout and printing of receipt tickets (the bill).",
+  "printer.noRestaurant": "Create a restaurant first to configure the printer.",
+  "printer.paperWidth": "Paper width",
+  "printer.paperNarrow": "narrow",
+  "printer.paperStandard": "standard",
+  "printer.copies": "Number of copies",
+  "printer.printerName": "Printer name",
+  "printer.printerNamePlaceholder": "e.g. Epson TM-T20",
+  "printer.printerNameHelp":
+    "For reference only: the browser can't select the printer automatically. Pick it in the print dialog.",
+  "printer.headerText": "Header text",
+  "printer.headerPlaceholder": "e.g. Thanks for visiting!",
+  "printer.footerText": "Footer text",
+  "printer.footerPlaceholder": "e.g. See you soon!",
+  "printer.autoPrint": "Auto-print",
+  "printer.autoPrintHelp":
+    "Automatically print the ticket when a new order arrives.",
+  "printer.showLogo": "Show restaurant name",
+  "printer.showPrices": "Show prices",
+  "printer.showPricesHelp": "Uncheck for a kitchen ticket without prices.",
+  "printer.testPrint": "Test print",
+  "printer.saved": "Printer configuration saved.",
 };
 
 export const DICTIONARIES: Record<Locale, Dict> = { fr, ar, en };

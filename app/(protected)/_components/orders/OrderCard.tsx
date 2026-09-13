@@ -24,12 +24,15 @@ import {
   statusBadgeClass
 } from './order-status';
 import { printOrderTicket } from './print-ticket';
+import type { PrinterConfig } from '@/schemas';
 
 interface OrderCardProps {
   order: OrderView;
   isNew?: boolean;
   onChanged: () => void;
   onSeen?: (id: string) => void;
+  /** Per-restaurant ticket-printer config that drives "Imprimer l'addition". */
+  printerConfig?: PrinterConfig | null;
 }
 
 function fmt(n: number, currency: string) {
@@ -51,7 +54,13 @@ function timeAgo(date: Date | string): string {
  * next status, or cancel). Used by both the Commandes board and the Kitchen
  * view. Highlights when `isNew`.
  */
-export function OrderCard({ order, isNew, onChanged, onSeen }: OrderCardProps) {
+export function OrderCard({
+  order,
+  isNew,
+  onChanged,
+  onSeen,
+  printerConfig
+}: OrderCardProps) {
   const [isPending, startTransition] = useTransition();
 
   const advanceTo = nextStatus(order.type, order.status);
@@ -243,7 +252,7 @@ export function OrderCard({ order, isNew, onChanged, onSeen }: OrderCardProps) {
         <Button
           size="sm"
           variant="outline"
-          onClick={() => printOrderTicket(order)}
+          onClick={() => printOrderTicket(order, printerConfig)}
         >
           <Printer className="mr-1 h-4 w-4" />
           Imprimer l&apos;addition

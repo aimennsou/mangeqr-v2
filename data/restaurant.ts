@@ -1,6 +1,6 @@
 import { db } from '@/lib/db';
 
-import type { MenuAppearance } from '@/schemas';
+import type { MenuAppearance, PrinterConfig } from '@/schemas';
 
 /**
  * Fetch all restaurants owned by a given user.
@@ -68,4 +68,28 @@ export async function getMenuAppearanceForUser(
   }
 
   return restaurant.menuAppearance as MenuAppearance;
+}
+
+/**
+ * Read the ticket-printer configuration for a restaurant, owner-scoped.
+ *
+ * Returns the stored `printerConfig` (or `null` when the owner has not
+ * customized it yet, so callers fall back to `DEFAULT_PRINTER_CONFIG`).
+ * Returns `null` as well when the restaurant does not exist or is not owned by
+ * the given user, keeping other users' restaurants opaque.
+ */
+export async function getPrinterConfigForUser(
+  userId: string,
+  restaurantId: string
+): Promise<PrinterConfig | null> {
+  const restaurant = await db.restaurant.findFirst({
+    where: { id: restaurantId, userId },
+    select: { printerConfig: true },
+  });
+
+  if (!restaurant || restaurant.printerConfig == null) {
+    return null;
+  }
+
+  return restaurant.printerConfig as PrinterConfig;
 }

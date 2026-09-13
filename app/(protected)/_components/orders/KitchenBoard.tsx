@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { OrderStatus } from '@prisma/client';
 import { Loader2, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
@@ -17,8 +17,10 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { resolvePrinterConfig, type PrinterConfig } from '@/schemas';
 import { useOrdersPoll } from './useOrdersPoll';
 import { OrderCard } from './OrderCard';
+import { printOrderTicket } from './print-ticket';
 import { playNewOrderChime } from './notify';
 import { ORDER_STATUS_LABEL, statusBadgeClass } from './order-status';
 
@@ -45,6 +47,18 @@ export function KitchenBoard() {
   const soundRef = useState({ current: true })[0];
   soundRef.current = soundOn;
 
+  // Map restaurantId -> saved printer config (drives per-ticket layout +
+  // auto-print on new orders).
+  const printerConfigs = useMemo(() => {
+    const m = new Map<string, PrinterConfig>();
+    for (const r of restaurants) {
+      if (r?.id) m.set(r.id, resolvePrinterConfig(r.printerConfig ?? null));
+    }
+    return m;
+  }, [restaurants]);
+  const printerConfigsRef = useRef(printerConfigs);
+  printerConfigsRef.current = printerConfigs;
+
   useEffect(() => {
     (async () => {
       try {
@@ -64,6 +78,8 @@ export function KitchenBoard() {
     onNewOrder: (o) => {
       if (soundRef.current) playNewOrderChime();
       toast.info(`Nouvelle commande #${o.orderNumber}`);
+      const cfg = printerConfigsRef.current.get(o.restaurantId);
+      if (cfg?.autoPrint) printOrderTicket(o, cfg);
     }
   });
 
@@ -150,6 +166,7 @@ export function KitchenBoard() {
                         isNew={newIds.has(o.id)}
                         onChanged={refresh}
                         onSeen={clearNew}
+                        printerConfig={printerConfigs.get(o.restaurantId)}
                       />
                     ))
                   )}

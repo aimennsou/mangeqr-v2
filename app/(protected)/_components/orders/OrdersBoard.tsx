@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Bell, Loader2, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import type { OrderView } from '@/data/orders';
+import { resolvePrinterConfig, type PrinterConfig } from '@/schemas';
+import { printOrderTicket } from './print-ticket';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -36,6 +38,18 @@ export function OrdersBoard() {
   const soundOnRef = useState({ current: true })[0];
   soundOnRef.current = soundOn;
 
+  // Map restaurantId -> saved printer config so each ticket prints with its
+  // restaurant's layout, and new orders can auto-print when enabled.
+  const printerConfigs = useMemo(() => {
+    const m = new Map<string, PrinterConfig>();
+    for (const r of restaurants) {
+      if (r?.id) m.set(r.id, resolvePrinterConfig(r.printerConfig ?? null));
+    }
+    return m;
+  }, [restaurants]);
+  const printerConfigsRef = useRef(printerConfigs);
+  printerConfigsRef.current = printerConfigs;
+
   useEffect(() => {
     (async () => {
       try {
@@ -59,6 +73,9 @@ export function OrdersBoard() {
           o.type === 'DINE_IN' ? `Table ${o.tableLabel ?? ''}` : 'Livraison'
         }`
       );
+      // Auto-print the ticket when the restaurant has enabled it.
+      const cfg = printerConfigsRef.current.get(o.restaurantId);
+      if (cfg?.autoPrint) printOrderTicket(o, cfg);
     }
   });
 
@@ -184,6 +201,7 @@ export function OrdersBoard() {
                         isNew={newIds.has(o.id)}
                         onChanged={refresh}
                         onSeen={clearNew}
+                        printerConfig={printerConfigs.get(o.restaurantId)}
                       />
                     ))}
                   </div>
@@ -206,6 +224,7 @@ export function OrdersBoard() {
                     isNew={newIds.has(o.id)}
                     onChanged={refresh}
                     onSeen={clearNew}
+                    printerConfig={printerConfigs.get(o.restaurantId)}
                   />
                 ))}
               </div>

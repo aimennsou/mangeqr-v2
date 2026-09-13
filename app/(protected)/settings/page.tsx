@@ -34,6 +34,7 @@ import PlanCard from "./_components/plan-card";
 import CopyIdButton from "./_components/copy-id-button";
 import TeamSection from "./_components/team-section";
 import TeamMemberCard from "./_components/team-member-card";
+import PrinterSettingsCard from "./_components/printer-settings-card";
 
 /** Build the copyable redeem link for an invite code (mirrors actions/team). */
 function buildRedeemLink(code: string): string {
@@ -251,6 +252,14 @@ export default async function SettingsPage() {
           />
         ) : workspace.role === "MEMBER" ? (
           <TeamMemberCard ownerName={teamOwnerName} />
+        ) : null}
+
+        {/* Ticket-printer configuration (owner-only) — spans full width so the
+            form has room for its controls. */}
+        {workspace.role === "OWNER" ? (
+          <div className="md:col-span-2">
+            <PrinterSettingsCard />
+          </div>
         ) : null}
       </div>
 

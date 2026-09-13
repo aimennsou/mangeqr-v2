@@ -106,6 +106,65 @@ export const MenuAppearanceSchema = z.object({
 export type MenuAppearance = z.infer<typeof MenuAppearanceSchema>;
 
 /**
+ * Per-restaurant ticket-printer configuration (FEAT-1 follow-up).
+ *
+ * The app prints receipts from the browser (a self-printing popup), so this
+ * config drives the RECEIPT LAYOUT and print BEHAVIOR rather than talking to a
+ * driver directly:
+ *  - `paperWidth`  — thermal roll width in mm (58 or 80) → sets the @page size.
+ *  - `copies`      — how many identical tickets to print (kitchen + counter…).
+ *  - `autoPrint`   — auto-open the print dialog when a new order arrives.
+ *  - `headerText`  — extra line under the restaurant name (e.g. "Merci !").
+ *  - `footerText`  — replaces the default footer note.
+ *  - `showLogo`    — print the restaurant logo/name block.
+ *  - `showPrices`  — hide line prices for a kitchen "prep" ticket.
+ *  - `printerName` — informational label of the physical printer (browsers
+ *                    cannot select a printer silently; this documents which
+ *                    one to pick in the print dialog).
+ * All fields optional so partial updates work; unset falls back to defaults.
+ */
+export const PrinterConfigSchema = z.object({
+  paperWidth: z.union([z.literal(58), z.literal(80)]).optional(),
+  copies: z.number().int().min(1).max(5).optional(),
+  autoPrint: z.boolean().optional(),
+  headerText: z.string().trim().max(120).optional(),
+  footerText: z.string().trim().max(200).optional(),
+  showLogo: z.boolean().optional(),
+  showPrices: z.boolean().optional(),
+  printerName: z.string().trim().max(120).optional()
+});
+
+export type PrinterConfig = z.infer<typeof PrinterConfigSchema>;
+
+/**
+ * Default ticket-printer configuration used when a restaurant has not set one,
+ * and as the base that stored partial configs are merged onto.
+ */
+export const DEFAULT_PRINTER_CONFIG: Required<
+  Pick<
+    PrinterConfig,
+    'paperWidth' | 'copies' | 'autoPrint' | 'showLogo' | 'showPrices'
+  >
+> &
+  PrinterConfig = {
+  paperWidth: 80,
+  copies: 1,
+  autoPrint: false,
+  showLogo: true,
+  showPrices: true,
+  headerText: '',
+  footerText: '',
+  printerName: ''
+};
+
+/** Merge a stored (possibly partial) printer config onto the defaults. */
+export function resolvePrinterConfig(
+  stored?: PrinterConfig | null
+): typeof DEFAULT_PRINTER_CONFIG {
+  return { ...DEFAULT_PRINTER_CONFIG, ...(stored ?? {}) };
+}
+
+/**
  * Admin-only payload to set a user's plan, payment method, and expiry
  * (Requirement 3 — cash/offline plans, no Stripe checkout).
  *

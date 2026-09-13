@@ -1,12 +1,22 @@
 'use client';
 
 import type { OrderView } from '@/data/orders';
+import {
+  DEFAULT_PRINTER_CONFIG,
+  resolvePrinterConfig,
+  type PrinterConfig
+} from '@/schemas';
 
 /**
  * Print a receipt / "addition" for an order (FEAT-1). Opens a dedicated print
- * window with a narrow, thermal-printer-friendly layout (80mm), lists every
- * line (name, qty, add-ons, special request, line total), the grand total, the
+ * window with a narrow, thermal-printer-friendly layout, lists every line
+ * (name, qty, add-ons, special request, line total), the grand total, the
  * table/delivery context, and the PAID / NOT PAID status, then triggers print.
+ *
+ * The layout + behavior are driven by the per-restaurant `PrinterConfig`
+ * (paper width 58/80mm, number of copies, custom header/footer, whether to
+ * show the logo/name block and line prices). See schemas/index.ts. When no
+ * config is passed the defaults (80mm, 1 copy, logo + prices on) are used.
  *
  * Self-contained (no print library): builds an HTML string and writes it to a
  * popup. Falls back to a hidden iframe if popups are blocked.
@@ -24,7 +34,11 @@ function money(n: number, currency: string): string {
   return `${v} ${currency}`;
 }
 
-export function buildTicketHtml(order: OrderView): string {
+/** Build the inner ticket body (used once per copy). */
+function buildTicketBody(
+  order: OrderView,
+  cfg: typeof DEFAULT_PRINTER_CONFIG
+): string {
   const created = new Date(order.createdAt);
   const dateStr = created.toLocaleString('fr-FR', {
     day: '2-digit',
@@ -60,14 +74,26 @@ export function buildTicketHtml(order: OrderView): string {
       const req = it.specialRequest
         ? `<div class="sub">“${esc(it.specialRequest)}”</div>`
         : '';
+      const amt = cfg.showPrices
+        ? `<td class="amt">${money(it.lineTotal, order.currency)}</td>`
+        : '';
       return `
         <tr>
           <td class="qty">${it.quantity}×</td>
           <td class="name">${esc(it.dishName)}${addons}${req}</td>
-          <td class="amt">${money(it.lineTotal, order.currency)}</td>
+          ${amt}
         </tr>`;
     })
     .join('');
+
+  const totalBlock = cfg.showPrices
+    ? `
+  <hr />
+  <div class="row total"><span>TOTAL</span><span>${money(
+    order.total,
+    order.currency
+  )}</span></div>`
+    : '';
 
   const paidBadge = order.paid
     ? `<div class="paid paid-yes">PAYÉ${
@@ -83,20 +109,79 @@ export function buildTicketHtml(order: OrderView): string {
       }</div>`
     : `<div class="paid paid-no">NON PAYÉ</div>`;
 
+  const headerBlock = cfg.showLogo
+    ? `
+  <div class="center">
+    <div class="rname">${esc(order.restaurantName ?? 'Restaurant')}</div>
+    ${
+      order.restaurantAddress
+        ? `<div class="muted">${esc(order.restaurantAddress)}</div>`
+        : ''
+    }
+    ${
+      order.restaurantPhone
+        ? `<div class="muted">${esc(order.restaurantPhone)}</div>`
+        : ''
+    }
+    ${cfg.headerText ? `<div class="muted">${esc(cfg.headerText)}</div>` : ''}
+  </div>
+  <hr />`
+    : cfg.headerText
+    ? `<div class="center muted">${esc(cfg.headerText)}</div><hr />`
+    : '';
+
+  const footerText = cfg.footerText
+    ? esc(cfg.footerText)
+    : 'Merci de votre visite !<br/>Propulsé par MangeQR';
+
+  return `
+  <div class="ticket">
+  ${headerBlock}
+  <div class="row"><span>Commande</span><strong>#${order.orderNumber}</strong></div>
+  <div class="row"><span>${dateStr}</span></div>
+  <div class="row"><span>${context}</span></div>
+  ${deliveryBlock}
+  <hr />
+  <table>${itemsRows}</table>
+  ${totalBlock}
+  ${paidBadge}
+  <div class="foot">${footerText}</div>
+  </div>`;
+}
+
+export function buildTicketHtml(
+  order: OrderView,
+  config?: PrinterConfig | null
+): string {
+  const cfg = resolvePrinterConfig(config);
+
+  // Physical roll widths: 58mm rolls print ~48mm, 80mm rolls ~72mm.
+  const pageWidth = cfg.paperWidth === 58 ? '58mm' : '80mm';
+  const bodyWidth = cfg.paperWidth === 58 ? '50mm' : '72mm';
+  const baseFont = cfg.paperWidth === 58 ? '11px' : '12px';
+
+  // One body per requested copy, separated by a page break so each prints on
+  // its own ticket.
+  const copies = Math.min(Math.max(cfg.copies ?? 1, 1), 5);
+  const body = buildTicketBody(order, cfg);
+  const copiesHtml = Array.from({ length: copies }, (_, i) =>
+    i === 0 ? body : `<div class="page-break"></div>${body}`
+  ).join('');
+
   return `<!doctype html>
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
 <title>Addition #${order.orderNumber}</title>
 <style>
-  @page { size: 80mm auto; margin: 4mm; }
+  @page { size: ${pageWidth} auto; margin: 4mm; }
   * { box-sizing: border-box; }
   body {
     font-family: "Courier New", ui-monospace, monospace;
     color: #000;
-    width: 72mm;
+    width: ${bodyWidth};
     margin: 0 auto;
-    font-size: 12px;
+    font-size: ${baseFont};
     line-height: 1.35;
   }
   .center { text-align: center; }
@@ -114,25 +199,11 @@ export function buildTicketHtml(order: OrderView): string {
   .paid-no { border-style: dashed; }
   .block { font-size: 11px; margin: 4px 0; }
   .foot { margin-top: 10px; font-size: 10px; text-align: center; color: #333; }
+  .page-break { break-before: page; page-break-before: always; }
 </style>
 </head>
 <body>
-  <div class="center">
-    <div class="rname">${esc(order.restaurantName ?? 'Restaurant')}</div>
-    ${order.restaurantAddress ? `<div class="muted">${esc(order.restaurantAddress)}</div>` : ''}
-    ${order.restaurantPhone ? `<div class="muted">${esc(order.restaurantPhone)}</div>` : ''}
-  </div>
-  <hr />
-  <div class="row"><span>Commande</span><strong>#${order.orderNumber}</strong></div>
-  <div class="row"><span>${dateStr}</span></div>
-  <div class="row"><span>${context}</span></div>
-  ${deliveryBlock}
-  <hr />
-  <table>${itemsRows}</table>
-  <hr />
-  <div class="row total"><span>TOTAL</span><span>${money(order.total, order.currency)}</span></div>
-  ${paidBadge}
-  <div class="foot">Merci de votre visite !<br/>Propulsé par MangeQR</div>
+  ${copiesHtml}
   <script>
     window.onload = function () {
       window.focus();
@@ -144,8 +215,11 @@ export function buildTicketHtml(order: OrderView): string {
 </html>`;
 }
 
-export function printOrderTicket(order: OrderView): void {
-  const html = buildTicketHtml(order);
+export function printOrderTicket(
+  order: OrderView,
+  config?: PrinterConfig | null
+): void {
+  const html = buildTicketHtml(order, config);
 
   // Preferred: a popup window that self-prints then closes.
   const win = window.open('', '_blank', 'width=380,height=640');

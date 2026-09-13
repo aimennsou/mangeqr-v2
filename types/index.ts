@@ -1,4 +1,4 @@
-import type { MenuAppearance } from '@/schemas';
+import type { MenuAppearance, PrinterConfig } from '@/schemas';
 
 export type Restaurant = {
     id: string;
@@ -23,6 +23,9 @@ export type Restaurant = {
     // Per-restaurant diner-menu appearance settings (Requirement 4). Null/undefined
     // means the owner has not customized it and the default look applies.
     menuAppearance?: MenuAppearance | null;
+    // Per-restaurant ticket-printer configuration (FEAT-1 follow-up). Null/undefined
+    // means the owner has not customized it and the default config applies.
+    printerConfig?: PrinterConfig | null;
     menus: Menu[];
     campaigns: MarketingCampaign[];
     reviews: Review[];
