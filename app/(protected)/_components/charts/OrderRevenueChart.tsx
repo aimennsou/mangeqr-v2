@@ -15,6 +15,7 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@/components/ui/chart';
+import { useI18n } from '@/lib/i18n';
 
 const chartConfig = {
   revenue: {
@@ -33,22 +34,23 @@ interface OrderRevenueChartProps {
  * scans BarGraph styling but plots the per-day order revenue.
  */
 export function OrderRevenueChart({ data, currency }: OrderRevenueChartProps) {
+  const { t } = useI18n();
   const isEmpty = !data || data.length === 0;
 
   return (
     <Card>
       <CardHeader className="flex flex-col items-stretch space-y-2 border-b p-0 sm:flex-row sm:space-y-0">
         <div className="flex flex-1 flex-col justify-center gap-2 px-6 py-5 sm:py-6">
-          <CardTitle>Revenu des commandes par jour</CardTitle>
+          <CardTitle>{t("performances.chart.revenueTitle")}</CardTitle>
           <CardDescription>
-            Revenu total des commandes par jour sur la période sélectionnée
+            {t("performances.chart.revenueDesc")}
           </CardDescription>
         </div>
       </CardHeader>
       <CardContent className="px-2 sm:p-6">
         {isEmpty ? (
           <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-            Aucune commande sur la période.
+            {t("performances.chart.ordersEmpty")}
           </div>
         ) : (
           <ChartContainer

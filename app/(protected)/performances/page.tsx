@@ -34,6 +34,7 @@ import KpiCard from "../_components/charts/KpiCard";
 import { OrderRevenueChart } from "../_components/charts/OrderRevenueChart";
 import PerformancesSkeleton from "../_components/charts/PerformancesSkeleton";
 import { QrCode, Star, Heart, LayoutGrid, ShoppingCart, Euro, Receipt, Truck } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 
 
@@ -58,6 +59,7 @@ import { QrCode, Star, Heart, LayoutGrid, ShoppingCart, Euro, Receipt, Truck } f
 
 export default function PerformancesPage() {
   const { theme } = useTheme();
+  const { t } = useI18n();
 
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -347,7 +349,7 @@ export default function PerformancesPage() {
 
 
   return (
-    <ContentLayout title="Mes performances">
+    <ContentLayout title={t("nav.performances")}>
       <Breadcrumb>
         <BreadcrumbList>
         <BreadcrumbItem>
@@ -359,7 +361,7 @@ export default function PerformancesPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Mes performances</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.performances")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -379,8 +381,8 @@ export default function PerformancesPage() {
               height={400}
             />
           </div>
-          <p className="text-lg  font-semibold mt-4 text-foreground">Aucune donnée disponible..</p>
-          <p className="mt-2">Créez votre premier restaurant pour pouvoir visualiser vos performances..</p>
+          <p className="text-lg  font-semibold mt-4 text-foreground">{t("performances.empty.title")}</p>
+          <p className="mt-2">{t("performances.empty.subtitle")}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -388,7 +390,7 @@ export default function PerformancesPage() {
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <Select value={shopId} onValueChange={setShopId}>
               <SelectTrigger className="w-full sm:w-[260px]">
-                <SelectValue placeholder="Choisissez un restaurant" />
+                <SelectValue placeholder={t("common.chooseRestaurant")} />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -405,31 +407,34 @@ export default function PerformancesPage() {
           {/* KPI cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <KpiCard
-              title="Scans"
+              title={t("performances.kpi.scans")}
               number={data.scans}
               icon={<QrCode />}
-              description="Total des scans sur la période"
+              description={t("performances.kpi.scansDesc")}
             />
             <KpiCard
-              title="Avis"
+              title={t("performances.kpi.reviews")}
               number={data.reviews}
               icon={<Star />}
-              description="Avis reçus sur la période"
+              description={t("performances.kpi.reviewsDesc")}
             />
             <KpiCard
-              title="Catégorie la plus vue"
+              title={t("performances.kpi.topCategory")}
               number={topCategoryName ?? "N/A"}
               icon={<LayoutGrid />}
-              description="Sur la période sélectionnée"
+              description={t("performances.kpi.periodDesc")}
             />
             <KpiCard
-              title="Le plat favoris"
+              title={t("performances.kpi.topDish")}
               number={topDishName ?? "N/A"}
               icon={<Heart />}
               description={
                 topDishName && topDishName !== "N/A"
-                  ? `${topDishFavorites} ajout${topDishFavorites > 1 ? "s" : ""} en favori sur la période`
-                  : "Sur la période sélectionnée"
+                  ? t("performances.kpi.topDishDesc").replace(
+                      "{count}",
+                      String(topDishFavorites)
+                    )
+                  : t("performances.kpi.periodDesc")
               }
             />
           </div>
@@ -438,32 +443,32 @@ export default function PerformancesPage() {
           {orderMetrics?.orderingEnabled ? (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <KpiCard
-                title="Commandes"
+                title={t("performances.kpi.orders")}
                 number={orderMetrics.totalOrders}
                 icon={<ShoppingCart />}
-                description="Total des commandes sur la période"
+                description={t("performances.kpi.ordersDesc")}
               />
               <KpiCard
-                title="Revenu"
+                title={t("performances.kpi.revenue")}
                 number={`${
                   Number.isInteger(orderMetrics.revenue)
                     ? orderMetrics.revenue
                     : orderMetrics.revenue.toFixed(2)
                 } ${orderMetrics.currency}`}
                 icon={<Euro />}
-                description="Revenu des commandes (hors annulées)"
+                description={t("performances.kpi.revenueDesc")}
               />
               <KpiCard
-                title="Panier moyen"
+                title={t("performances.kpi.avgBasket")}
                 number={`${orderMetrics.avgOrderValue.toFixed(2)} ${orderMetrics.currency}`}
                 icon={<Receipt />}
-                description="Valeur moyenne par commande"
+                description={t("performances.kpi.avgBasketDesc")}
               />
               <KpiCard
-                title="Sur place / Livraison"
+                title={t("performances.kpi.split")}
                 number={`${orderMetrics.dineInCount} / ${orderMetrics.deliveryCount}`}
                 icon={<Truck />}
-                description="Répartition des commandes"
+                description={t("performances.kpi.splitDesc")}
               />
             </div>
           ) : null}
@@ -485,8 +490,8 @@ export default function PerformancesPage() {
             <PieGraph data={piegraphData} />
             <Card>
               <CardHeader>
-                <CardTitle>Derniers avis</CardTitle>
-                <CardDescription>Les avis récents de vos clients</CardDescription>
+                <CardTitle>{t("performances.recentReviews")}</CardTitle>
+                <CardDescription>{t("performances.recentReviewsDesc")}</CardDescription>
               </CardHeader>
               <CardContent>
                 <RecentReviews restaurantId={shopId} />

@@ -51,6 +51,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Restaurant } from "@/types";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n";
 
 
 
@@ -58,6 +59,7 @@ import { toast } from "sonner";
   
   
   export function RestoTable({ restaurants }: { restaurants: Restaurant[] }) {
+    const { t } = useI18n();
     const [copied, setCopied] = useState(false);
 
    
@@ -66,7 +68,7 @@ import { toast } from "sonner";
     const handleCopy = (qrUrl:string) => {
       setCopied(true);
       navigator.clipboard.writeText(qrUrl || "").then(() => {
-        toast.success('Lien copié dans le presse-papiers!' );
+        toast.success(t("numerique.copySuccess"));
         setTimeout(() => setCopied(false), 2000);
       }).catch(err => {
         toast.error( err.message );
@@ -158,31 +160,31 @@ import { toast } from "sonner";
 
     {
       accessorKey: "name",
-      header: "Restaurant",
+      header: t("common.restaurant"),
       cell: ({ row }) => <div>{row.original.name}</div>,
     },
     {
       accessorKey:"adresse",
-      header:  "Adresse",
+      header:  t("restaurants.col.address"),
       cell: ({ row }) => <div >{row.original.address}</div>,  },
       {
         accessorKey: "telephone",
         enableSorting: false,
-        header: "Téléphone",
+        header: t("restaurants.col.phone"),
         cell: ({ row }) => <div>{row.original.phone}</div>,  },
         {
           accessorKey: "wifi",
           enableSorting: false,
-          header: "Wifi",
+          header: t("diner.wifi"),
           cell: ({ row }) => (
             <div>
               {row.original.wifi ? (
                 <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
-                  <span>Ajouté</span> {/* Translates to "Added" */}
+                  <span>{t("common.added")}</span>
                 </Badge>
               ) : (
                 <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
-<span className="whitespace-nowrap">En attente</span>
+<span className="whitespace-nowrap">{t("common.pending")}</span>
 </Badge>
               )}
             </div>
@@ -191,16 +193,16 @@ import { toast } from "sonner";
         {
           accessorKey: "website",
           enableSorting: false,
-          header: "Site web",
+          header: t("restaurants.col.website"),
           cell: ({ row }) => (
             <div>
               {row.original.website ? (
                 <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
-                  <span>Ajouté</span>
+                  <span>{t("common.added")}</span>
                 </Badge>
               ) : (
                 <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
-<span className="whitespace-nowrap">En attente</span>
+<span className="whitespace-nowrap">{t("common.pending")}</span>
 </Badge>
               )}
             </div>
@@ -209,16 +211,16 @@ import { toast } from "sonner";
         {
           accessorKey: "instagram",
           enableSorting: false,
-          header: "Instagram",
+          header: t("diner.instagram"),
           cell: ({ row }) => (
             <div>
               {row.original.instagram ? (
                 <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
-                  <span>Ajouté</span>
+                  <span>{t("common.added")}</span>
                 </Badge>
               ) : (
                 <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
-<span className="whitespace-nowrap">En attente</span>
+<span className="whitespace-nowrap">{t("common.pending")}</span>
 </Badge>
               )}
             </div>
@@ -227,16 +229,16 @@ import { toast } from "sonner";
         {
           accessorKey: "tiktok",
           enableSorting: false,
-          header: "Tiktok",
+          header: t("diner.tiktok"),
           cell: ({ row }) => (
             <div>
               {row.original.tiktok ? (
                 <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
-                  <span>Ajouté</span>
+                  <span>{t("common.added")}</span>
                 </Badge>
               ) : (
                 <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
-<span className="whitespace-nowrap">En attente</span>
+<span className="whitespace-nowrap">{t("common.pending")}</span>
 </Badge>
               )}
             </div>
@@ -247,20 +249,20 @@ import { toast } from "sonner";
         {
             accessorKey: "google",
             enableSorting: false,
-            header: "Compte google",
+            header: t("restaurants.col.google"),
             cell: ({ row }) => (
               <div>
               {row.original.google ? (
                 <Badge
                   className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400"
                 >
-                  <span>Ajouté</span>
+                  <span>{t("common.added")}</span>
                 </Badge>
               ) : (
                 <Badge
                   className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400"
                 >
-<span className="whitespace-nowrap">En attente</span>
+<span className="whitespace-nowrap">{t("common.pending")}</span>
 </Badge>
               )}
             </div>
@@ -270,16 +272,16 @@ import { toast } from "sonner";
         {
           accessorKey: "photo",
           enableSorting: false,
-          header: "Photo bannière",
+          header: t("restaurants.col.cover"),
           cell: ({ row }) => (
             <div>
               {row.original.coverPhoto === "uploads/LOGO.png" ? (
                 <Badge className="bg-gray-200 border border-gray-700 text-gray-700 hover:bg-gray-300    dark:bg-gray-800  dark:hover:bg-gray-900 dark:text-gray-400">
-<span className="whitespace-nowrap">En attente</span>
+<span className="whitespace-nowrap">{t("common.pending")}</span>
 </Badge>
               ) : (
                 <Badge className="bg-green-200 border border-green-700 text-green-700 hover:bg-green-300  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400  dark:bg-green-800 dark:hover:bg-green-900 dark:text-green-400">
-                  <span>Ajouté</span> {/* Translates to "Added" */}
+                  <span>{t("common.added")}</span>
                 </Badge>
               )}
             </div>
@@ -289,7 +291,7 @@ import { toast } from "sonner";
         {
             accessorKey: "lien",
             enableSorting: false,
-            header: "Mon lien",
+            header: t("restaurants.col.link"),
             cell: ({ row }) => (
                 <div>
                     {row.original.qrUrl ? (
@@ -301,9 +303,9 @@ import { toast } from "sonner";
                              </DialogTrigger>
                                                        <DialogContent className="max-w-[300px] rounded-md">
                                <DialogHeader className="items-start">
-                               <DialogTitle>Partager le lien</DialogTitle>
+                               <DialogTitle>{t("common.share")}</DialogTitle>
                        <DialogDescription className="text-start">
-                         Toute personne ayant ce lien pourra consulter vos menus.
+                         {t("restaurants.shareDesc")}
                        </DialogDescription>
                                </DialogHeader>
                                <div className="flex items-center space-x-2">
@@ -318,7 +320,7 @@ import { toast } from "sonner";
                                    />
                                  </div>
                                       <Button onClick={() => handleCopy(row.original.qrUrl!)} size="sm" className="px-3">
-                                   <span className="sr-only">Copier</span>
+                                   <span className="sr-only">{t("common.copy")}</span>
                                    {copied ? (
                                <Check className="h-4 w-4 text-black" />
                              ) : (
@@ -329,7 +331,7 @@ import { toast } from "sonner";
                                <DialogFooter className="sm:justify-start">
                                  <DialogClose asChild>
                                    <Button type="button" variant="secondary">
-                                     Fermer
+                                     {t("common.close")}
                                    </Button>
                                  </DialogClose>
                                </DialogFooter>
@@ -348,7 +350,7 @@ import { toast } from "sonner";
         {
             accessorKey: "qrcode",
             enableSorting: false,
-            header: "Mon QR Code",
+            header: t("restaurants.col.qrcode"),
             cell: ({ row }) => (
                 <div>
                     {row.original.qrUrl ? (
@@ -359,7 +361,7 @@ import { toast } from "sonner";
                              </Button>
                            </DropdownMenuTrigger>
                            <DropdownMenuContent className="">
-                             <DropdownMenuLabel className="">Format de votre QR code</DropdownMenuLabel>
+                             <DropdownMenuLabel className="">{t("restaurants.qrFormat")}</DropdownMenuLabel>
                              <DropdownMenuSeparator />
                              <DropdownMenuCheckboxItem className=" hover:bg-muted" onClick={(e:any) => handleDownloadJPEG(row.original.qrUrl!)} >
                                JPEG
@@ -377,7 +379,7 @@ import { toast } from "sonner";
         {
           id: "actions",
           enableSorting: false,
-          header: "Modifier",
+          header: t("restaurants.col.edit"),
           enableHiding: false,
           cell: ({ row }) => {
       
@@ -418,11 +420,10 @@ import { toast } from "sonner";
                   const { file_key, file_name } = await uploadToS3(file);
                   setNewPhoto(getS3Url(file_key));
                   setEditData((prevData) => ({ ...prevData, coverPhoto: file_key }));
-                   toast.success( 'Votre image a été transmise avec succès !'
-                      );
+                   toast.success(t("common.imageUploaded"));
                 } catch (error) {
                   console.error("Error uploading file: ", error);
-                  toast.error( 'Une erreur s\'est produite lors de l\'envoie de fichier' );
+                  toast.error(t("common.imageUploadError"));
 
                 }
               }
@@ -453,9 +454,9 @@ import { toast } from "sonner";
 
 
 
-                toast.success('Le restaurant a été mis à jour avec succès.' );
+                toast.success(t("restaurants.toast.updated"));
               } catch (error) {
-                toast.error( 'Une erreur s\'est produite lors de la mise à jour.');
+                toast.error(t("restaurants.toast.updateError"));
               } finally {
                 setIsSubmitting(false);
               }
@@ -476,9 +477,9 @@ import { toast } from "sonner";
       <DialogContent className="sm:max-w-[425px] "> 
         <DialogHeader>
 
-          <DialogTitle>Modifier votre restaurant</DialogTitle>
+          <DialogTitle>{t("restaurants.edit.title")}</DialogTitle>
           <DialogDescription>
-          Modifiez les détails de votre restaurant ici.
+          {t("restaurants.edit.desc")}
           </DialogDescription>
         </DialogHeader>
 
@@ -489,7 +490,7 @@ import { toast } from "sonner";
    
                         <div className="flex flex-col gap-4 p-4  ">
                         <div className="grid gap-2">
-                        <Label htmlFor="name">Nom <span className="text-red-500">*</span></Label>                            <Input
+                        <Label htmlFor="name">{t("restaurants.field.name")} <span className="text-red-500">*</span></Label>                            <Input
                               type="text"
                               id="name"
                               name="name"
@@ -500,7 +501,7 @@ import { toast } from "sonner";
                             />
                      
                           <div className="grid gap-2">
-                          <Label htmlFor="adresse">Adresse <span className="text-red-500">*</span></Label>
+                          <Label htmlFor="adresse">{t("restaurants.field.address")} <span className="text-red-500">*</span></Label>
                           <Input
                               type="text"
                               id="address"
@@ -512,7 +513,7 @@ import { toast } from "sonner";
                             />
                           </div>
                           <div className="grid gap-2">
-                          <Label htmlFor="tel">Numéro de téléphone <span className="text-red-500">*</span></Label>
+                          <Label htmlFor="tel">{t("restaurants.field.phone")} <span className="text-red-500">*</span></Label>
                           <Input
                               type="text"
                               id="phone"
@@ -524,7 +525,7 @@ import { toast } from "sonner";
                             />
                           </div>
                           <div className="grid gap-2">
-                          <Label htmlFor="wifi">Mot de passe Wifi</Label>
+                          <Label htmlFor="wifi">{t("restaurants.field.wifi")}</Label>
                           <Input
                               type="text"
                               id="wifi"
@@ -535,7 +536,7 @@ import { toast } from "sonner";
                             />
                           </div>
                           <div className="grid gap-2">
-                          <Label htmlFor="website">Votre site web</Label>
+                          <Label htmlFor="website">{t("restaurants.field.website")}</Label>
                           <Input
                               type="text"
                               id="website"
@@ -546,7 +547,7 @@ import { toast } from "sonner";
                             />
                           </div>
                           <div className="grid gap-2">
-                          <Label htmlFor="instagram">Compte Instagram</Label>
+                          <Label htmlFor="instagram">{t("restaurants.field.instagram")}</Label>
                           <Input
                               type="text"
                               id="instagram"
@@ -557,7 +558,7 @@ import { toast } from "sonner";
                             />
                           </div>
                           <div className="grid gap-2">
-                          <Label htmlFor="tiktok">Compte Tiktok</Label>
+                          <Label htmlFor="tiktok">{t("restaurants.field.tiktok")}</Label>
                           <Input
                               type="text"
                               id="tiktok"
@@ -568,7 +569,7 @@ import { toast } from "sonner";
                             />
                           </div>
                           <div className="grid gap-2">
-                          <Label htmlFor="google">Lien profile business Google</Label>
+                          <Label htmlFor="google">{t("restaurants.field.google")}</Label>
                           <Input
                               type="text"
                               id="google"
@@ -579,7 +580,7 @@ import { toast } from "sonner";
                             />
                           </div>
                           <div className="grid gap-2">
-                          <Label htmlFor="coverPhoto">Photo bannière</Label>
+                          <Label htmlFor="coverPhoto">{t("restaurants.field.cover")}</Label>
                           {newPhoto && (
                               <div className="relative mt-2">
                                 <img src={newPhoto as string} alt="Preview" className="w-full h-48 object-cover rounded-md" />
@@ -612,7 +613,7 @@ import { toast } from "sonner";
                   type="submit"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Enregistrement' : "Enregistrer"}
+                  {isSubmitting ? t("common.saving") : t("common.save")}
                 </Button>
                 </div>
                       </form>
@@ -659,10 +660,7 @@ import { toast } from "sonner";
      
      
 
-           toast.error(
-             "Merci de selectionné les restaurants a supprimé",
-            
-    );
+           toast.error(t("restaurants.delete.selectError"));
   
    
       return; 
@@ -690,16 +688,12 @@ import { toast } from "sonner";
       );
 
 
-      toast.success( 'Votre restaurant est supprimé',
-      );
+      toast.success(t("restaurants.toast.deleted"));
       setRowSelection({});
 
     } catch (error) {
       console.error("Error deleting menus:", error);
-      toast.error(
-      "Une erreur est survenue lors de la suppression des restaurants."
-
-     );
+      toast.error(t("restaurants.toast.deleteError"));
     }
   };
   
@@ -763,7 +757,7 @@ import { toast } from "sonner";
         <div className="w-full">
           <div className="flex items-center py-4">
             <Input
-              placeholder="Trouver un restaurant..."
+              placeholder={t("restaurants.search")}
               value={(table.getColumn("name")?.getFilterValue() as string) ?? ""}
               onChange={(event: { target: { value: any; }; }) =>
                 table.getColumn("name")?.setFilterValue(event.target.value)
@@ -778,7 +772,7 @@ import { toast } from "sonner";
           
     
     
-       Supprimer
+       {t("common.delete")}
     
     
     
@@ -789,12 +783,12 @@ import { toast } from "sonner";
       </AlertDialogTrigger>
       <AlertDialogContent >
         <AlertDialogHeader>
-          <AlertDialogTitle>Êtes-vous absolument sûr ?</AlertDialogTitle>
+          <AlertDialogTitle>{t("common.confirmDeleteTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
           
     
     
-          Cette action est irréversible. Elle rendra le lien de menu numérique public obsolète et entraînera la suppression définitive du(des) restaurant(s), ainsi que de leurs menus, catégories et plats.    
+          {t("restaurants.delete.desc")}    
     
     
           </AlertDialogDescription>
@@ -802,7 +796,7 @@ import { toast } from "sonner";
         <AlertDialogFooter className="flex flex-row justify-end  items-center">
           <AlertDialogCancel  className="border-none bg-muted text-foreground my-auto mr-2 hover:bg-muted/80 shadow-none">
             
-            Annuler
+            {t("common.cancel")}
             
           </AlertDialogCancel>
           <AlertDialogAction  onClick={handleDeleteRestaurant}                     className="bg-red-50 border border-red-500 shadow-none text-red-500 hover:bg-red-100"
@@ -810,7 +804,7 @@ import { toast } from "sonner";
             
     
     
-            Supprimer
+            {t("common.delete")}
             
             
     

@@ -29,6 +29,7 @@ import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Restaurant } from "@/types";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 
 
@@ -36,7 +37,7 @@ import { useEffect, useState } from "react";
 
 export default function RestaurantsPage() {
 
-
+  const { t } = useI18n();
  
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +84,7 @@ export default function RestaurantsPage() {
 
 
   return (
-    <ContentLayout title="Mes restaurants">
+    <ContentLayout title={t("nav.restaurants")}>
       <Breadcrumb>
         <BreadcrumbList>
         <BreadcrumbItem>
@@ -95,7 +96,7 @@ export default function RestaurantsPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Mes restaurants</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.restaurants")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -107,14 +108,14 @@ export default function RestaurantsPage() {
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button size="lg" className="text-black">
-                <Plus className="w-4 h-4 mr-2" /> Ajouter un restaurant
+                <Plus className="w-4 h-4 mr-2" /> {t("restaurants.add")}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-[425px] ">
               <DialogHeader>
-                <DialogTitle>Créer votre restaurant</DialogTitle>
+                <DialogTitle>{t("restaurants.create.title")}</DialogTitle>
                 <DialogDescription>
-                  Renseignez les informations de votre établissement puis enregistrez.
+                  {t("restaurants.create.desc")}
                 </DialogDescription>
               </DialogHeader>
 
@@ -130,8 +131,8 @@ export default function RestaurantsPage() {
         ) : (
           <div className="text-center text-gray-500 py-6">
             <div className="flex justify-center py-8" />
-            <p className="text-lg  font-semibold mt-4">Aucun restaurant disponible.</p>
-            <p className="mt-2">Créez un nouveau restaurant en utilisant le bouton ci-dessus.</p>
+            <p className="text-lg  font-semibold mt-4">{t("restaurants.empty.title")}</p>
+            <p className="mt-2">{t("restaurants.empty.subtitle")}</p>
           </div>
         )}
 

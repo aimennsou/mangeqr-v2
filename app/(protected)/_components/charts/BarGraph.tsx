@@ -17,6 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@/components/ui/chart';
+import { useI18n } from '@/lib/i18n';
 
 export const description = 'An interactive bar chart';
 
@@ -47,6 +48,7 @@ interface BarGraphProps {
 
 export function BarGraph({ data }: BarGraphProps) {
   const [activeChart] = React.useState<keyof typeof chartConfig>('shop1');
+  const { t } = useI18n();
 
   const isEmpty = !data || data.length === 0;
 
@@ -54,9 +56,9 @@ export function BarGraph({ data }: BarGraphProps) {
     <Card>
       <CardHeader className="flex flex-col items-stretch space-y-2 border-b p-0 sm:flex-row sm:space-y-0">
         <div className="flex flex-1 flex-col justify-center gap-2 px-6 py-5 sm:py-6">
-          <CardTitle>Nombre de scans par jour</CardTitle>
+          <CardTitle>{t("performances.chart.scansTitle")}</CardTitle>
           <CardDescription>
-            Affichage du nombre total de visiteurs par jour pour la période selectionnée
+            {t("performances.chart.scansDesc")}
           </CardDescription>
           
         </div>
@@ -65,7 +67,7 @@ export function BarGraph({ data }: BarGraphProps) {
       <CardContent className="px-2 sm:p-6">
         {isEmpty ? (
           <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
-            Aucune donnée sur la période.
+            {t("performances.chart.empty")}
           </div>
         ) : (
         <ChartContainer

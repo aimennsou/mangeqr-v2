@@ -11,12 +11,14 @@ import ImageUpload from "@/components/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getRootDomain } from "@/lib/subdomain";
+import { useI18n } from "@/lib/i18n";
 
 interface DrawerDialogDemoProps {
   onAddRestaurant: (newRestaurant: any) => void;
 }
 
 const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestaurant }) => {
+  const { t } = useI18n();
   const [fileKey, setFileKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currency, setCurrency] = useState<string>("EURO");
@@ -51,15 +53,15 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
       const result = await response.json();
 
       if (response.ok) {
-        toast.success("Restaurant créé avec succès.");
+        toast.success(t("restaurants.toast.created"));
         onAddRestaurant(result);
       } else {
         // Surface the specific server message (e.g. subdomain taken/invalid).
-        toast.error(result?.error || "Une erreur est survenue.");
+        toast.error(result?.error || t("restaurants.toast.genericError"));
       }
     } catch (error) {
       console.error("An error occurred:", error);
-      toast.error("Une erreur est survenue lors de la création.");
+      toast.error(t("restaurants.toast.createError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -71,19 +73,19 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
         <form onSubmit={handleSubmit} className="max-h-[400px]  ">
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name">Nom de votre établissement*</Label>
+              <Label htmlFor="name">{t("restaurants.field.nameEstab")}</Label>
               <Input name="name" type="text" id="name" placeholder="e.g. Artisto food" />
             </div>
             <div>
-              <Label htmlFor="adresse">Adresse*</Label>
+              <Label htmlFor="adresse">{t("restaurants.field.addressReq")}</Label>
               <Input name="adresse" type="text" id="adresse" placeholder="e.g. Rue de paris, France" />
             </div>
             <div>
-              <Label htmlFor="tel">Numéro de téléphone*</Label>
-              <PhoneInput value={phoneNumber} onChange={setPhoneNumber} placeholder="Votre numéro de téléphone" />
+              <Label htmlFor="tel">{t("restaurants.field.phoneReq")}</Label>
+              <PhoneInput value={phoneNumber} onChange={setPhoneNumber} placeholder={t("restaurants.field.phonePlaceholder")} />
             </div>
             <div>
-              <Label htmlFor="subdomain">Lien d'accès à votre menu*</Label>
+              <Label htmlFor="subdomain">{t("restaurants.field.subdomain")}</Label>
               <div className="flex">
                 <Input id="subdomain" name="subdomain" placeholder="artisto" />
                 <span className="inline-flex items-center rounded-e-lg border border-input bg-gray-100 px-3 text-sm text-gray-600">
@@ -92,7 +94,7 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
               </div>
             </div>
             <div>
-              <Label htmlFor="currency">Devise utilisée*</Label>
+              <Label htmlFor="currency">{t("restaurants.field.currency")}</Label>
               <ToggleGroup value={currency} onValueChange={setCurrency} type="single" className="grid grid-cols-3">
                 <ToggleGroupItem value="EURO">
                   <Euro className="w-4 h-4 mr-2" /> Euro
@@ -106,15 +108,15 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
               </ToggleGroup>
             </div>
             <div>
-              <Label htmlFor="wifi">Mot de passe Wifi</Label>
+              <Label htmlFor="wifi">{t("restaurants.field.wifi")}</Label>
               <Input name="wifi" type="text" id="wifi" placeholder="e.g. wifi-pass" />
             </div>
             <div>
-              <Label htmlFor="website">Votre site web</Label>
+              <Label htmlFor="website">{t("restaurants.field.website")}</Label>
               <Input name="website" type="text" id="website" placeholder="www.example.com" />
             </div>
             <div>
-              <Label htmlFor="instagram">Compte Instagram</Label>
+              <Label htmlFor="instagram">{t("restaurants.field.instagram")}</Label>
               <div className="flex">
                 <span className="inline-flex items-center rounded-l-lg border border-input bg-gray-100 px-3 text-sm text-gray-600">
                   instagram.com/
@@ -123,7 +125,7 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
               </div>
             </div>
             <div>
-              <Label htmlFor="tiktok">Compte Tiktok</Label>
+              <Label htmlFor="tiktok">{t("restaurants.field.tiktok")}</Label>
               <div className="flex">
                 <span className="inline-flex items-center rounded-l-lg border border-input bg-gray-100 px-3 text-sm text-gray-600">
                   tiktok.com/
@@ -132,11 +134,11 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
               </div>
             </div>
             <div>
-              <Label htmlFor="google">Lien profil business Google</Label>
+              <Label htmlFor="google">{t("restaurants.field.google")}</Label>
               <Input name="google" type="text" id="google" placeholder="e.g. https://g.page/r/CZm8bK6bE_Zeld6" />
             </div>
             <div>
-              <Label htmlFor="logo">Photo bannière</Label>
+              <Label htmlFor="logo">{t("restaurants.field.cover")}</Label>
               <ImageUpload setFileKey={setFileKey} />
             </div>
             <Button
@@ -144,7 +146,7 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
               type="submit"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Enregistrement..." : "Enregistrer"}
+              {isSubmitting ? t("common.saving") : t("common.save")}
             </Button>
           </div>
         </form>
