@@ -31,9 +31,11 @@ import { MENU_TEMPLATES, getTemplateById } from "./_templates/registry";
 import type { PhysicalMenuData } from "./_templates/types";
 import { currencySymbol } from "@/lib/currency";
 import PhysicalMenuOrderDialog from "./_components/PhysicalMenuOrderDialog";
+import { useI18n } from "@/lib/i18n";
 
 export default function PhysiquePage() {
   const { theme } = useTheme();
+  const { t } = useI18n();
 
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [menus, setMenus] = useState<any[]>([]);
@@ -149,7 +151,7 @@ export default function PhysiquePage() {
   const Template = getTemplateById(templateId).Component;
 
   return (
-    <ContentLayout title="Menu physique">
+    <ContentLayout title={t("nav.cartes")}>
       {/* Print isolation with correct multi-page flow.
           The menu is rendered into a portal appended to <body> (see below), so
           it's a top-level sibling of the app root. On print we hide the app
@@ -221,7 +223,7 @@ export default function PhysiquePage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Menu physique</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.cartes")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -232,14 +234,14 @@ export default function PhysiquePage() {
             {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6">
               <div className="grid gap-2 w-full md:max-w-xs">
-                <label className="text-sm font-medium">Restaurant</label>
+                <label className="text-sm font-medium">{t("common.restaurant")}</label>
                 <Select value={selectedRestaurantId} onValueChange={setSelectedRestaurantId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Choisissez un restaurant" />
+                    <SelectValue placeholder={t("common.chooseRestaurant")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectLabel>Mes restaurants</SelectLabel>
+                      <SelectLabel>{t("common.myRestaurants")}</SelectLabel>
                       {restaurants.map((r) => (
                         <SelectItem key={r.id} value={r.id}>
                           {r.name}
@@ -251,18 +253,18 @@ export default function PhysiquePage() {
               </div>
 
               <div className="grid gap-2 w-full md:max-w-xs">
-                <label className="text-sm font-medium">Menu</label>
+                <label className="text-sm font-medium">{t("common.menu")}</label>
                 <Select
                   value={selectedMenuId}
                   onValueChange={setSelectedMenuId}
                   disabled={!selectedRestaurantId || menus.length === 0}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choisissez un menu" />
+                    <SelectValue placeholder={t("common.chooseMenu")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      <SelectLabel>Mes menus</SelectLabel>
+                      <SelectLabel>{t("common.myMenus")}</SelectLabel>
                       {menus.map((m) => (
                         <SelectItem key={m.id} value={m.id}>
                           {m.name}
@@ -284,7 +286,7 @@ export default function PhysiquePage() {
                     className="bg-yellow-400 hover:bg-yellow-400 text-black"
                     onClick={() => window.print()}
                   >
-                    <Printer className="w-4 h-4 mr-2" /> Imprimer / Exporter PDF
+                    <Printer className="w-4 h-4 mr-2" /> {t("cartes.print")}
                   </Button>
                 </div>
               )}
@@ -293,7 +295,7 @@ export default function PhysiquePage() {
             {loading ? (
               <div className="flex justify-center items-center py-16 text-gray-500">
                 <Loader2 className="w-6 h-6 animate-spin mr-2" />
-                <span>Chargement...</span>
+                <span>{t("common.loading")}</span>
               </div>
             ) : menuData ? (
               <>
@@ -355,10 +357,10 @@ export default function PhysiquePage() {
                   />
                 </div>
                 <p className="text-lg font-semibold mt-4">
-                  Sélectionnez un restaurant et un menu.
+                  {t("cartes.empty.title")}
                 </p>
                 <p className="mt-2">
-                  Choisissez un menu pour générer une carte imprimable.
+                  {t("cartes.empty.subtitle")}
                 </p>
               </div>
             )}

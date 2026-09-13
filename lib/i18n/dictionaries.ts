@@ -370,6 +370,9 @@ const fr: Dict = {
   "cartes.exportPdf": "Exporter en PDF",
   "cartes.exportPng": "Exporter en PNG",
   "cartes.exportJpeg": "Exporter en JPEG",
+  "cartes.print": "Imprimer / Exporter PDF",
+  "cartes.empty.title": "Sélectionnez un restaurant et un menu.",
+  "cartes.empty.subtitle": "Choisissez un menu pour générer une carte imprimable.",
 
   // --- Marketing page (owner) ---
   "marketing.heading": "Campagnes marketing",
@@ -823,6 +826,9 @@ const ar: Dict = {
   "cartes.exportPdf": "تصدير بصيغة PDF",
   "cartes.exportPng": "تصدير بصيغة PNG",
   "cartes.exportJpeg": "تصدير بصيغة JPEG",
+  "cartes.print": "طباعة / تصدير PDF",
+  "cartes.empty.title": "اختر مطعماً وقائمة.",
+  "cartes.empty.subtitle": "اختر قائمة لإنشاء بطاقة قابلة للطباعة.",
 
   // --- Marketing page (owner) ---
   "marketing.heading": "الحملات التسويقية",
@@ -1275,6 +1281,9 @@ const en: Dict = {
   "cartes.exportPdf": "Export as PDF",
   "cartes.exportPng": "Export as PNG",
   "cartes.exportJpeg": "Export as JPEG",
+  "cartes.print": "Print / Export PDF",
+  "cartes.empty.title": "Select a restaurant and a menu.",
+  "cartes.empty.subtitle": "Choose a menu to generate a printable card.",
 
   // --- Marketing page (owner) ---
   "marketing.heading": "Marketing campaigns",
