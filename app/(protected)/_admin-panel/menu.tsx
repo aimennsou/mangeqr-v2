@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import {  Loader2, LogOut, QrCode } from "lucide-react";
+import {  Loader2, LogOut } from "lucide-react";
 import {  useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { getMenuList } from "@/lib/menu-list";
@@ -17,6 +17,7 @@ import {
 
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import Image from "next/image";
 import Logo from "@/components/Logo";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
@@ -69,7 +70,13 @@ export function Menu({ isOpen }: MenuProps) {
       {isOpen ? (
         <Logo className="" />
       ) : (
-        <QrCode className="h-6 w-6 text-primary" />
+        <Image
+          src="/android-chrome-192x192.png"
+          alt="MangeQR"
+          width={28}
+          height={28}
+          className="h-7 w-7 rounded-md"
+        />
       )}
     </Link><ScrollArea className="[&>div>div[style]]:!block">
 

@@ -236,9 +236,13 @@ export default function LiveMenu() {
           <span>●●●</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-yellow-400 text-lg">
-            🍽️
-          </div>
+          <Image
+            src="/android-chrome-192x192.png"
+            alt="MangeQR"
+            width={32}
+            height={32}
+            className="h-8 w-8 rounded-xl"
+          />
           <p className="flex-1 text-center text-sm font-bold text-gray-900">
             {tab}
           </p>

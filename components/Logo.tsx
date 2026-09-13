@@ -1,6 +1,6 @@
 'use client';
 
-import { QrCode } from 'lucide-react';
+import Image from 'next/image';
 
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -17,7 +17,15 @@ export default function Logo({ className }: { className?: string }) {
       )}
     >
       <div className="mr-4 flex items-center justify-center gap-2 font-bold">
-        <QrCode className="h-6 w-6 text-yellow-400" />
+        {/* Use the real brand mark (same asset as the favicon) instead of a
+            generic QR icon. */}
+        <Image
+          src="/android-chrome-192x192.png"
+          alt="MangeQR"
+          width={28}
+          height={28}
+          className="h-7 w-7 rounded-md"
+        />
         <span className="text-base font-bold">
           Mange
           <span className="text-yellow-500">QR</span>

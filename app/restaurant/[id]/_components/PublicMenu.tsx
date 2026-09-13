@@ -285,13 +285,13 @@ export function PublicMenu({
         className="sticky top-0 z-20 flex items-center gap-2 px-4 py-3 backdrop-blur"
         style={{ backgroundColor: theme.background, borderColor: theme.border }}
       >
-        <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg"
-          style={{ backgroundColor: theme.accent, color: theme.onAccent }}
-          aria-hidden
-        >
-          🍽️
-        </div>
+        <Image
+          src="/android-chrome-192x192.png"
+          alt="MangeQR"
+          width={36}
+          height={36}
+          className="h-9 w-9 shrink-0 rounded-xl"
+        />
         <h1
           className="flex-1 truncate text-center text-lg font-bold"
           style={{ color: theme.text }}
