@@ -8,14 +8,19 @@ import { type z } from 'zod';
 import { ContactFormSchema } from '@/lib/schemas';
 import EmailTemplate from '@/components/emails/contact-email';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function sendEmail(data: z.infer<typeof ContactFormSchema>) {
   try {
     const result = ContactFormSchema.safeParse(data);
     if (!result.success) {
       return { error: 'Invalid form data' };
     }
+
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) {
+      console.warn('[send-email] RESEND_API_KEY is not set — skipping email send.');
+      return { error: 'Email service is not configured.' };
+    }
+    const resend = new Resend(apiKey);
 
     const { name, email, message } = result.data;
 

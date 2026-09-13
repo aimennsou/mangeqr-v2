@@ -1,0 +1,263 @@
+'use client';
+
+import { useEffect, useState, useTransition } from 'react';
+import { toast } from 'sonner';
+import { Check, ShoppingCart } from 'lucide-react';
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { cn } from '@/lib/utils';
+import {
+  PHYSICAL_MENU_PRODUCTS,
+  getDeliveryOptions,
+  isAlgerianCurrency,
+} from '@/config';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { createDesignOrder } from '@/actions/design-order';
+
+/**
+ * Lets the restaurateur order a professionally printed run of the physical menu
+ * they are previewing on the cartes page. Reuses the shared `createDesignOrder`
+ * server action (same order pipeline as the QR-code designs), with the printed
+ * menu format chosen from `PHYSICAL_MENU_PRODUCTS`.
+ */
+export default function PhysicalMenuOrderDialog({
+  restaurantId,
+  menuName,
+  currency,
+  disabled,
+}: {
+  restaurantId: string;
+  menuName?: string;
+  /** Restaurant currency; drives the available delivery options (DINAR => Algeria). */
+  currency?: string | null;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [productId, setProductId] = useState(PHYSICAL_MENU_PRODUCTS[0]?.id ?? '');
+  const [quantity, setQuantity] = useState(50);
+  const [contactName, setContactName] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [notes, setNotes] = useState('');
+  const [isPending, startTransition] = useTransition();
+
+  // Delivery options depend on the restaurant's country (currency). Algeria
+  // (DINAR) is restricted to Yalidine bureau only.
+  const deliveryOptions = getDeliveryOptions(currency);
+  const algeriaOnly = isAlgerianCurrency(currency);
+  const [deliveryMethod, setDeliveryMethod] = useState(
+    deliveryOptions[0]?.id ?? ''
+  );
+
+  // Keep the delivery method valid if the restaurant (currency) changes.
+  useEffect(() => {
+    if (!deliveryOptions.some((o) => o.id === deliveryMethod)) {
+      setDeliveryMethod(deliveryOptions[0]?.id ?? '');
+    }
+  }, [deliveryOptions, deliveryMethod]);
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!restaurantId) {
+      toast.error('Sélectionnez un restaurant.');
+      return;
+    }
+    if (!productId) {
+      toast.error('Sélectionnez un format.');
+      return;
+    }
+
+    // Prefix the notes with the menu context so the team knows which menu to print.
+    const contextNote = menuName ? `Menu à imprimer : « ${menuName} ». ` : '';
+
+    startTransition(() => {
+      createDesignOrder({
+        restaurantId,
+        designId: productId,
+        quantity,
+        contactName,
+        contactEmail,
+        contactPhone,
+        deliveryMethod,
+        notes: `${contextNote}${notes}`.trim(),
+      })
+        .then((data) => {
+          if (data?.error) {
+            toast.error(data.error);
+            return;
+          }
+          if (data?.success) {
+            toast.success(data.success);
+            setOpen(false);
+            setQuantity(50);
+            setContactName('');
+            setContactEmail('');
+            setContactPhone('');
+            setNotes('');
+          }
+        })
+        .catch(() => toast.error('Une erreur est survenue.'));
+    });
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="outline" disabled={disabled}>
+          <ShoppingCart className="mr-2 h-4 w-4" /> Commander l&apos;impression
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Commander l&apos;impression du menu</DialogTitle>
+          <DialogDescription>
+            Faites imprimer professionnellement la carte que vous avez conçue.
+            {menuName ? ` Menu sélectionné : « ${menuName} ».` : ''}
+          </DialogDescription>
+        </DialogHeader>
+
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          {/* Format picker */}
+          <div className="grid gap-2">
+            <Label>Format d&apos;impression</Label>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {PHYSICAL_MENU_PRODUCTS.map((p) => {
+                const active = p.id === productId;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => setProductId(p.id)}
+                    aria-pressed={active}
+                    className={cn(
+                      'relative rounded-lg border p-3 text-left transition-all',
+                      active
+                        ? 'border-yellow-400 ring-2 ring-yellow-400/40'
+                        : 'hover:border-gray-300'
+                    )}
+                  >
+                    {active && (
+                      <span className="absolute right-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 text-black">
+                        <Check className="h-3 w-3" />
+                      </span>
+                    )}
+                    <div className="text-2xl">{p.accents.join(' ')}</div>
+                    <p className="mt-1 text-sm font-semibold leading-tight">
+                      {p.name}
+                    </p>
+                    <p className="mt-1 text-[11px] text-yellow-600">{p.price}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-2">
+              <Label htmlFor="pm-qty">Quantité</Label>
+              <Input
+                id="pm-qty"
+                type="number"
+                min={1}
+                max={1000}
+                value={quantity}
+                onChange={(e) =>
+                  setQuantity(Math.max(1, parseInt(e.target.value, 10) || 1))
+                }
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pm-name">Nom de contact</Label>
+              <Input
+                id="pm-name"
+                value={contactName}
+                onChange={(e) => setContactName(e.target.value)}
+                placeholder="Jean Dupont"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pm-email">Email de contact</Label>
+              <Input
+                id="pm-email"
+                type="email"
+                value={contactEmail}
+                onChange={(e) => setContactEmail(e.target.value)}
+                placeholder="contact@restaurant.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="pm-phone">Téléphone (optionnel)</Label>
+              <Input
+                id="pm-phone"
+                value={contactPhone}
+                onChange={(e) => setContactPhone(e.target.value)}
+                placeholder="+41 79 000 00 00"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Mode de livraison</Label>
+            <Select value={deliveryMethod} onValueChange={setDeliveryMethod}>
+              <SelectTrigger>
+                <SelectValue placeholder="Choisissez un mode de livraison" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {deliveryOptions.map((o) => (
+                    <SelectItem key={o.id} value={o.id}>
+                      {o.label} — {o.price}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            {algeriaOnly && (
+              <p className="text-xs text-muted-foreground">
+                Livraison via Yalidine bureau (400 DZD) pour l&apos;Algérie.
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="pm-notes">Notes (optionnel)</Label>
+            <Textarea
+              id="pm-notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Type de papier, finition, délais souhaités…"
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              type="submit"
+              disabled={isPending}
+              className="bg-yellow-400 text-black hover:bg-yellow-400"
+            >
+              {isPending ? 'Envoi…' : 'Envoyer la commande'}
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}

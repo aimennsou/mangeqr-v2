@@ -3,7 +3,15 @@
  * These routes does not require authentication
  * @type {string[]}
  */
-export const publicRoutes: string[] = ['/','/pricing', '/auth/email-verification'];
+export const publicRoutes: string[] = ['/','/pricing', '/auth/email-verification', '/lp/ar'];
+
+/**
+ * Route prefixes that are publicly accessible (matched by startsWith, not exact).
+ * `/restaurant/[id]` is the diner-facing menu served from a QR code and must
+ * never require authentication.
+ * @type {string[]}
+ */
+export const publicRoutePrefixes: string[] = ['/restaurant', '/embed', '/api/track', '/api/review'];
 
 /**
  * An array of routes that are used for authentication

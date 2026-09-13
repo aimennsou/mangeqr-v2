@@ -63,13 +63,13 @@ const ImageUpload: React.FC<FileUploadProps> = ({ setFileKey }) => {
 
   return (
     <div className="p-2">
-      <div className="p-2 bg-white rounded-xl">
+      <div className="p-2 bg-card rounded-xl">
 
         
         <div
           {...getRootProps({
             className:
-              'border cursor-pointer rounded-lg bg-gray-50  border-gray-200 py-6 flex justify-center items-center flex-col  focus:outline-none focus:ring-4 focus:ring-yellow-300/10',
+              'border cursor-pointer rounded-lg bg-muted/50 py-6 flex justify-center items-center flex-col focus:outline-none focus:ring-4 focus:ring-yellow-300/10',
           })}
         >
           <input {...getInputProps()} />
@@ -79,8 +79,8 @@ const ImageUpload: React.FC<FileUploadProps> = ({ setFileKey }) => {
        
           ) : (
             <>
-              <LucideDownload className="w-5 h-5 text-gray-400" />
-              <p className="p-2 text-center text-sm text-gray-400">
+              <LucideDownload className="w-5 h-5 text-muted-foreground" />
+              <p className="p-2 text-center text-sm text-muted-foreground">
                 Déposez votre image ici, ou cliquez pour sélectionner (*'.jpg, '.jpeg', '.png')
               </p>
             </>
@@ -91,7 +91,7 @@ const ImageUpload: React.FC<FileUploadProps> = ({ setFileKey }) => {
             <img
               src={imagePreview}
               alt="Uploaded Preview"
-              className="max-w-full h-auto rounded-lg border border-gray-200"
+              className="max-w-full h-auto rounded-lg border"
             />
           </div>
         )}

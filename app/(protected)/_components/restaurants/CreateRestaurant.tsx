@@ -9,6 +9,8 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PhoneInput } from "@/components/phone-input";
 import ImageUpload from "@/components/ImageUpload";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { getRootDomain } from "@/lib/subdomain";
 
 interface DrawerDialogDemoProps {
   onAddRestaurant: (newRestaurant: any) => void;
@@ -46,13 +48,19 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
         body: JSON.stringify(data),
       });
 
+      const result = await response.json();
+
       if (response.ok) {
-        const newRestaurant = await response.json();
-        onAddRestaurant(newRestaurant);
-        setIsSubmitting(false);
+        toast.success("Restaurant créé avec succès.");
+        onAddRestaurant(result);
+      } else {
+        // Surface the specific server message (e.g. subdomain taken/invalid).
+        toast.error(result?.error || "Une erreur est survenue.");
       }
     } catch (error) {
       console.error("An error occurred:", error);
+      toast.error("Une erreur est survenue lors de la création.");
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -79,16 +87,7 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
               <div className="flex">
                 <Input id="subdomain" name="subdomain" placeholder="artisto" />
                 <span className="inline-flex items-center rounded-e-lg border border-input bg-gray-100 px-3 text-sm text-gray-600">
-                  .mangeqr.com
-                </span>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="restomail">Adresse de ton restaurant*</Label>
-              <div className="flex">
-                <Input id="subdomain" name="subdomain" placeholder="artisto" />
-                <span className="inline-flex items-center rounded-e-lg border border-input bg-gray-100 px-3 text-sm text-gray-600">
-                  @mangeqr.com
+                  .{getRootDomain()}
                 </span>
               </div>
             </div>
@@ -105,10 +104,6 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
                   <Coins className="w-4 h-4 mr-2" /> Dinar
                 </ToggleGroupItem>
               </ToggleGroup>
-            </div>
-            <div>
-              <Label htmlFor="wifi">SSID</Label>
-              <Input name="wifi" type="text" id="wifi" placeholder="e.g. wifi-public" />
             </div>
             <div>
               <Label htmlFor="wifi">Mot de passe Wifi</Label>
@@ -142,16 +137,14 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
             </div>
             <div>
               <Label htmlFor="logo">Photo bannière</Label>
-              <ImageUpload setFileKey={function (key: string): void {
-              throw new Error("Function not implemented.");
-            } }  />
+              <ImageUpload setFileKey={setFileKey} />
             </div>
             <Button
               className="bg-yellow-400 hover:bg-yellow-400 w-full text-black"
               type="submit"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Saving..." : "Enregistrer"}
+              {isSubmitting ? "Enregistrement..." : "Enregistrer"}
             </Button>
           </div>
         </form>

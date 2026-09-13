@@ -37,7 +37,14 @@ export async function uploadToS3(
 }
 
 export function getS3Url(file_key: string) {
-  const url = `https://${process.env.NEXT_PUBLIC_S3_BUCKET_NAME}.s3.eu-central-1.amazonaws.com/${file_key}`;
+  const bucket = process.env.NEXT_PUBLIC_S3_BUCKET_NAME;
+  // Without a configured bucket (e.g. local dev with mock data) there is no
+  // valid URL to build. Return empty so callers can skip rendering the image
+  // instead of producing a broken `https://.s3...` host.
+  if (!bucket || !file_key) {
+    return '';
+  }
+  const url = `https://${bucket}.s3.eu-central-1.amazonaws.com/${file_key}`;
   return url;
 }
 

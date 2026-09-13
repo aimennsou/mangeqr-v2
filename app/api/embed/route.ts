@@ -1,19 +1,18 @@
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
-
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
-    const { shopId } = await req.json(); // Parse JSON body
+    const body = await req.json(); // Parse JSON body
+    const restaurantId = body.restaurantId ?? body.shopId;
 
-    if (!shopId || typeof shopId !== 'string') {
-      return NextResponse.json({ error: 'Invalid shopId' }, { status: 400 });
+    if (!restaurantId || typeof restaurantId !== 'string') {
+      return NextResponse.json({ error: 'Invalid restaurantId' }, { status: 400 });
     }
 
-    // Fetch reviews based on the shopId
-    const reviews = await prisma.review.findMany({
-      where: { shopId },
+    // Fetch reviews for the restaurant
+    const reviews = await db.review.findMany({
+      where: { restaurantId },
     });
 
     // Calculate total reviews and average rating

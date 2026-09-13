@@ -58,10 +58,9 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
       const result = await response.json();
 
       if (!response.ok) {
-
-        toast.error("Une erreur est survenue."); 
-
-       
+        // Surface the specific server message (e.g. plan limit reached)
+        // instead of a generic error.
+        toast.error(result?.error || "Une erreur est survenue.");
         return;
       }
 

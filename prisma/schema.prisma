@@ -10,6 +10,23 @@ datasource db {
 enum UserRole {
   ADMIN
   USER
+  SUPERADMIN
+}
+
+enum Plan {
+  STARTER
+  PRO
+  PREMIUM
+}
+
+enum PlanPaymentMethod {
+  CASH
+  ONLINE
+}
+
+enum WorkspaceRole {
+  OWNER
+  MEMBER
 }
 
 
@@ -22,10 +39,48 @@ model User {
   image                   String?
   password                String?
   role                    UserRole                @default(USER)
+  plan                    Plan                    @default(STARTER)
+  planPaymentMethod       PlanPaymentMethod       @default(CASH)
+  stripeCustomerId        String?
+  stripeSubscriptionId    String?
+  planRenewsAt            DateTime?
+  suspended               Boolean                 @default(false)
+  suspendedAt             DateTime?
+  suspendedReason         String?
   accounts                Account[]
   isTwoFactorEnabled      Boolean                 @default(false)
   twoFactorConfirmation   TwoFactorConfirmation?
     restaurants     Restaurant[]
+  ownedMemberships   Membership[] @relation("WorkspaceOwner")
+  memberOf           Membership?  @relation("WorkspaceMember")
+  invitationsCreated Invitation[] @relation("InvitationOwner")
+  designOrders       DesignOrder[]
+}
+
+model Membership {
+  id           String        @id @default(uuid()) @db.Uuid
+  ownerUserId  String        @db.Uuid
+  memberUserId String        @unique @db.Uuid
+  role         WorkspaceRole @default(MEMBER)
+  createdAt    DateTime      @default(now())
+  owner        User          @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  member       User          @relation("WorkspaceMember", fields: [memberUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId])
+}
+
+model Invitation {
+  id           String        @id @default(uuid()) @db.Uuid
+  ownerUserId  String        @db.Uuid
+  code         String        @unique
+  role         WorkspaceRole @default(MEMBER)
+  expiresAt    DateTime?
+  usedByUserId String?       @db.Uuid
+  usedAt       DateTime?
+  createdAt    DateTime      @default(now())
+  owner        User          @relation("InvitationOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId])
 }
 
 
@@ -37,12 +92,12 @@ model User {
         type               String
         provider           String
         providerAccountId  String
-        refresh_token      String?  @db.Uuid
-        access_token       String?  @db.Uuid
+        refresh_token      String?  @db.Text
+        access_token       String?  @db.Text
         expires_at         Int?
         token_type         String?
         scope              String?
-        id_token           String?  @db.Uuid
+        id_token           String?  @db.Text
         session_state      String?
 
         user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -101,7 +156,7 @@ model Restaurant {
   coverPhoto     String?
   qrUrl          String?
   wifi           String?
-  subdomain      String?
+  subdomain      String?       @unique
   currency       Currency      @default(EURO)
   website        String?
   instagram      String?
@@ -112,12 +167,15 @@ model Restaurant {
   instagramstate Settings      @default(ACTIVE)
   tiktokstate    Settings      @default(ACTIVE)
   googlestate    Settings      @default(ACTIVE)
+  menuAppearance Json?
   menus          Menu[]
   campaigns      MarketingCampaign[]
   reviews        Review[]
   scans          ScanData[]
   categoryData   CategoryData[]
   dishData       DishData[]
+  favoriteData   FavoriteData[]
+  designOrders   DesignOrder[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }
@@ -204,6 +262,8 @@ model ScanData {
   restaurantId  String        @db.Uuid
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
+
+  @@index([restaurantId, createdAt])
 }
 
 model CategoryData {
@@ -212,6 +272,8 @@ model CategoryData {
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   categoryId    String        @db.Uuid
   createdAt     DateTime      @default(now())
+
+  @@index([restaurantId, createdAt])
 }
 
 model DishData {
@@ -220,12 +282,52 @@ model DishData {
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   dishId        String        @db.Uuid
   createdAt     DateTime      @default(now())
+
+  @@index([restaurantId, createdAt])
+}
+
+// One row per "favorite" click by a diner on a dish (heart button). Counted to
+// surface the owner's most-favorited dish ("Le plat favoris" KPI).
+model FavoriteData {
+  id            String        @id @default(uuid()) @db.Uuid
+  restaurantId  String        @db.Uuid
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  dishId        String        @db.Uuid
+  createdAt     DateTime      @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([restaurantId, dishId])
 }
 
 model Newsletter {
   id            String        @id @default(uuid()) @db.Uuid
   email         String        @unique
   createdAt     DateTime      @default(now())
+}
+
+// A restaurateur's request to have a physical QR-code design produced (poster,
+// engraved wood disc, table sticker, …). Scoped to the workspace owner (userId)
+// and the restaurant whose menu the QR points to.
+model DesignOrder {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @db.Uuid
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId  String            @db.Uuid
+  restaurant    Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  designId      String            // references a product in config (DESIGN_PRODUCTS)
+  designName    String            // denormalized label at order time
+  quantity      Int               @default(1)
+  contactName   String
+  contactEmail  String
+  contactPhone  String?
+  deliveryMethod String?          // e.g. "yalidine-bureau" (Algeria) or standard/express
+  notes         String?
+  status        DesignOrderStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([restaurantId])
 }
 
 enum UserType {
@@ -262,4 +364,11 @@ enum ReviewState {
 enum Settings {
   ACTIVE
   INACTIVE
+}
+
+enum DesignOrderStatus {
+  PENDING
+  IN_PROGRESS
+  SHIPPED
+  CANCELLED
 }

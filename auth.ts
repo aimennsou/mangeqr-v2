@@ -33,15 +33,26 @@ export const {
   },
   callbacks: {
     async signIn({ user, account }) {
-      // Skip email verification check for OAuth
+      console.log('[SIGNIN-DEBUG] callback start; user.id=', user?.id, 'provider=', account?.provider);
+      // Load the user for ALL providers so the suspension gate below applies to
+      // OAuth and credentials alike (superadmin, S3).
+      const existingUser = await getUserById(user.id);
+
+      console.log('[SIGNIN-DEBUG] existingUser found=', !!existingUser, 'verified=', !!existingUser?.emailVerified, 'suspended=', existingUser?.suspended, 'role=', existingUser?.role);
+      // Block suspended users from signing in by ANY provider.
+      if (existingUser?.suspended) {
+        console.log('[SIGNIN-DEBUG] REJECT: suspended');
+        return false;
+      }
+
+      // Skip email verification / 2FA checks for OAuth (still gated on suspend).
       if (account?.provider !== 'credentials') {
         return true;
       }
 
-      const existingUser = await getUserById(user.id);
-
       // Prevent unverified email sign in
       if (!existingUser?.emailVerified) {
+        console.log('[SIGNIN-DEBUG] REJECT: not verified (existingUser null? '+(!existingUser)+')');
         return false;
       }
 
@@ -96,6 +107,14 @@ export const {
       const existingUser = await getUserById(token.sub);
 
       if (!existingUser) {
+        return token;
+      }
+
+      // If the user was suspended after signing in, invalidate their session on
+      // the next jwt refresh (best-effort): drop the subject so downstream
+      // session checks treat them as signed-out (superadmin, S3).
+      if (existingUser.suspended) {
+        token.sub = undefined;
         return token;
       }
 

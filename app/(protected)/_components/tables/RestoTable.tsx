@@ -142,14 +142,14 @@ import { toast } from "sonner";
             (table.getIsSomePageRowsSelected() && "indeterminate")
           }
           onCheckedChange={(value: any) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
+          aria-label="Tout sélectionner"
         />
       ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value: any) => row.toggleSelected(!!value)}
-          aria-label="Select row"
+          aria-label="Sélectionner la ligne"
         />
       ),
       enableSorting: false,
@@ -528,7 +528,7 @@ import { toast } from "sonner";
                           <Input
                               type="text"
                               id="wifi"
-                              name="Wifi"
+                              name="wifi"
                               value={editData.wifi}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
@@ -539,7 +539,7 @@ import { toast } from "sonner";
                           <Input
                               type="text"
                               id="website"
-                              name="Website"
+                              name="website"
                               value={editData.website}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
@@ -550,7 +550,7 @@ import { toast } from "sonner";
                           <Input
                               type="text"
                               id="instagram"
-                              name="Instagram"
+                              name="instagram"
                               value={editData.instagram}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
@@ -561,7 +561,7 @@ import { toast } from "sonner";
                           <Input
                               type="text"
                               id="tiktok"
-                              name="Tiktok"
+                              name="tiktok"
                               value={editData.tiktok}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
@@ -572,7 +572,7 @@ import { toast } from "sonner";
                           <Input
                               type="text"
                               id="google"
-                              name="Google"
+                              name="google"
                               value={editData.google}
                               onChange={handleInputChange}
                               className="mt-1 block w-full border rounded-md p-2"
@@ -586,8 +586,9 @@ import { toast } from "sonner";
               
             <Button size="icon"
                                   type="button"
+                                  title="Modifier la photo"
                                   onClick={() => document.getElementById('fileInput')?.click()}
-                                  className="text-gray-400 absolute top-2 right-2 bg-gray-200 shadow-none rounded-full opacity-80 hover:text-gray-500 hover:bg-gray-300"
+                                  className="absolute top-2 right-2 rounded-full bg-background/90 text-foreground shadow-none opacity-90 hover:bg-background hover:text-foreground"
                                 >
                                   <Pencil />
                                   </Button>
@@ -715,9 +716,9 @@ import { toast } from "sonner";
 
 
   useEffect(() => {
-    // Fetch user and categories when the component mounts
-
-  }, []); 
+    // Keep the table in sync when the parent refetches / adds a restaurant
+    setRestaurants(restaurants);
+  }, [restaurants]); 
 
 
 
@@ -799,7 +800,7 @@ import { toast } from "sonner";
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex flex-row justify-end  items-center">
-          <AlertDialogCancel  className="border-none bg-gray-100 my-auto mr-2 hover:text-black shadow-none">
+          <AlertDialogCancel  className="border-none bg-muted text-foreground my-auto mr-2 hover:bg-muted/80 shadow-none">
             
             Annuler
             

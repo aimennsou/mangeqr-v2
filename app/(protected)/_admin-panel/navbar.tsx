@@ -1,7 +1,6 @@
 
-import { UserButton } from "@/components/auth/user-button";
-import { ModeToggle } from "@/components/mode-toggle";
 import { SheetMenu } from "./sheet-menu";
+import { NavbarActions } from "./navbar-actions";
 
 
 
@@ -23,10 +22,7 @@ export function Navbar({ title }: NavbarProps) {
        
 
 
-        <div className="flex flex-1 items-center space-x-2 justify-end">
-        <ModeToggle />
-   <UserButton />
-        </div> 
+        <NavbarActions />
       </div>
     </header>
   );

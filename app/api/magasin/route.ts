@@ -1,17 +1,18 @@
 
 import { currentUserId } from '@/lib/authentication';
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
+import { buildPathMenuUrl, normalizeSubdomain, validateSubdomain } from '@/lib/subdomain';
+import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
+import { getWorkspaceOwnerId, isWorkspaceMember } from '@/data/workspace';
 
-
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   const userId = await currentUserId();
 
   try {
-    const { name, address, phone, currency, subdomain, coverPhoto, Wifi, Website, Instagram, Tiktok, Google, Wifistate, Websitestate, Instagramstate, Tiktokstate, Googlestate } = await req.json();
+    const { name, address, phone, currency, subdomain, coverPhoto, wifi, website, instagram, tiktok, google } = await req.json();
 
     // Validate request data
     if (!name || !address || !phone) {
@@ -23,18 +24,58 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Owner-only: members cannot create restaurants.
+    if (await isWorkspaceMember(userId)) {
+      return NextResponse.json(
+        { error: "Action réservée au propriétaire du compte." },
+        { status: 403 }
+      );
+    }
 
-    
-    const id = uuidv4();
-    console.log('Generated UUID:', id);
-    const qrUrl = `mangeqr.com/restaurant/${id}`;
-    
-    const user = await prisma.user.findUnique({
+    // Normalize + validate the subdomain (the diner menu access link).
+    const normalizedSubdomain = normalizeSubdomain(subdomain ?? "");
+    const subError = validateSubdomain(normalizedSubdomain);
+    if (subError) {
+      return NextResponse.json({ error: subError }, { status: 400 });
+    }
+
+    // Enforce global uniqueness of the subdomain.
+    const existing = await db.restaurant.findUnique({
+      where: { subdomain: normalizedSubdomain },
+      select: { id: true },
+    });
+    if (existing) {
+      return NextResponse.json(
+        { error: "Ce lien d'accès est déjà utilisé. Choisissez-en un autre." },
+        { status: 409 }
+      );
+    }
+
+    const user = await db.user.findUnique({
       where: { id: userId },
     });
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-    // Create the new restaurant with updated field names
-    const newrestaurant = await prisma.restaurant.create({
+    // Enforce the plan's restaurant limit (expiry-aware).
+    const restaurantLimit = getPlanLimits(getEffectivePlan(user)).restaurants;
+    const restaurantCount = await db.restaurant.count({ where: { userId } });
+    if (restaurantCount >= restaurantLimit) {
+      return NextResponse.json(
+        {
+          error: `Limite de restaurants atteinte. Votre plan permet jusqu'à ${restaurantLimit} restaurant(s).`,
+        },
+        { status: 400 }
+      );
+    }
+
+    const id = uuidv4();
+    // QR always encodes the stable id-based path (independent of subdomain).
+    const qrUrl = buildPathMenuUrl(id);
+
+    // Create the new restaurant, persisting the wifi/social details
+    const newrestaurant = await db.restaurant.create({
       data: {
         id,
         name,
@@ -42,22 +83,19 @@ export async function POST(req: NextRequest) {
         phone,
         coverPhoto: coverPhoto || "uploads/1735415131028bg-food.jpg",
         qrUrl,
-       
-        subdomain,
-    
-    
-
-
-      currency,
-       
-  
-        userId: user!.id,
+        subdomain: normalizedSubdomain,
+        wifi: wifi || null,
+        website: website || null,
+        instagram: instagram || null,
+        tiktok: tiktok || null,
+        google: google || null,
+        currency,
+        userId: user.id,
         createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
 
-    console.log('Created restaurant:', newrestaurant);
     return NextResponse.json(newrestaurant, { status: 201 });
   } catch (error) {
     console.error('Error creating restaurant:', error);
@@ -75,18 +113,24 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch the user based on the clerkId
+    // Read access: scope to the workspace owner so a member sees the OWNER's
+    // restaurants (needed to pick one to edit its menus). Mutations remain
+    // owner-only per POST/PUT/DELETE guards.
+    const ownerId = await getWorkspaceOwnerId(userId);
 
-    // Fetch all restaurants associated with the user
-    const restaurants = await prisma.restaurant.findMany({
+    // Fetch all restaurants associated with the workspace owner
+    const restaurants = await db.restaurant.findMany({
       where: {
-        userId: userId,  // Access user.id only after confirming user exists
+        userId: ownerId,
       }
     });
 
-    // Handle the case where no restaurants exist
+    // Return an empty array (200) when there are no restaurants. A 404 here
+    // made clients that expect a JSON array (performances, cartes, numerique,
+    // superadmin with no restaurants) hang or error on load. Callers already
+    // handle an empty array gracefully.
     if (restaurants.length === 0) {
-      return NextResponse.json({ message: "No restaurants found for this user" }, { status: 404 });
+      return NextResponse.json([], { status: 200 });
     }
 
     return NextResponse.json(restaurants, { status: 200 });
@@ -99,44 +143,40 @@ export async function GET() {
 
   export async function DELETE(req: NextRequest) {
     try {
-      // Parse and log the request body
+      const userId = await currentUserId();
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      // Owner-only: members cannot delete restaurants.
+      if (await isWorkspaceMember(userId)) {
+        return NextResponse.json(
+          { error: "Action réservée au propriétaire du compte." },
+          { status: 403 }
+        );
+      }
+
       const body = await req.json();
-      console.log("Received request body:", body);
-  
       const { id } = body;
-  
+
       // Validate that the id field is provided
       if (!id) {
-        console.error("Missing 'id' in request body");
         return NextResponse.json({ error: "Missing required field: id" }, { status: 400 });
       }
-  
-      // Handle deletion when id is an array of IDs
-      if (Array.isArray(id)) {
-        await prisma.restaurant.deleteMany({
-          where: {
-            id: {
-              in: id,
-            },
-          },
-        });
-      } 
-      // Handle deletion when id is a single ID
-      else {
-        await prisma.restaurant.delete({
-          where: { id },
-        });
-      }
-  
-      return NextResponse.json({ message: "Offer(s) deleted successfully" }, { status: 200 });
-    } catch (error: any) {
-      console.error('Error deleting offer(s):', error);
-  
-      // Handle specific Prisma error for not found
-      if (error === 'P2025') {
-        return NextResponse.json({ error: "Offer(s) not found" }, { status: 404 });
-      }
-  
+
+      // Scope deletion to restaurants owned by the current user so a user can
+      // never delete another owner's restaurant by guessing its id.
+      const ids = Array.isArray(id) ? id : [id];
+      await db.restaurant.deleteMany({
+        where: {
+          id: { in: ids },
+          userId,
+        },
+      });
+
+      return NextResponse.json({ message: "Restaurant(s) supprimé(s) avec succès" }, { status: 200 });
+    } catch (error) {
+      console.error('Error deleting restaurant(s):', error);
       return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
   }
@@ -145,44 +185,81 @@ export async function GET() {
 
   export async function PUT(req: NextRequest) {
     try {
-      const { id, name, address, phone,currency, subdomain, coverPhoto, Wifi, Website, Instagram, Tiktok, Google, Wifistate, Websitestate, Instagramstate, Tiktokstate, Googlestate } = await req.json();
+      const userId = await currentUserId();
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+
+      // Owner-only: members cannot edit restaurants.
+      if (await isWorkspaceMember(userId)) {
+        return NextResponse.json(
+          { error: "Action réservée au propriétaire du compte." },
+          { status: 403 }
+        );
+      }
+
+      const { id, name, address, phone, currency, subdomain, coverPhoto, wifi, website, instagram, tiktok, google } = await req.json();
   
       // Validate request data
       if (!id || !name || !address || !phone  || !currency ) {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
-  
-      // Update the restaurant record in the database with updated field names
-      const updatedrestaurant = await prisma.restaurant.update({
-        where: { id },
-        data: {
-          name,
-          address,
-          phone,
-          coverPhoto,
-         
-       
-        
-      
-  
-          currency,
-          subdomain,
-      
-        
-  
-        
-    
-          updatedAt: new Date(),
-        },
+
+      // Ownership check: the restaurant must belong to the current user.
+      const owned = await db.restaurant.findFirst({
+        where: { id, userId },
+        select: { id: true },
       });
-  
-      console.log(updatedrestaurant);
+      if (!owned) {
+        return NextResponse.json({ error: "Restaurant introuvable" }, { status: 404 });
+      }
+
+      const data: any = {
+        name,
+        address,
+        phone,
+        coverPhoto,
+        currency,
+        wifi: wifi ?? null,
+        website: website ?? null,
+        instagram: instagram ?? null,
+        tiktok: tiktok ?? null,
+        google: google ?? null,
+        updatedAt: new Date(),
+      };
+
+      // If a subdomain was provided, normalize + validate + enforce uniqueness
+      // (excluding this restaurant), and rebuild the access/QR URL.
+      if (subdomain !== undefined) {
+        const normalizedSubdomain = normalizeSubdomain(subdomain ?? "");
+        const subError = validateSubdomain(normalizedSubdomain);
+        if (subError) {
+          return NextResponse.json({ error: subError }, { status: 400 });
+        }
+        const taken = await db.restaurant.findFirst({
+          where: { subdomain: normalizedSubdomain, id: { not: id } },
+          select: { id: true },
+        });
+        if (taken) {
+          return NextResponse.json(
+            { error: "Ce lien d'accès est déjà utilisé. Choisissez-en un autre." },
+            { status: 409 }
+          );
+        }
+        data.subdomain = normalizedSubdomain;
+        // Note: qrUrl is intentionally NOT changed here — it stays the stable
+        // id-based path so the QR code and the subdomain remain independent.
+      }
+
+      // Update the restaurant record in the database, persisting wifi/social details
+      const updatedrestaurant = await db.restaurant.update({
+        where: { id },
+        data,
+      });
+
       return NextResponse.json(updatedrestaurant, { status: 200 });
     } catch (error) {
       console.error('Error updating restaurant:', error);
-      if (error) {
-        return NextResponse.json({ error: "restaurant not found" }, { status: 404 });
-      }
       return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
   }

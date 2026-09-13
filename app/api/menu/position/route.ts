@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {  PrismaClient } from '@prisma/client';;
+import { db } from '@/lib/db';
+import { currentUserId } from '@/lib/authentication';
+import { getWorkspaceOwnerId } from '@/data/workspace';
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const ownerId = await getWorkspaceOwnerId(userId);
+
     const updatedMenus = await req.json();
 
     console.log("Received data at /api/menu/position:", updatedMenus);
@@ -18,11 +26,12 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update each menu position in a transaction
-    await prisma.$transaction(
+    // Only update menus that belong to the caller's workspace owner. Scoping the
+    // updateMany `where` by restaurant.userId makes cross-workspace writes no-ops.
+    await db.$transaction(
       updatedMenus.map((menu) =>
-        prisma.menu.update({
-          where: { id: menu.menuId },
+        db.menu.updateMany({
+          where: { id: menu.menuId, restaurant: { userId: ownerId } },
           data: { position: menu.position },
         })
       )

@@ -11,17 +11,28 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import LastReviewsCard, { RecentSales } from "../_components/charts/LastReviews";
-import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tabs } from "@radix-ui/react-tabs";
-import { Select } from "@/components/ui/select";
+import { RecentReviews } from "../_components/charts/RecentReviews";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DateRange } from "react-day-picker";
 import { useTheme } from "next-themes";
 import { ContentLayout } from "../_admin-panel/content-layout";
 import Logo from "@/components/Logo";
 import { Restaurant } from "@/types";
+import { AreaGraph } from "../_components/charts/AreaGraph";
+import { BarGraph } from "../_components/charts/BarGraph";
+import { PieGraph } from "../_components/charts/PieGraph";
+import KpiCard from "../_components/charts/KpiCard";
+import PerformancesSkeleton from "../_components/charts/PerformancesSkeleton";
+import { QrCode, Star, Heart, LayoutGrid } from "lucide-react";
 
 
 
@@ -55,7 +66,13 @@ export default function PerformancesPage() {
 
 
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  // Default to the last 30 days so charts have a sensible range on first load.
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 30);
+    return { from, to };
+  });
 
   const [shops, setShops] = useState<{ id: string; name: string }[]>([]); 
   const [shopId, setShopId] = useState("");
@@ -63,6 +80,7 @@ export default function PerformancesPage() {
   const [areagraphData, setareagraphData] = useState([]);
   const [piegraphData, setpiegraphData] = useState([]);
   const [topDishName, setTopDishName] = useState<string | null>(null);
+  const [topDishFavorites, setTopDishFavorites] = useState<number>(0);
   const [topCategoryName, setTopCategoryName] = useState<string | null>(null);
 
   const getcardsData = async (shopId: string, startDate: Date, endDate: Date) => {
@@ -149,12 +167,13 @@ export default function PerformancesPage() {
         // Parse the response data
         const data = await response.json();
     
-        // Handle topDishName
+        // Handle topDishName (most-favorited dish) + its favorite count.
         if (data.topDishName) {
           setTopDishName(data.topDishName);
         } else {
           setTopDishName('N/A');
         }
+        setTopDishFavorites(Number(data.topDishFavorites) || 0);
     
         // Handle topCategoryName
         if (data.topCategoryName) {
@@ -165,6 +184,7 @@ export default function PerformancesPage() {
     
       } catch (error) {
         setTopDishName('N/A');
+        setTopDishFavorites(0);
         setTopCategoryName('N/A');
       }
     };
@@ -230,13 +250,16 @@ export default function PerformancesPage() {
 
     const fetchRestaurants = async () => {
       try {
-        const response = await fetch('/api/restaurant');
+        const response = await fetch('/api/magasin');
         if (response.ok) {
           const data = await response.json();
-          setRestaurants(data);
-          setShops(data);
+          const list = Array.isArray(data) ? data : [];
+          setRestaurants(list);
+          setShops(list);
         } else {
-          console.error('Failed to fetch restaurants');
+          // 404 => this user has no restaurants yet
+          setRestaurants([]);
+          setShops([]);
         }
       } catch (error) {
         console.error('Error fetching restaurants:', error);
@@ -244,27 +267,34 @@ export default function PerformancesPage() {
     };
 
 
-  
+    // Load the restaurant list ONCE on mount. This used to live inside the
+    // analytics effect below, which also set `shops`; with `shops` in that
+    // effect's deps it re-ran → refetched → set `shops` again, an infinite loop.
+    useEffect(() => {
+      fetchRestaurants().finally(() => setLoading(false));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-
+    // Once restaurants are loaded, default the selector to the first one.
     useEffect(() => {
       if (shops.length > 0 && !shopId) {
-        setShopId(shops[0].id); // Set the first shop as the default shopId
+        setShopId(shops[0].id);
       }
-      const fetchData = async () => {
-        if (dateRange?.from && dateRange.to && shopId) {
-          getbargraphData(shopId, dateRange.from, dateRange.to);
-          getareagraphData(shopId, dateRange.from, dateRange.to);
-          getpiegraphData(shopId, dateRange.from, dateRange.to);
-          getCardsData(shopId, dateRange.from, dateRange.to);
-          const fetchedData = await getcardsData(shopId, dateRange.from, dateRange.to);
-          setData(fetchedData); // Update state with the fetched data
-        }
-        await fetchRestaurants();
-      
-      };
-      fetchData();
-    }, [shops, dateRange, shopId]); // Runs when dateRange or shopId changes
+    }, [shops, shopId]);
+
+    // Fetch analytics only when the selected shop or date range changes.
+    // Note: this deliberately does NOT depend on `shops`, and no longer
+    // refetches the restaurant list (that is mount-only above).
+    useEffect(() => {
+      if (!dateRange?.from || !dateRange.to || !shopId) return;
+      const { from, to } = dateRange;
+      getbargraphData(shopId, from, to);
+      getareagraphData(shopId, from, to);
+      getpiegraphData(shopId, from, to);
+      getCardsData(shopId, from, to);
+      getcardsData(shopId, from, to).then(setData);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dateRange, shopId]);
   
     const handleDateRangeChange = (range: DateRange | undefined) => {
       setDateRange(range);
@@ -299,30 +329,93 @@ export default function PerformancesPage() {
       <Card className="rounded-lg border-none  mt-6">
       <CardContent className="p-6">
       <div className="mt-6">
-      <>
-      <div className="text-center text-gray-500 py-6">
-          
+      {loading ? (
+        <PerformancesSkeleton />
+      ) : shops.length === 0 ? (
+        <div className="text-center text-muted-foreground py-6">
           <div className="flex justify-center">
-      <Image
-        className={`${theme === "dark" ? "dark:invert" : ""}`}
-        src="/images/empty-performances.png"
-        alt="Empty folder"
-        width={400} // Adjust size as needed
-        height={400}
-      />
+            <Image
+              className={`${theme === "dark" ? "dark:invert" : ""}`}
+              src="/images/empty-performances.png"
+              alt="Empty folder"
+              width={400}
+              height={400}
+            />
+          </div>
+          <p className="text-lg  font-semibold mt-4 text-foreground">Aucune donnée disponible..</p>
+          <p className="mt-2">Créez votre premier restaurant pour pouvoir visualiser vos performances..</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Restaurant selector */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <Select value={shopId} onValueChange={setShopId}>
+              <SelectTrigger className="w-full sm:w-[260px]">
+                <SelectValue placeholder="Choisissez un restaurant" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {shops.map((shop) => (
+                    <SelectItem key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
 
-      
-    
- 
-</div>
-<p className="text-lg  font-semibold mt-4">Aucune donnée disponible..</p>
-<p className="mt-2">Créez votre premier restaurant pour pouvoir visualiser vos performances..</p>  
-</div>
-    </>
+          {/* KPI cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <KpiCard
+              title="Scans"
+              number={data.scans}
+              icon={<QrCode />}
+              description="Total des scans sur la période"
+            />
+            <KpiCard
+              title="Avis"
+              number={data.reviews}
+              icon={<Star />}
+              description="Avis reçus sur la période"
+            />
+            <KpiCard
+              title="Catégorie la plus vue"
+              number={topCategoryName ?? "N/A"}
+              icon={<LayoutGrid />}
+              description="Sur la période sélectionnée"
+            />
+            <KpiCard
+              title="Le plat favoris"
+              number={topDishName ?? "N/A"}
+              icon={<Heart />}
+              description={
+                topDishName && topDishName !== "N/A"
+                  ? `${topDishFavorites} ajout${topDishFavorites > 1 ? "s" : ""} en favori sur la période`
+                  : "Sur la période sélectionnée"
+              }
+            />
+          </div>
 
-
-
-
+          {/* Charts */}
+          <div className="grid gap-4 lg:grid-cols-2">
+            <BarGraph data={bargraphData} />
+            <AreaGraph data={areagraphData} />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <PieGraph data={piegraphData} />
+            <Card>
+              <CardHeader>
+                <CardTitle>Derniers avis</CardTitle>
+                <CardDescription>Les avis récents de vos clients</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <RecentReviews restaurantId={shopId} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
         </div>
       </CardContent>
     </Card>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { useState, useTransition } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import {
@@ -25,6 +25,7 @@ import { FormSuccess } from '@/components/form-success';
 import { CardWrapper } from '@/components/auth/card-wrapper';
 
 export function SignInForm() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl');
   const urlError =
@@ -60,6 +61,13 @@ export function SignInForm() {
           if (data?.success) {
             form.reset();
             setSuccess(data.success);
+            // Session cookie is set by the (redirect:false) server action; now
+            // navigate the client to the role-aware destination and refresh so
+            // the new session is applied.
+            const dest =
+              (data as { redirectTo?: string }).redirectTo || '/performances';
+            router.push(dest);
+            router.refresh();
           }
 
           if (data?.twoFactor) {

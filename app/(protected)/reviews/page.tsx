@@ -12,9 +12,22 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 
 import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import ReviewTable from "../_components/tables/ReviewTable";
+import ReviewTableSkeleton from "../_components/tables/ReviewTableSkeleton";
+import { ReviewBadgeShare } from "../_components/reviews/ReviewBadgeShare";
 import { ContentLayout } from "../_admin-panel/content-layout";
 import Logo from "@/components/Logo";
+import { useI18n } from "@/lib/i18n";
 
 
 
@@ -23,122 +36,70 @@ import Logo from "@/components/Logo";
 
 export default function ReviewsPage() {
   const { theme } = useTheme();
-  const dummyReviews: any[] = [
-    {
-      id: "1",
-      client: "Alice",
-      review: 4,
-      message: "Great food, will definitely order again!",
-      state: "MANGEQR",
-      shop: {
-        id: "shop1",
-        name: "La Bella Cucina",
-      },
-    },
-    {
-      id: "2",
-      client: "Bob",
-      review: 5,
-      message: "Absolutely fantastic! The service was excellent.",
-      state: "GOOGLE",
-      shop: {
-        id: "shop2",
-        name: "Sushi Masters",
-      },
-    },
-    {
-      id: "3",
-      client: "Charlie",
-      review: 3,
-      message: "It was okay, but the portion size could be better.",
-      state: "MANGEQR",
-      shop: {
-        id: "shop3",
-        name: "Pasta Paradiso",
-      },
-    },
-    {
-      id: "4",
-      client: "David",
-      review: 2,
-      message: "Not great, food was cold when it arrived.",
-      state: "GOOGLE",
-      shop: {
-        id: "shop4",
-        name: "Taco Heaven",
-      },
-    },
-    {
-      id: "5",
-      client: "Eve",
-      review: 4,
-      message: "Delicious pizza, but delivery was a bit slow.",
-      state: "MANGEQR",
-      shop: {
-        id: "shop5",
-        name: "Pizza Palace",
-      },
-    },
-    {
-      id: "6",
-      client: "Frank",
-      review: 5,
-      message: "Perfect, everything was exactly what I wanted.",
-      state: "GOOGLE",
-      shop: {
-        id: "shop6",
-        name: "Burger Joint",
-      },
-    },
-    {
-      id: "7",
-      client: "Grace",
-      review: 4,
-      message: "Great flavors, loved the dessert!",
-      state: "MANGEQR",
-      shop: {
-        id: "shop7",
-        name: "Sweet Treats Bakery",
-      },
-    },
-    {
-      id: "8",
-      client: "Hank",
-      review: 3,
-      message: "It was fine, but the salad was a bit bland.",
-      state: "GOOGLE",
-      shop: {
-        id: "shop8",
-        name: "Healthy Eats",
-      },
-    },
-    {
-      id: "9",
-      client: "Ivy",
-      review: 5,
-      message: "Highly recommend this place! Amazing experience.",
-      state: "MANGEQR",
-      shop: {
-        id: "shop9",
-        name: "Steakhouse Deluxe",
-      },
-    },
-    {
-      id: "10",
-      client: "Jack",
-      review: 2,
-      message: "Very disappointed. My order was wrong and cold.",
-      state: "GOOGLE",
-      shop: {
-        id: "shop10",
-        name: "Indian Spice",
-      },
-    },
-  ];
-  
+  const { t } = useI18n();
+  const [reviews, setReviews] = useState<any[]>([]);
+  const [restaurants, setRestaurants] = useState<{ id: string; name: string }[]>([]);
+  const [selectedRestaurantId, setSelectedRestaurantId] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRestaurants = async () => {
+      try {
+        const response = await fetch("/api/magasin");
+        const data = response.ok ? await response.json() : [];
+        const list = Array.isArray(data)
+          ? data.map((r: any) => ({ id: r.id, name: r.name }))
+          : [];
+        setRestaurants(list);
+        if (list.length > 0) setSelectedRestaurantId((prev) => prev || list[0].id);
+      } catch {
+        setRestaurants([]);
+      }
+    };
+    fetchRestaurants();
+  }, []);
+
+  useEffect(() => {
+    const fetchReviews = async () => {
+      try {
+        const response = await fetch("/api/review");
+        if (!response.ok) {
+          setReviews([]);
+          return;
+        }
+        const data = await response.json();
+        if (!Array.isArray(data)) {
+          setReviews([]);
+          return;
+        }
+        // Map DB reviews to the shape ReviewTable expects.
+        setReviews(
+          data.map((r: any) => ({
+            id: r.id,
+            client: r.clientEmail || r.clientNumero || "Anonyme",
+            review: r.review,
+            message: r.message ?? "",
+            state: r.state,
+            shop: {
+              id: r.restaurant?.id ?? r.restaurantId,
+              name: r.restaurant?.name ?? "",
+            },
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching reviews:", error);
+        setReviews([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchReviews();
+  }, []);
+
+  const hasReviews = reviews.length > 0;
 
   return (
-    <ContentLayout title="Avis clients">
+    <ContentLayout title={t("reviews.title")}>
       <Breadcrumb>
         <BreadcrumbList>
         <BreadcrumbItem>
@@ -150,7 +111,7 @@ export default function ReviewsPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Avis clients</BreadcrumbPage>
+            <BreadcrumbPage>{t("reviews.title")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
@@ -158,27 +119,62 @@ export default function ReviewsPage() {
       <CardContent className="p-6">
       <div className="mt-6">
 
+      {loading ? (
+        // While loading, the WHOLE page (top selector + badge + table) shows a
+        // pulsating skeleton — not just a bare table under an empty top area.
+        <ReviewTableSkeleton />
+      ) : (
+        <>
+          {restaurants.length > 0 && (
+            <>
+              {/* Page-level restaurant selector (top): drives the shareable badge. */}
+              <div className="mb-6 grid gap-2 max-w-xs">
+                <Label>{t("common.restaurant")}</Label>
+                <Select
+                  value={selectedRestaurantId}
+                  onValueChange={setSelectedRestaurantId}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisissez un restaurant" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {restaurants.map((r) => (
+                        <SelectItem key={r.id} value={r.id}>
+                          {r.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
 
-      <div className="text-center text-gray-500 py-6">
-          
+              <ReviewBadgeShare
+                restaurants={restaurants}
+                selectedId={selectedRestaurantId}
+              />
+            </>
+          )}
+
+          {hasReviews ? (
+            <ReviewTable reviews={reviews} />
+          ) : (
+        <div className="text-center text-gray-500 py-6">
           <div className="flex justify-center">
-
             <Image
-            className={`${theme === "dark" ? "dark:invert" : ""}`}
-
+              className={`${theme === "dark" ? "dark:invert" : ""}`}
               src={"/images/empty-reviews.png"}
               alt="Empty folder"
-              width={400} // Adjust size as needed
+              width={400}
               height={400}
             />
           </div>
-          <p className="text-lg  font-semibold mt-4">Aucun avis client disponible...</p>
-          <p className="mt-2">Inciter vos serveurs à demander des avis clients pour renforcer la réputation de votre établissement .</p>   
+          <p className="text-lg  font-semibold mt-4">{t("reviews.empty.title")}</p>
+          <p className="mt-2">{t("reviews.empty.subtitle")}</p>
         </div>
-    
-
-<ReviewTable reviews={dummyReviews}/>
-
+          )}
+        </>
+      )}
 
         </div>
       </CardContent>

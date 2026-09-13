@@ -5,6 +5,7 @@ import { Footer } from "./footer";
 import { Sidebar } from "./sidebar";
 import { useSidebarToggle } from "@/hooks/use-sidebar-toggle";
 import { Navbar } from "./navbar";
+import { WelcomeTour } from "./welcome-tour";
 
 
 
@@ -22,11 +23,12 @@ export default function AdminPanelLayout({
 
   return (
     <>
-
+      {/* FEAT-1: first-login guided tour (auto-starts once; replayable via navbar help button) */}
+      <WelcomeTour />
       <Sidebar />
       <main
         className={cn(
-          "min-h-[calc(100vh_-_56px)] bg-zinc-50 dark:bg-zinc-900 transition-[margin-left] ease-in-out duration-300",
+          "min-h-[calc(100vh_-_56px)] bg-background transition-[margin-left] ease-in-out duration-300",
           sidebar?.isOpen === false ? "lg:ml-[90px]" : "lg:ml-72"
         )}
       >

@@ -5,7 +5,6 @@ import {
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
@@ -27,6 +26,13 @@ import {
 import { Label } from "@/components/ui/label";
 import * as React from "react";
 import { ChevronDownIcon, ChevronUpIcon, CopyPlus, GripVertical, Pencil } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -107,32 +113,6 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
 
 
 
-  const updateMenuPositions = async (newOrder: any[]) => {
-    try {
-      const updatedMenus = newOrder.map((menuId: string, index: number) => ({
-        menuId,
-        position: index + 1, // Position starts from 1
-      }));
-  
-      // Call your backend API to update the positions
-      await fetch("/api/menu/positions", {
-        method: "POST",
-        body: JSON.stringify(updatedMenus),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-  
-      // Optionally, you can handle any success or error state here
-    } catch (error) {
-      console.error("Error updating menu positions:", error);
-    }
-  };
-
-
-
-
-  
   const fetchAllCategories = async () => {
     try {
       const response = await fetch("/api/categorie");
@@ -214,14 +194,14 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
             (table.getIsSomePageRowsSelected() && "indeterminate")
           }
           onCheckedChange={(value: any) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
+          aria-label="Tout sélectionner"
         />
       ),
       cell: ({ row }) => (
         <Checkbox
           checked={row.getIsSelected()}
           onCheckedChange={(value: any) => row.toggleSelected(!!value)}
-          aria-label="Select row"
+          aria-label="Sélectionner la ligne"
         />
       ),
       enableSorting: false,
@@ -237,7 +217,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
       accessorKey: "shopName",
       enableSorting: true,
       header: "Restaurant",
-      cell: ({ row }) => <div>{row.original.shop.name}</div>,
+      cell: ({ row }) => <div>{row.original.shop?.name ?? row.original.shopName ?? ""}</div>,
     },
     {
       accessorKey: "availability",
@@ -374,18 +354,31 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
               }),
             });
 
-            if (!response.ok) {
-              throw new Error("Failed to duplicate menu");
-            }
-
             const result = await response.json(); //result now contains menu, categories, and dishes
+
+            if (!response.ok) {
+              // Surface the specific server message (e.g. plan limit reached).
+              toast.error(result?.error || "Échec de la duplication du menu.");
+              return;
+            }
 
             // Update allCategories and allDishes *first*
             setAllCategories(prevCategories => [...prevCategories, ...result.categories]);
             setAllDishes(prevDishes => [...prevDishes, ...result.dishes]);
 
+            // The API returns the menu with a `restaurant` relation, but the table
+            // renders `row.original.shop.name`. Map it to the `shop` shape (falling
+            // back to the source row's shop, since a duplicate stays in the same
+            // restaurant) so the new row doesn't crash the Restaurant column.
+            const duplicatedMenu = {
+              ...result.menu,
+              shop: result.menu?.restaurant
+                ? { id: result.menu.restaurant.id, name: result.menu.restaurant.name }
+                : row.original.shop,
+              shopName: result.menu?.restaurant?.name ?? row.original.shop?.name ?? "",
+            };
 
-            setMenus(menus => [...menus, result.menu]); 
+            setMenus(menus => [...menus, duplicatedMenu]); 
 
 
 
@@ -397,16 +390,14 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
  
           } catch (error) {
             console.error("Failed to duplicate menu", error);
-            toast.error("Limite de menus atteinte."); 
-
-
+            toast.error("Échec de la duplication du menu.");
           }
         };
 
         return (
           <Button
             size="icon"
-            className="text-gray-400 bg-inherit shadow-none rounded-full opacity-80 hover:text-gray-500 hover:bg-gray-200"
+            className="text-muted-foreground bg-inherit shadow-none rounded-full opacity-80 hover:text-foreground hover:bg-muted"
             onClick={handleDuplicate}
           >
             <CopyPlus />
@@ -439,17 +430,37 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                ...editData,
-                shopId: editData.shop.id,
+                id: editData.id,
+                name: editData.name,
+                availability: editData.availability,
+                state: editData.state,
+                // The API expects `restaurantId` (not `shopId`) to reassign the
+                // menu's parent restaurant — this is what makes the change persist.
+                restaurantId: editData.shop.id,
               }),
             });
 
             if (!response.ok) throw new Error("Failed to update shop");
 
-            // Update the local `menus` state with the updated `editData`
+            // Update the local `menus` state with the updated `editData`.
+            // Resolve the NEW restaurant's name from `shops` so the table's
+            // Restaurant column reflects the change immediately (previously it
+            // kept the old shop.name, requiring a manual refresh).
+            const newShop = shops.find((s) => s.id === editData.shop.id);
             setMenus(prevMenus =>
               prevMenus.map(menu =>
-                menu.id === editData.id ? { ...menu, ...editData, shop: {...menu.shop, ...editData.shop} } : menu // Ensure deep merge for shop
+                menu.id === editData.id
+                  ? {
+                      ...menu,
+                      ...editData,
+                      shop: {
+                        ...menu.shop,
+                        id: editData.shop.id,
+                        name: newShop?.name ?? menu.shop?.name,
+                      },
+                      shopName: newShop?.name ?? menu.shopName,
+                    }
+                  : menu
               )
             );
 
@@ -484,195 +495,95 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
           }));
         };
 
-        const handleBackgroundClick = (
-          e: React.MouseEvent<HTMLDivElement, MouseEvent>
-        ) => {
-          const target = e.target as HTMLDivElement;
-          if (target.classList.contains("inset-0")) {
-            setDialogOpen(false);
-          }
-        };
-
         return (
-          <>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <Button
               onClick={() => setDialogOpen(true)}
               size="icon"
-              className="text-gray-400  bg-inherit shadow-none rounded-full opacity-80 hover:text-gray-500 hover:bg-gray-200"
+              className="text-muted-foreground bg-inherit shadow-none rounded-full opacity-80 hover:text-foreground hover:bg-muted"
             >
               <Pencil />
             </Button>
 
-            {dialogOpen && (
-              <div
-                onClick={handleBackgroundClick}
-                className="fixed  flex justify-center items-center inset-0 z-50 bg-black/80  data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0"
-              >
-                <div className="bg-white sm:max-w-md rounded-lg overflow-hidden shadow-lg">
-                  <div className="p-4 border-b">
-                    <h2 className="text-lg font-semibold">
-                      Modifier votre menu
-                    </h2>
-                    <p className="text-sm text-gray-500">
-                      Modifiez les détails de votre menu ici.
-                    </p>
-                  </div>
+            {/* Same shadcn Dialog as the Add form → same fade/zoom animation. */}
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Modifier votre menu</DialogTitle>
+                <DialogDescription>
+                  Modifiez les détails de votre menu ici. Enregistrez lorsque
+                  vous avez terminé.
+                </DialogDescription>
+              </DialogHeader>
 
-                  <div className="max-h-[600px] overflow-y-auto">
-                    <form onSubmit={handleSubmit}>
-                      <div className="m-4">
-                        <Label htmlFor="name">
-                          Name<span className="text-red-500">*</span>
-                        </Label>
+              <div className="max-h-[400px] max-w-full overflow-y-auto p-4">
+                    <form className={cn("grid items-start gap-4")} onSubmit={handleSubmit}>
+                      <div className="grid gap-2">
+                        <Label htmlFor="name">Nom</Label>
                         <Input
                           type="text"
                           id="name"
                           name="name"
+                          placeholder="e.g. Menu du jour"
                           value={editData.name}
                           onChange={handleInputChange}
-                          className="mt-1 block w-full border rounded-md p-2"
-                          required
                         />
                       </div>
-                      <div className="m-4">
-                        <Label htmlFor="shopName">
-                          Restaurant<span className="text-red-500">*</span>
-                        </Label>
 
-                        <Select
-                            onValueChange={(value) =>
-                              setEditData((prevState) => ({
-                                ...prevState,
-                                shop: { ...prevState.shop, id: value },
-                              }))
-                            }
-                            value={editData.shop.id}
-                          >
+                      <Label htmlFor="restaurant">Restaurant</Label>
+                      <Select
+                        value={editData.shop.id}
+                        onValueChange={(value) =>
+                          setEditData((prevState) => ({
+                            ...prevState,
+                            shop: { ...prevState.shop, id: value },
+                          }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            className="text-foreground"
+                            placeholder="Choisissez un restaurant"
+                          />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectGroup>
+                            {shops.map((shop) => (
+                              <SelectItem key={shop.id} value={shop.id}>
+                                {shop.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        </SelectContent>
+                      </Select>
 
+                      <Label htmlFor="availability">Disponibilité</Label>
+                      <ToggleGroup
+                        size="lg"
+                        type="multiple"
+                        className="grid grid-cols-3"
+                        value={editData.availability}
+                        onValueChange={(values) => handleAvailabilityChange(values)}
+                      >
+                        {["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map(
+                          (day) => (
+                            <ToggleGroupItem key={day} value={day} aria-label={`Toggle ${day}`}>
+                              {day}
+                            </ToggleGroupItem>
+                          )
+                        )}
+                      </ToggleGroup>
 
-
-
-
-
-
-
-
-                            
-                            <SelectTrigger className="w-full border my-4">
-                              <SelectValue
-                                placeholder={
-                                  editData.shop
-                                    ? shops.find(
-                                        (shop) => shop.id === editData.shop.id
-                                      )?.name || "Restaurant" : "Loading..." //handle case where shop might be undefined initially
-                                }
-                              />
-                            </SelectTrigger>
-
-                            <SelectContent>
-                              <SelectGroup>
-                                <SelectLabel>Mes restaurants</SelectLabel>
-
-                                {shops.map((shop) => (
-                                  <SelectItem
-                                    key={shop.id}
-                                    value={shop.id}
-                                  >
-                                    {shop.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            </SelectContent>
-                          </Select>
-                      </div>
-                      <div className="m-4">
-                        <Label htmlFor="availablility">
-                          Disponibilités<span className="text-red-500">*</span>
-                        </Label>
-
-                        <ToggleGroup
-                          size={"lg"}
-                          type="multiple"
-                          className="grid grid-cols-3"
-                          value={editData.availability}
-                          onValueChange={(values) =>
-                            handleAvailabilityChange(values)
-                          }
-                        >
-                          <ToggleGroupItem
-                            value="Dimanche"
-                            aria-label="Toggle Dimanche"
-                          >
-                            Dimanche
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="Lundi"
-                            aria-label="Toggle Lundi"
-                          >
-                            Lundi
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="Mardi"
-                            aria-label="Toggle Mardi"
-                          >
-                            Mardi
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="Mercredi"
-                            aria-label="Toggle Mercredi"
-                          >
-                            Mercredi
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="Jeudi"
-                            aria-label="Toggle Jeudi"
-                          >
-                            Jeudi
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="Vendredi"
-                            aria-label="Toggle Vendredi"
-                          >
-                            Vendredi
-                          </ToggleGroupItem>
-                          <ToggleGroupItem
-                            value="Samedi"
-                            aria-label="Toggle Samedi"
-                          >
-                            Samedi
-                          </ToggleGroupItem>
-                        </ToggleGroup>
-                      </div>
-
-                      <div className="flex w-full p-4 ">
-                        <Button
-                          className="bg-yellow-400 hover:bg-yellow-400 text-black"
-                          type="submit"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? (
-                        'Enregistrement'
-                          ) : (
-                            "Enregistrer"
-                          )}
-                        </Button>
-                      </div>
+                      <Button
+                        className="bg-yellow-400 hover:bg-yellow-400 text-black"
+                        type="submit"
+                        disabled={isSubmitting}
+                      >
+                        {isSubmitting ? "Enregistrement" : "Enregistrer"}
+                      </Button>
                     </form>
                   </div>
-
-                  <div className="flex justify-start p-4 border-t">
-                    <Button
-                      variant="secondary"
-                      onClick={() => setDialogOpen(false)}
-                      className="text-gray-500"
-                    >
-                      Fermer
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </>
+            </DialogContent>
+          </Dialog>
         );
       },
     },
@@ -681,7 +592,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
       cell: () => (
         <div className="flex justify-end">
           <SortableDragHandle variant="ghost" size="icon" className="size-8">
-          <GripVertical className="flex my-auto text-gray-300" />
+          <GripVertical className="flex my-auto text-muted-foreground" />
           </SortableDragHandle>
         </div>
       ),
@@ -820,7 +731,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="flex flex-row justify-end  items-center">
-                <AlertDialogCancel className="border-none bg-gray-100 my-auto mr-2 hover:text-black shadow-none">
+                <AlertDialogCancel className="border-none bg-muted text-foreground my-auto mr-2 hover:bg-muted/80 shadow-none">
                   Annuler
                 </AlertDialogCancel>
                 <AlertDialogAction
@@ -858,9 +769,9 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                          header.getContext()
                        )}
                    {header.column.getIsSorted() === "asc" ? (
-                     <ChevronUpIcon className="flex w-4 h-4 my-auto text-gray-400 ml-2" />
+                     <ChevronUpIcon className="flex w-4 h-4 my-auto text-muted-foreground ml-2" />
                    ) : header.column.getIsSorted() === "desc" ? (
-                     <ChevronDownIcon className="flex w-4 h-4 my-auto text-gray-400 ml-2" />
+                     <ChevronDownIcon className="flex w-4 h-4 my-auto text-muted-foreground ml-2" />
                    ) : null}
                  </div>
                </TableHead>
@@ -874,11 +785,12 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
           <TableBody>
           <Sortable
   value={menus}
-  onValueChange={(newOrder: any[] | ((prevState: Menu[]) => Menu[])) => {
-   
-    // Extract the menu IDs and send updated positions
-  // Extract `id` from each Menu object
-  
+  onValueChange={(newOrder) => {
+    // Update local state so the UI reflects the new order immediately
+    setMenus(newOrder);
+
+    // Persist the new order to the backend as [{ menuId, position }]
+    sendMenuPositions(newOrder.map((menu) => menu.id));
   }}
   overlay={
     <Table>
@@ -915,7 +827,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                     colSpan={columns.length}
                     className="h-24 text-center"
                   >
-                    No results.
+                    Aucun résultat.
                   </TableCell>
                 </TableRow>
               )}

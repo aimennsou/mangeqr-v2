@@ -3,7 +3,6 @@
 import * as z from 'zod';
 import { Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { UserRole } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import { useTransition } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,13 +16,6 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { UpdateProfileSchema } from '@/schemas';
 import { Button } from '@/components/ui/button';
@@ -44,7 +36,6 @@ export default function UpdateProfileForm() {
     defaultValues: {
       name: user?.name || '',
       email: user?.tempEmail ? user.tempEmail : user?.email || '',
-      role: user?.role || 'USER',
       isTwoFactorEnabled: user?.isTwoFactorEnabled || false
     }
   });
@@ -88,12 +79,6 @@ export default function UpdateProfileForm() {
     <Form {...form}>
       <form className='space-y-6' onSubmit={form.handleSubmit(onSubmit)}>
         <div className='space-y-4'>
-          <div className='flex flex-row items-center justify-between rounded-md border px-3 py-1.5'>
-            <p className='text-sm font-medium'>ID</p>
-            <p className='truncate text-xs max-w-[200px] font-mono px-2 bg-zinc-100 dark:bg-zinc-700 rounded-sm'>
-              {user?.id}
-            </p>
-          </div>
           <FormField
             control={form.control}
             name='name'
@@ -148,32 +133,6 @@ export default function UpdateProfileForm() {
               )}
             />
           )}
-
-          <FormField
-            control={form.control}
-            name='role'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Rôle</FormLabel>
-                <Select
-                  disabled={isPending}
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder='Sélectionner un rôle' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                    <SelectItem value={UserRole.USER}>Utilisateur</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
 
           {user?.isOAuth === false && (
             <FormField

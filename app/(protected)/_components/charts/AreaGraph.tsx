@@ -35,6 +35,11 @@ const chartConfig = {
 } satisfies ChartConfig;
 
 export function AreaGraph({ data }: AreaChartProps) {
+  const isEmpty =
+    !data ||
+    data.length === 0 ||
+    data.every((d) => (d.jour ?? 0) === 0 && (d.nuit ?? 0) === 0);
+
   return (
     <Card>
       <CardHeader>
@@ -44,6 +49,11 @@ export function AreaGraph({ data }: AreaChartProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {isEmpty ? (
+          <div className="flex h-[310px] items-center justify-center text-sm text-muted-foreground">
+            Aucune donnée sur la période.
+          </div>
+        ) : (
         <ChartContainer
           config={chartConfig}
           className="aspect-auto h-[310px]  space-y-6 w-full"
@@ -90,6 +100,7 @@ export function AreaGraph({ data }: AreaChartProps) {
             />
           </AreaChart>
         </ChartContainer>
+        )}
       </CardContent>
       <CardFooter>
         <div className="flex w-full items-start gap-2 text-xs">

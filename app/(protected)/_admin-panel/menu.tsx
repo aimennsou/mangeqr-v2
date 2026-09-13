@@ -18,8 +18,11 @@ import {
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import Logo from "@/components/Logo";
+import { useI18n } from "@/lib/i18n";
+import type { TranslationKey } from "@/lib/i18n/dictionaries";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { useWorkspaceRole, useAppRole } from "@/hooks/use-workspace-role";
 
 
 
@@ -36,13 +39,31 @@ export function Menu({ isOpen }: MenuProps) {
   const router = useRouter();
   
   const pathname = usePathname();
-  const menuList = getMenuList(pathname);
+  // Hide owner-only entries from workspace MEMBERS (mangeqr-team, T9).
+  const workspaceRole = useWorkspaceRole();
+  // Show the SUPERADMIN-only "Super Admin" entry based on the app role (S6).
+  const appRole = useAppRole();
+  const menuList = getMenuList(pathname, workspaceRole, appRole);
+  const { t } = useI18n();
+
+  // Translate a nav key, falling back to the (French) literal label.
+  const tr = (key: string | undefined, fallback: string) =>
+    key ? t(key as TranslationKey) : fallback;
+
+  // Stable data-tour anchors for the guided tour (FEAT-1), keyed by nav href.
+  const tourAnchorFor = (href: string): string | undefined => {
+    if (href.includes("/restaurant")) return "nav-restaurants";
+    if (href.includes("/categories")) return "nav-categories";
+    if (href.includes("/menu")) return "nav-menus";
+    if (href.includes("/numerique")) return "nav-numerique";
+    return undefined;
+  };
 
   return (
 
 
 
-    <><Link href="/dashboard" className="flex mx-auto justify-center items-center gap-2">
+    <><Link href="/performances" className="flex mx-auto justify-center items-center gap-2">
       {isOpen ? (
         <Logo className="" />
       ) : (
@@ -53,14 +74,16 @@ export function Menu({ isOpen }: MenuProps) {
 
 
 
-        <nav className="mt-8 h-full w-full">
+        <nav data-tour="nav" className="mt-8 h-full w-full">
 
           <ul className="flex flex-col min-h-[calc(100vh-48px-36px-16px-32px)] lg:min-h-[calc(100vh-32px-40px-32px)] items-start space-y-1 px-2">
-            {menuList.map(({ groupLabel, menus }, index) => (
+            {menuList.map(({ groupLabel, groupLabelKey, menus }, index) => {
+              const groupLabelText = tr(groupLabelKey, groupLabel);
+              return (
               <li className={cn("w-full", groupLabel ? "pt-5" : "")} key={index}>
                 {(isOpen && groupLabel) || isOpen === undefined ? (
                   <p className="text-sm font-medium text-muted-foreground px-4 pb-2 max-w-[248px] truncate">
-                    {groupLabel}
+                    {groupLabelText}
                   </p>
                 ) : !isOpen && isOpen !== undefined && groupLabel ? (
                   <TooltipProvider>
@@ -71,7 +94,7 @@ export function Menu({ isOpen }: MenuProps) {
                         </div>
                       </TooltipTrigger>
                       <TooltipContent side="right">
-                        <p>{groupLabel}</p>
+                        <p>{groupLabelText}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -79,8 +102,11 @@ export function Menu({ isOpen }: MenuProps) {
                   <p className="pb-2"></p>
                 )}
                 {menus.map(
-                  ({ href, label, icon: Icon, active, submenus }, index) => submenus.length === 0 ? (
-                    <div className="w-full" key={index}>
+                  ({ href, label, labelKey, icon: Icon, active, submenus }, index) => {
+                  const labelText = tr(labelKey, label);
+                  const tourAnchor = tourAnchorFor(href);
+                  return submenus.length === 0 ? (
+                    <div className="w-full" key={index} data-tour={tourAnchor}>
                       <TooltipProvider disableHoverableContent>
                         <Tooltip delayDuration={100}>
                           <TooltipTrigger asChild>
@@ -103,14 +129,14 @@ export function Menu({ isOpen }: MenuProps) {
                                       : "translate-x-0 opacity-100"
                                   )}
                                 >
-                                  {label}
+                                  {labelText}
                                 </p>
                               </Link>
                             </Button>
                           </TooltipTrigger>
                           {isOpen === false && (
                             <TooltipContent side="right">
-                              {label}
+                              {labelText}
                             </TooltipContent>
                           )}
                         </Tooltip>
@@ -120,15 +146,17 @@ export function Menu({ isOpen }: MenuProps) {
                     <div className="w-full" key={index}>
                       <CollapseMenuButton
                         icon={Icon}
-                        label={label}
+                        label={labelText}
                         active={active}
                         submenus={submenus}
                         isOpen={isOpen} />
                     </div>
-                  )
+                  );
+                }
                 )}
               </li>
-            ))}
+              );
+            })}
 
           </ul>
         </nav>

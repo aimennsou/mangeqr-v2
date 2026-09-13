@@ -1,0 +1,350 @@
+import type { Locale } from "./config";
+
+// Flat, dot-namespaced translation keys. French is the source of truth; any key
+// missing in another locale falls back to French (see translator in index.ts).
+//
+// Coverage (per v2 spec): primary owner navigation + common UI + the diner menu.
+// Owner-authored content (dish names, category names, etc.) is never translated.
+
+type Dict = Record<string, string>;
+
+const fr: Dict = {
+  // --- Sidebar navigation groups + items ---
+  "nav.group.dashboard": "Tableau de bord",
+  "nav.group.activity": "Mon activité",
+  "nav.group.clientele": "Ma clientèle",
+  "nav.group.personalization": "Personnalisations",
+  "nav.group.settings": "Paramètres",
+  "nav.performances": "Mes performances",
+  "nav.restaurants": "Mes restaurants",
+  "nav.menus": "Menus",
+  "nav.categories": "Catégories & plats",
+  "nav.reviews": "Avis clients",
+  "nav.marketing": "Campagne marketing",
+  "nav.numerique": "Menu numérique",
+  "nav.cartes": "Menu physique",
+  "nav.account": "Mon compte",
+
+  // --- Common actions / labels ---
+  "common.save": "Enregistrer",
+  "common.saving": "Enregistrement...",
+  "common.cancel": "Annuler",
+  "common.delete": "Supprimer",
+  "common.edit": "Modifier",
+  "common.add": "Ajouter",
+  "common.close": "Fermer",
+  "common.loading": "Chargement...",
+  "common.search": "Rechercher",
+  "common.previous": "Précédent",
+  "common.next": "Suivant",
+  "common.noResults": "Aucun résultat.",
+  "common.restaurant": "Restaurant",
+  "common.menu": "Menu",
+  "common.language": "Langue",
+
+  // --- Diner-facing menu ---
+  "diner.leaveReview": "Laissez un avis",
+  "diner.reviewOnGoogle": "Laissez votre avis sur Google",
+  "diner.reviewThanks": "Merci pour votre retour !",
+  "diner.reviewError": "Une erreur est survenue. Réessayez.",
+  "diner.reviewHelp":
+    "Merci pour votre retour. Aidez-nous à nous améliorer — votre message reste privé.",
+  "diner.reviewShareGoogle":
+    "Merci ! Partagez votre expérience sur Google pour soutenir le restaurant.",
+  "diner.send": "Envoyer",
+  "diner.sending": "Envoi...",
+  "diner.messagePlaceholder": "Qu'est-ce qui n'a pas été à la hauteur ? (optionnel)",
+  "diner.contactPlaceholder": "Email ou téléphone pour vous recontacter (optionnel)",
+  "diner.selectRating": "Merci de sélectionner une note.",
+  "diner.noMenuToday": "Aucun menu disponible aujourd'hui. Revenez un autre jour.",
+  "diner.comingSoon": "Ce menu sera bientôt disponible.",
+  "diner.emptyCategory": "Aucun plat dans cette catégorie.",
+  "diner.wifi": "Wifi",
+  "diner.website": "Site web",
+  "diner.instagram": "Instagram",
+  "diner.tiktok": "TikTok",
+  "diner.googleReviews": "Avis Google",
+  "diner.allergens": "Allergènes",
+  "diner.close": "Fermer",
+  "diner.favorite": "Ajouter aux favoris",
+  "diner.followUs": "Suivez-nous",
+
+  // --- Reviews page (owner) ---
+  "reviews.title": "Avis clients",
+  "reviews.loading": "Chargement des avis...",
+  "reviews.empty.title": "Aucun avis client disponible...",
+  "reviews.empty.subtitle":
+    "Inciter vos serveurs à demander des avis clients pour renforcer la réputation de votre établissement.",
+  "reviews.column.client": "Client",
+  "reviews.column.rating": "Note",
+  "reviews.column.message": "Message",
+  "reviews.column.source": "Source",
+  "reviews.searchPlaceholder": "Trouver un avis...",
+  "reviews.filter.allSources": "Toutes les sources",
+  "reviews.source.mangeqr": "MangeQR",
+  "reviews.source.google": "Google",
+
+  // --- Guided welcome tour (FEAT-1) ---
+  "tour.next": "Suivant",
+  "tour.prev": "Précédent",
+  "tour.done": "Terminer",
+  "tour.welcome.title": "Bienvenue sur MangeQR 👋",
+  "tour.welcome.desc":
+    "Voici un tour rapide pour découvrir l'essentiel. Vous pourrez le relancer à tout moment via le bouton d'aide en haut à droite.",
+  "tour.nav.title": "Votre navigation",
+  "tour.nav.desc":
+    "Depuis ce menu, gérez vos restaurants, menus, catégories & plats, avis et campagnes.",
+  "tour.restaurants.title": "Mes restaurants",
+  "tour.restaurants.desc":
+    "Commencez par créer un restaurant : tout part de là.",
+  "tour.menus.title": "Menus",
+  "tour.menus.desc": "Créez et organisez les menus de votre restaurant.",
+  "tour.categories.title": "Catégories & plats",
+  "tour.categories.desc":
+    "Ajoutez vos catégories et vos plats (photos, prix, allergènes, disponibilité).",
+  "tour.numerique.title": "Menu numérique",
+  "tour.numerique.desc":
+    "Générez votre QR code et personnalisez l'apparence de votre menu en ligne.",
+  "tour.lang.title": "Changer la langue",
+  "tour.lang.desc": "Basculez l'interface entre le français, l'arabe et l'anglais.",
+  "tour.theme.title": "Thème clair / sombre",
+  "tour.theme.desc": "Basculez entre le mode clair et le mode sombre.",
+  "tour.final.title": "C'est parti !",
+  "tour.final.desc":
+    "Vous pouvez relancer ce guide à tout moment avec le bouton d'aide. Bonne découverte !",
+
+  // --- Clarifying tooltips (FEAT-2) ---
+  "tooltip.language": "Changer la langue",
+  "tooltip.theme": "Basculer le thème clair/sombre",
+  "tooltip.account": "Mon compte",
+  "tooltip.help": "Revoir le guide",
+  "tooltip.copyLink": "Copier le lien du menu",
+  "tooltip.previewMenu": "Ouvrir l'aperçu du menu",
+  "tooltip.downloadQr": "Télécharger le QR code",
+};
+
+const ar: Dict = {
+  "nav.group.dashboard": "لوحة التحكم",
+  "nav.group.activity": "نشاطي",
+  "nav.group.clientele": "عملائي",
+  "nav.group.personalization": "التخصيص",
+  "nav.group.settings": "الإعدادات",
+  "nav.performances": "أدائي",
+  "nav.restaurants": "مطاعمي",
+  "nav.menus": "القوائم",
+  "nav.categories": "الفئات والأطباق",
+  "nav.reviews": "آراء العملاء",
+  "nav.marketing": "الحملات التسويقية",
+  "nav.numerique": "القائمة الرقمية",
+  "nav.cartes": "القائمة المطبوعة",
+  "nav.account": "حسابي",
+
+  "common.save": "حفظ",
+  "common.saving": "جارٍ الحفظ...",
+  "common.cancel": "إلغاء",
+  "common.delete": "حذف",
+  "common.edit": "تعديل",
+  "common.add": "إضافة",
+  "common.close": "إغلاق",
+  "common.loading": "جارٍ التحميل...",
+  "common.search": "بحث",
+  "common.previous": "السابق",
+  "common.next": "التالي",
+  "common.noResults": "لا توجد نتائج.",
+  "common.restaurant": "مطعم",
+  "common.menu": "قائمة",
+  "common.language": "اللغة",
+
+  "diner.leaveReview": "اترك تقييماً",
+  "diner.reviewOnGoogle": "اترك تقييمك على Google",
+  "diner.reviewThanks": "شكراً على ملاحظاتك!",
+  "diner.reviewError": "حدث خطأ. حاول مرة أخرى.",
+  "diner.reviewHelp":
+    "شكراً على ملاحظاتك. ساعدنا على التحسّن — رسالتك تبقى خاصة.",
+  "diner.reviewShareGoogle":
+    "شكراً! شارك تجربتك على Google لدعم المطعم.",
+  "diner.send": "إرسال",
+  "diner.sending": "جارٍ الإرسال...",
+  "diner.messagePlaceholder": "ما الذي لم يكن على المستوى؟ (اختياري)",
+  "diner.contactPlaceholder": "البريد الإلكتروني أو الهاتف لإعادة التواصل (اختياري)",
+  "diner.selectRating": "يرجى اختيار تقييم.",
+  "diner.noMenuToday": "لا توجد قائمة متاحة اليوم. عد في يوم آخر.",
+  "diner.comingSoon": "ستتوفر هذه القائمة قريباً.",
+  "diner.emptyCategory": "لا توجد أطباق في هذه الفئة.",
+  "diner.wifi": "واي فاي",
+  "diner.website": "الموقع الإلكتروني",
+  "diner.instagram": "إنستغرام",
+  "diner.tiktok": "تيك توك",
+  "diner.googleReviews": "تقييمات Google",
+  "diner.allergens": "مسببات الحساسية",
+  "diner.close": "إغلاق",
+  "diner.favorite": "أضف إلى المفضلة",
+  "diner.followUs": "تابعنا",
+
+  // --- Reviews page (owner) ---
+  "reviews.title": "آراء العملاء",
+  "reviews.loading": "جارٍ تحميل الآراء...",
+  "reviews.empty.title": "لا توجد آراء عملاء متاحة...",
+  "reviews.empty.subtitle":
+    "شجّع نُدُلك على طلب آراء العملاء لتعزيز سمعة مطعمك.",
+  "reviews.column.client": "العميل",
+  "reviews.column.rating": "التقييم",
+  "reviews.column.message": "الرسالة",
+  "reviews.column.source": "المصدر",
+  "reviews.searchPlaceholder": "ابحث عن رأي...",
+  "reviews.filter.allSources": "كل المصادر",
+  "reviews.source.mangeqr": "MangeQR",
+  "reviews.source.google": "Google",
+
+  // --- Guided welcome tour (FEAT-1) ---
+  "tour.next": "التالي",
+  "tour.prev": "السابق",
+  "tour.done": "إنهاء",
+  "tour.welcome.title": "مرحباً بك في MangeQR 👋",
+  "tour.welcome.desc":
+    "إليك جولة سريعة لاكتشاف الأساسيات. يمكنك إعادة تشغيلها في أي وقت عبر زر المساعدة في الأعلى.",
+  "tour.nav.title": "التنقّل",
+  "tour.nav.desc":
+    "من هذه القائمة، أدِر مطاعمك وقوائمك والفئات والأطباق والآراء والحملات.",
+  "tour.restaurants.title": "مطاعمي",
+  "tour.restaurants.desc": "ابدأ بإنشاء مطعم: كل شيء ينطلق من هنا.",
+  "tour.menus.title": "القوائم",
+  "tour.menus.desc": "أنشئ ونظّم قوائم مطعمك.",
+  "tour.categories.title": "الفئات والأطباق",
+  "tour.categories.desc":
+    "أضف فئاتك وأطباقك (الصور، الأسعار، مسببات الحساسية، التوفر).",
+  "tour.numerique.title": "القائمة الرقمية",
+  "tour.numerique.desc":
+    "أنشئ رمز QR وخصّص مظهر قائمتك على الإنترنت.",
+  "tour.lang.title": "تغيير اللغة",
+  "tour.lang.desc": "بدّل واجهة التطبيق بين الفرنسية والعربية والإنجليزية.",
+  "tour.theme.title": "الوضع الفاتح / الداكن",
+  "tour.theme.desc": "بدّل بين الوضع الفاتح والوضع الداكن.",
+  "tour.final.title": "لننطلق!",
+  "tour.final.desc":
+    "يمكنك إعادة تشغيل هذا الدليل في أي وقت عبر زر المساعدة. اكتشاف ممتع!",
+
+  // --- Clarifying tooltips (FEAT-2) ---
+  "tooltip.language": "تغيير اللغة",
+  "tooltip.theme": "تبديل الوضع الفاتح/الداكن",
+  "tooltip.account": "حسابي",
+  "tooltip.help": "إعادة عرض الدليل",
+  "tooltip.copyLink": "نسخ رابط القائمة",
+  "tooltip.previewMenu": "فتح معاينة القائمة",
+  "tooltip.downloadQr": "تنزيل رمز QR",
+};
+
+const en: Dict = {
+  "nav.group.dashboard": "Dashboard",
+  "nav.group.activity": "My activity",
+  "nav.group.clientele": "My clientele",
+  "nav.group.personalization": "Personalization",
+  "nav.group.settings": "Settings",
+  "nav.performances": "My performance",
+  "nav.restaurants": "My restaurants",
+  "nav.menus": "Menus",
+  "nav.categories": "Categories & dishes",
+  "nav.reviews": "Customer reviews",
+  "nav.marketing": "Marketing campaign",
+  "nav.numerique": "Digital menu",
+  "nav.cartes": "Physical menu",
+  "nav.account": "My account",
+
+  "common.save": "Save",
+  "common.saving": "Saving...",
+  "common.cancel": "Cancel",
+  "common.delete": "Delete",
+  "common.edit": "Edit",
+  "common.add": "Add",
+  "common.close": "Close",
+  "common.loading": "Loading...",
+  "common.search": "Search",
+  "common.previous": "Previous",
+  "common.next": "Next",
+  "common.noResults": "No results.",
+  "common.restaurant": "Restaurant",
+  "common.menu": "Menu",
+  "common.language": "Language",
+
+  "diner.leaveReview": "Leave a review",
+  "diner.reviewOnGoogle": "Leave your review on Google",
+  "diner.reviewThanks": "Thanks for your feedback!",
+  "diner.reviewError": "Something went wrong. Please try again.",
+  "diner.reviewHelp":
+    "Thanks for your feedback. Help us improve — your message stays private.",
+  "diner.reviewShareGoogle":
+    "Thank you! Share your experience on Google to support the restaurant.",
+  "diner.send": "Send",
+  "diner.sending": "Sending...",
+  "diner.messagePlaceholder": "What fell short? (optional)",
+  "diner.contactPlaceholder": "Email or phone so we can reach you (optional)",
+  "diner.selectRating": "Please select a rating.",
+  "diner.noMenuToday": "No menu available today. Come back another day.",
+  "diner.comingSoon": "This menu will be available soon.",
+  "diner.emptyCategory": "No dishes in this category.",
+  "diner.wifi": "Wifi",
+  "diner.website": "Website",
+  "diner.instagram": "Instagram",
+  "diner.tiktok": "TikTok",
+  "diner.googleReviews": "Google reviews",
+  "diner.allergens": "Allergens",
+  "diner.close": "Close",
+  "diner.favorite": "Add to favorites",
+  "diner.followUs": "Follow us",
+
+  // --- Reviews page (owner) ---
+  "reviews.title": "Customer reviews",
+  "reviews.loading": "Loading reviews...",
+  "reviews.empty.title": "No customer reviews available yet...",
+  "reviews.empty.subtitle":
+    "Encourage your waiters to ask for customer reviews to strengthen your establishment's reputation.",
+  "reviews.column.client": "Client",
+  "reviews.column.rating": "Rating",
+  "reviews.column.message": "Message",
+  "reviews.column.source": "Source",
+  "reviews.searchPlaceholder": "Find a review...",
+  "reviews.filter.allSources": "All sources",
+  "reviews.source.mangeqr": "MangeQR",
+  "reviews.source.google": "Google",
+
+  // --- Guided welcome tour (FEAT-1) ---
+  "tour.next": "Next",
+  "tour.prev": "Previous",
+  "tour.done": "Finish",
+  "tour.welcome.title": "Welcome to MangeQR 👋",
+  "tour.welcome.desc":
+    "Here's a quick tour to discover the essentials. You can replay it anytime from the help button at the top right.",
+  "tour.nav.title": "Your navigation",
+  "tour.nav.desc":
+    "From this menu, manage your restaurants, menus, categories & dishes, reviews and campaigns.",
+  "tour.restaurants.title": "My restaurants",
+  "tour.restaurants.desc": "Start by creating a restaurant: everything begins here.",
+  "tour.menus.title": "Menus",
+  "tour.menus.desc": "Create and organize your restaurant's menus.",
+  "tour.categories.title": "Categories & dishes",
+  "tour.categories.desc":
+    "Add your categories and dishes (photos, prices, allergens, availability).",
+  "tour.numerique.title": "Digital menu",
+  "tour.numerique.desc":
+    "Generate your QR code and customize the appearance of your online menu.",
+  "tour.lang.title": "Change language",
+  "tour.lang.desc": "Switch the interface between French, Arabic and English.",
+  "tour.theme.title": "Light / dark theme",
+  "tour.theme.desc": "Toggle between light and dark mode.",
+  "tour.final.title": "Let's go!",
+  "tour.final.desc":
+    "You can replay this guide anytime with the help button. Enjoy!",
+
+  // --- Clarifying tooltips (FEAT-2) ---
+  "tooltip.language": "Change language",
+  "tooltip.theme": "Toggle light/dark theme",
+  "tooltip.account": "My account",
+  "tooltip.help": "Replay the guide",
+  "tooltip.copyLink": "Copy menu link",
+  "tooltip.previewMenu": "Open menu preview",
+  "tooltip.downloadQr": "Download QR code",
+};
+
+export const DICTIONARIES: Record<Locale, Dict> = { fr, ar, en };
+
+export type TranslationKey = keyof typeof fr;

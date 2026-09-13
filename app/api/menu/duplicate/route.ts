@@ -1,14 +1,17 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
+import { db } from '@/lib/db';
+import { currentUserId } from '@/lib/authentication';
+import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
+import { getWorkspaceOwnerId } from '@/data/workspace';
 
 import { v4 as uuidv4 } from 'uuid';
-const prisma = new PrismaClient();
 // Function to get a new name for the duplicated menu
 const getNewMenuName = async (originalName: string) => {
   let newName = originalName;
   let counter = 1;
 
-  while (await prisma.menu.findFirst({ where: { name: newName } })) {
+  while (await db.menu.findFirst({ where: { name: newName } })) {
     newName = `${originalName}-${counter}`;
     counter++;
   }
@@ -18,6 +21,12 @@ const getNewMenuName = async (originalName: string) => {
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const ownerId = await getWorkspaceOwnerId(userId);
+
     const body = await req.json();
     const { menuId } = body;
 
@@ -26,7 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch the original menu and related restaurant
-    const originalMenu = await prisma.menu.findUnique({
+    const originalMenu = await db.menu.findUnique({
       where: { id: menuId },
       include: {
         categories: { include: { dishes: true } },
@@ -38,17 +47,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Menu not found" }, { status: 404 });
     }
 
+    // Workspace ownership: the source menu must belong to the caller's owner.
+    if (originalMenu.restaurant?.userId !== ownerId) {
+      return NextResponse.json(
+        { error: "Action réservée au propriétaire du compte." },
+        { status: 403 }
+      );
+    }
+
     const user = originalMenu.restaurant?.user;
 
     if (!user) {
       return NextResponse.json({ error: "User not found for the menu's restaurant" }, { status: 404 });
     }
 
-    // Determine the menu limit based on the user's plan
-     //const menuLimit = user.plan === "Pro" ? 7 : user.plan === "Premium" ? 14 : Infinity;
+    // Determine the menu limit from the user's plan (expiry-aware).
+    const menuLimit = getPlanLimits(getEffectivePlan(user)).menus;
 
     // Count menus owned by the user
-    const menuCount = await prisma.menu.count({
+    const menuCount = await db.menu.count({
       where: {
         restaurant: {
           userId: user.id,
@@ -56,15 +73,15 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (menuCount >= 7) {
+    if (menuCount >= menuLimit) {
       return NextResponse.json(
-        { error: `Menu limit reached. Your plan allows up to ${7} menus.` },
+        { error: `Limite de menus atteinte. Votre plan permet jusqu'à ${menuLimit} menus.` },
         { status: 400 }
       );
     }
 
     // Fetch the maximum position value across all available menus in the restaurant
-    const maxPosition = await prisma.menu.aggregate({
+    const maxPosition = await db.menu.aggregate({
       _max: {
         position: true,
       },
@@ -79,7 +96,7 @@ export async function POST(req: NextRequest) {
     const newMenuName = await getNewMenuName(originalMenu.name);
 
     // Duplicate the menu with the new name and incremented position
-    const newMenu = await prisma.menu.create({
+    const newMenu = await db.menu.create({
       data: {
         name: newMenuName,
         position: newPosition,  // Use the incremented position here
@@ -94,7 +111,7 @@ export async function POST(req: NextRequest) {
     const newDishes = [];
 
     for (const category of originalMenu.categories) {
-      const newCategory = await prisma.menuCategory.create({
+      const newCategory = await db.menuCategory.create({
         data: {
           id: uuidv4(),
           name: category.name,
@@ -107,7 +124,7 @@ export async function POST(req: NextRequest) {
       newCategories.push(newCategory);
 
       for (const dish of category.dishes) {
-        const newDish = await prisma.dish.create({
+        const newDish = await db.dish.create({
           data: {
             id: uuidv4(),
             name: dish.name,

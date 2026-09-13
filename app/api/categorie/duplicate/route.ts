@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
-import {  PrismaClient } from '@prisma/client';;  // Assuming you have Prisma client set up here
+import { db } from '@/lib/db';  // shared Prisma client
+import { currentUserId } from '@/lib/authentication';
+import { getWorkspaceOwnerId } from '@/data/workspace';
 import { v4 as uuidv4 } from 'uuid';  // For generating new UUIDs
 
 
@@ -8,7 +10,7 @@ const getNewMenuName = async (originalName: string) => {
   let newName = originalName;
   let counter = 1;
 
-  while (await prisma.menuCategory.findFirst({ where: { name: newName } })) {
+  while (await db.menuCategory.findFirst({ where: { name: newName } })) {
     newName = `${originalName}-${counter}`;
     counter++;
   }
@@ -21,6 +23,12 @@ const getNewMenuName = async (originalName: string) => {
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const ownerId = await getWorkspaceOwnerId(userId);
+
     const body = await req.json(); // Extract the JSON body
     const { categoryId } = body; // The ID of the category to duplicate
 
@@ -31,7 +39,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 1: Fetch the original category and its dishes
-    const originalCategory = await prisma.menuCategory.findUnique({
+    const originalCategory = await db.menuCategory.findUnique({
       where: { id: categoryId },
       include: {
         dishes: true, // Include dishes in the category
@@ -42,8 +50,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Category not found" }, { status: 404 });
     }
 
+    // Workspace ownership: the source category must belong to the caller's owner.
+    const ownedCategory = await db.menuCategory.findFirst({
+      where: { id: categoryId, menu: { restaurant: { userId: ownerId } } },
+      select: { id: true },
+    });
+    if (!ownedCategory) {
+      return NextResponse.json(
+        { error: "Action réservée au propriétaire du compte." },
+        { status: 403 }
+      );
+    }
 
-    const maxPosition = await prisma.menuCategory.aggregate({
+
+    const maxPosition = await db.menuCategory.aggregate({
       _max: {
         position: true,
       },
@@ -57,7 +77,7 @@ export async function POST(req: NextRequest) {
     const newCategoryName = await getNewMenuName(originalCategory.name);
 
     // Step 2: Create a new category with a new ID, copy properties
-    const newCategory = await prisma.menuCategory.create({
+    const newCategory = await db.menuCategory.create({
       data: {
         id: uuidv4(), // Generate a new UUID for the category
         name: newCategoryName,
@@ -69,7 +89,7 @@ export async function POST(req: NextRequest) {
 
     // Step 3: Duplicate the dishes under the new category
     const dishPromises = originalCategory.dishes.map(async (dish) => {
-      await prisma.dish.create({
+      await db.dish.create({
         data: {
           id: uuidv4(), // Generate a new UUID for the dish
           name: dish.name,
@@ -88,7 +108,7 @@ export async function POST(req: NextRequest) {
     await Promise.all(dishPromises);
 
     // Step 4: Return the new category and its dishes data
-    const duplicatedCategory = await prisma.menuCategory.findUnique({
+    const duplicatedCategory = await db.menuCategory.findUnique({
       where: { id: newCategory.id },
       include: {
         dishes: true, // Include dishes in the response

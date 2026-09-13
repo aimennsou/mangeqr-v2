@@ -1,76 +1,77 @@
-
-
-import { PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import { NextRequest, NextResponse } from 'next/server';
+import { currentUserId } from '@/lib/authentication';
 
-import { v4 as uuidv4 } from 'uuid';
-const prisma = new PrismaClient();
-
-
-
-
-
-
-
+/**
+ * POST — fetch a single restaurant (settings view) owned by the current user.
+ */
 export async function POST(req: NextRequest) {
   try {
-    const { id } = await req.json(); // Extract the ID from the request body
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // Validate the ID
+    const { id } = await req.json();
+
     if (!id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // Fetch the shop associated with the ID
-    const shop = await prisma.shop.findUnique({
-      where: {
-        id: id, // Ensure the ID matches the field in your database
-      },
+    const restaurant = await db.restaurant.findFirst({
+      where: { id, userId },
     });
 
-    // Handle the case where the shop is not found
-    if (!shop) {
-      return NextResponse.json({ error: 'Shop not found' }, { status: 404 });
+    if (!restaurant) {
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
     }
 
-    return NextResponse.json(shop, { status: 200 });
+    return NextResponse.json(restaurant, { status: 200 });
   } catch (error) {
-    console.error('Error fetching shop:', error);
-    return NextResponse.json({ error: 'Failed to fetch shop' }, { status: 500 });
+    console.error('Error fetching restaurant:', error);
+    return NextResponse.json({ error: 'Failed to fetch restaurant' }, { status: 500 });
   }
 }
 
-
-
-  export async function PUT(req: NextRequest) {
-    try {
-      const { id, Wifistate, Websitestate, Instagramstate, Tiktokstate, Googlestate } = await req.json();
-  
-      // Validate required fields
-      if (!id) {
-        return NextResponse.json({ error: "Missing shop ID" }, { status: 400 });
-      }
-  
-      // Update the settings in the shop record
-      const updatedSettings = await prisma.shop.update({
-        where: { id },
-        data: {
-          Wifistate,
-          Websitestate,
-          Instagramstate,
-          Tiktokstate,
-          Googlestate,
-          updatedAt: new Date(),
-        },
-      });
-  
-      console.log('Updated Settings:', updatedSettings);
-      return NextResponse.json(updatedSettings, { status: 200 });
-    } catch (error) {
-      console.error('Error updating shop:', error);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+/**
+ * PUT — update a restaurant's visibility toggles (wifi/website/social state).
+ */
+export async function PUT(req: NextRequest) {
+  try {
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    const { id, wifistate, websitestate, instagramstate, tiktokstate, googlestate } =
+      await req.json();
+
+    // Validate required fields
+    if (!id) {
+      return NextResponse.json({ error: 'Missing restaurant ID' }, { status: 400 });
+    }
+
+    // Ownership check
+    const existing = await db.restaurant.findFirst({ where: { id, userId } });
+    if (!existing) {
+      return NextResponse.json({ error: 'Restaurant not found' }, { status: 404 });
+    }
+
+    const dataToUpdate: any = { updatedAt: new Date() };
+    if (wifistate !== undefined) dataToUpdate.wifistate = wifistate;
+    if (websitestate !== undefined) dataToUpdate.websitestate = websitestate;
+    if (instagramstate !== undefined) dataToUpdate.instagramstate = instagramstate;
+    if (tiktokstate !== undefined) dataToUpdate.tiktokstate = tiktokstate;
+    if (googlestate !== undefined) dataToUpdate.googlestate = googlestate;
+
+    const updatedSettings = await db.restaurant.update({
+      where: { id },
+      data: dataToUpdate,
+    });
+
+    return NextResponse.json(updatedSettings, { status: 200 });
+  } catch (error) {
+    console.error('Error updating restaurant settings:', error);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
-  
-  
-  
+}

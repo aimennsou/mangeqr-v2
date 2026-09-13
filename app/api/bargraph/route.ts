@@ -1,26 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {  PrismaClient } from '@prisma/client';; // Assuming Prisma is set up
+import { db } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { shopId, startDate, endDate } = body;
+    const { shopId, restaurantId, startDate, endDate } = body;
+    const targetRestaurantId = restaurantId ?? shopId;
 
-    if (!shopId || !startDate || !endDate) {
-      return NextResponse.json({ error: 'Missing required fields: shopId, startDate, or endDate' }, { status: 400 });
+    if (!targetRestaurantId || !startDate || !endDate) {
+      return NextResponse.json({ error: 'Missing required fields: restaurantId, startDate, or endDate' }, { status: 400 });
     }
 
     const start = new Date(startDate);
     const end = new Date(endDate);
 
-    // Query scandata and group by date
-    const scansPerDay = await prisma.scandata.groupBy({
-      by: ['createdAt'],
-      _count: {
-        id: true,
-      },
+    // Query scans within the range, then group by calendar day in JS
+    // (grouping by raw createdAt in SQL would treat every timestamp as unique).
+    const scans = await db.scanData.findMany({
       where: {
-        shopId,
+        restaurantId: targetRestaurantId,
         createdAt: {
           gte: start,
           lte: end,
@@ -30,6 +28,11 @@ export async function POST(req: NextRequest) {
         createdAt: 'asc',
       },
     });
+
+    const scansPerDay = scans.map((scan) => ({
+      createdAt: scan.createdAt,
+      _count: { id: 1 },
+    }));
 
     // Transform the data into the chartData format
     const chartData = scansPerDay.reduce<{ date: string; shop1: number }[]>((acc, day) => {

@@ -1,8 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { TrendingUp } from 'lucide-react';
-import { Label, Pie, PieChart } from 'recharts';
+import { Cell, Label, Pie, PieChart } from 'recharts';
 
 import {
   Card,
@@ -40,8 +39,10 @@ const chartConfig = {
 
 export function PieGraph({ data }: PieChartProps) {
   const totalVisits = React.useMemo(() => {
-    return data.reduce((acc, curr) => acc + curr.visits, 0);
+    return (data ?? []).reduce((acc, curr) => acc + curr.visits, 0);
   }, [data]);
+
+  const isEmpty = !data || data.length === 0 || totalVisits === 0;
 
   return (
     <Card className="flex flex-col">
@@ -50,6 +51,11 @@ export function PieGraph({ data }: PieChartProps) {
         <CardDescription>Affichage des visiteurs sur la période selectionnée</CardDescription>
       </CardHeader>
       <CardContent className="flex-1 pb-0">
+        {isEmpty ? (
+          <div className="mx-auto flex aspect-square max-h-[360px] items-center justify-center text-sm text-muted-foreground">
+            Aucune donnée sur la période.
+          </div>
+        ) : (
         <ChartContainer
           config={chartConfig}
           className="mx-auto aspect-square max-h-[360px]"
@@ -66,6 +72,12 @@ export function PieGraph({ data }: PieChartProps) {
            innerRadius={70}
            strokeWidth={5}
             >
+              {data.map((entry) => (
+                <Cell
+                  key={entry.day}
+                  fill={`var(--color-${entry.day})`}
+                />
+              ))}
               <Label
                 content={({ viewBox }) => {
                   if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
@@ -98,6 +110,7 @@ export function PieGraph({ data }: PieChartProps) {
             </Pie>
           </PieChart>
         </ChartContainer>
+        )}
       </CardContent>
       <CardFooter className="flex-col gap-2 text-xs">
    

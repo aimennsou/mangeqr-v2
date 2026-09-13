@@ -1,155 +1,266 @@
-
-import {  PrismaClient } from '@prisma/client';;
 import { NextRequest, NextResponse } from 'next/server';
-import { v4 as uuidv4 } from 'uuid';
-import { Prisma } from '@prisma/client';
+
+import { currentUserId } from '@/lib/authentication';
+import { db } from '@/lib/db';
+import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
+import { getWorkspaceOwnerId, isWorkspaceMember } from '@/data/workspace';
 
 // Create a MarketingCampaign
 export async function POST(req: NextRequest) {
   try {
-    const { name, description, emailList, subject, body, shopId } = await req.json();
+    const userId = await currentUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Owner-only: members do not manage marketing.
+    if (await isWorkspaceMember(userId)) {
+      return NextResponse.json(
+        { error: 'Action réservée au propriétaire du compte.' },
+        { status: 403 }
+      );
+    }
+
+    const { name, description, subject, body, restaurantId, recipients } =
+      await req.json();
 
     // Validate required fields
-    if (!name || !subject || !body || !shopId || !Array.isArray(emailList)) {
+    if (!name || !subject || !body || !restaurantId) {
       return NextResponse.json(
-        { error: "Missing required fields: name, subject, body, emailList (array), or shopId" },
+        {
+          error:
+            'Missing required fields: name, subject, body, or restaurantId',
+        },
         { status: 400 }
       );
     }
 
-    // Validate the shop
-    const shop = await prisma.shop.findUnique({
-      where: { id: shopId },
-      include: { user: true },
+    // Verify the restaurant belongs to the current user
+    const restaurant = await db.restaurant.findFirst({
+      where: { id: restaurantId, userId },
     });
 
-    if (!shop || !shop.user) {
-      return NextResponse.json({ error: "Shop not found" }, { status: 404 });
+    if (!restaurant) {
+      return NextResponse.json(
+        { error: 'Restaurant introuvable' },
+        { status: 404 }
+      );
     }
 
-    const user = shop.user;
-    const campaignLimit = user.plan === "Pro" ? 4 : user.plan === "Premium" ? 6 : Infinity;
-
-    // Count user's campaigns
-    const campaignCount = await prisma.marketingCampaign.count({
-      where: { shop: { userId: user.id } },
+    // Enforce the plan's campaign limit (expiry-aware), counted across all of
+    // the user's restaurants.
+    const user = await db.user.findUnique({ where: { id: userId } });
+    const campaignLimit = getPlanLimits(getEffectivePlan(user ?? {})).campaigns;
+    const campaignCount = await db.marketingCampaign.count({
+      where: { restaurant: { userId } },
     });
-
     if (campaignCount >= campaignLimit) {
       return NextResponse.json(
-        { error: `Campaign limit reached. Your plan allows up to ${campaignLimit} campaigns.` },
+        {
+          error: `Limite de campagnes atteinte. Votre plan permet jusqu'à ${campaignLimit} campagne(s).`,
+        },
         { status: 400 }
       );
     }
 
-    // Create a new MarketingCampaign
-    const newCampaign = await prisma.marketingCampaign.create({
+    // Create the campaign
+    const newCampaign = await db.marketingCampaign.create({
       data: {
-        id: uuidv4(),
         name,
-        description,
-        emailList,
+        description: description || null,
         subject,
         body,
-        shopId,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        restaurantId,
       },
     });
 
-    return NextResponse.json(newCampaign, { status: 201 });
+    // Create the recipient rows, if any
+    if (Array.isArray(recipients) && recipients.length > 0) {
+      await db.emailRecipient.createMany({
+        data: recipients
+          .filter((email: unknown): email is string => typeof email === 'string')
+          .map((email: string) => ({
+            campaignId: newCampaign.id,
+            email,
+          })),
+      });
+    }
+
+    const campaign = await db.marketingCampaign.findUnique({
+      where: { id: newCampaign.id },
+      include: { emailRecipients: true },
+    });
+
+    return NextResponse.json(campaign, { status: 201 });
   } catch (error) {
     console.error('Error creating MarketingCampaign:', error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
+// Get MarketingCampaigns for the workspace owner's restaurants
+export async function GET() {
+  try {
+    const userId = await currentUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Read access: scope to the workspace owner so a member viewing the page
+    // sees the owner's campaigns read-only (mutations are owner-only).
+    const ownerId = await getWorkspaceOwnerId(userId);
+
+    const campaigns = await db.marketingCampaign.findMany({
+      where: { restaurant: { userId: ownerId } },
+      include: {
+        restaurant: { select: { id: true, name: true } },
+        emailRecipients: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return NextResponse.json(campaigns, { status: 200 });
+  } catch (error) {
+    console.error('Error fetching MarketingCampaigns:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch campaigns' },
+      { status: 500 }
+    );
   }
 }
 
 // Update a MarketingCampaign
 export async function PUT(req: NextRequest) {
   try {
-    const { id, name, description, emailList, subject, body, shopId } = await req.json();
+    const userId = await currentUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Owner-only: members do not manage marketing.
+    if (await isWorkspaceMember(userId)) {
+      return NextResponse.json(
+        { error: 'Action réservée au propriétaire du compte.' },
+        { status: 403 }
+      );
+    }
+
+    const { id, name, description, subject, body, recipients } =
+      await req.json();
 
     if (!id) {
-      return NextResponse.json({ error: "Campaign ID is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Campaign ID is required' },
+        { status: 400 }
+      );
     }
 
-    const dataToUpdate: any = { updatedAt: new Date() };
+    // Verify ownership through the campaign's restaurant
+    const existing = await db.marketingCampaign.findFirst({
+      where: { id, restaurant: { userId } },
+    });
 
-    if (name) dataToUpdate.name = name;
-    if (description) dataToUpdate.description = description;
-    if (emailList && Array.isArray(emailList)) dataToUpdate.emailList = emailList;
-    if (subject) dataToUpdate.subject = subject;
-    if (body) dataToUpdate.body = body;
-    if (shopId) dataToUpdate.shopId = shopId;
-
-    if (Object.keys(dataToUpdate).length === 1) {
-      return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+    if (!existing) {
+      return NextResponse.json(
+        { error: 'Campaign not found or not owned by user' },
+        { status: 404 }
+      );
     }
 
-    const updatedCampaign = await prisma.marketingCampaign.update({
+    const dataToUpdate: {
+      name?: string;
+      description?: string | null;
+      subject?: string;
+      body?: string;
+    } = {};
+
+    if (name !== undefined) dataToUpdate.name = name;
+    if (description !== undefined) dataToUpdate.description = description || null;
+    if (subject !== undefined) dataToUpdate.subject = subject;
+    if (body !== undefined) dataToUpdate.body = body;
+
+    await db.marketingCampaign.update({
       where: { id },
       data: dataToUpdate,
+    });
+
+    // Replace recipients if a new list was provided
+    if (Array.isArray(recipients)) {
+      await db.emailRecipient.deleteMany({ where: { campaignId: id } });
+
+      if (recipients.length > 0) {
+        await db.emailRecipient.createMany({
+          data: recipients
+            .filter(
+              (email: unknown): email is string => typeof email === 'string'
+            )
+            .map((email: string) => ({ campaignId: id, email })),
+        });
+      }
+    }
+
+    const updatedCampaign = await db.marketingCampaign.findUnique({
+      where: { id },
+      include: { emailRecipients: true },
     });
 
     return NextResponse.json(updatedCampaign, { status: 200 });
   } catch (error) {
     console.error('Error updating MarketingCampaign:', error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
-// Delete a MarketingCampaign
+// Delete a MarketingCampaign (or several)
 export async function DELETE(req: NextRequest) {
   try {
+    const userId = await currentUserId();
+
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Owner-only: members do not manage marketing.
+    if (await isWorkspaceMember(userId)) {
+      return NextResponse.json(
+        { error: 'Action réservée au propriétaire du compte.' },
+        { status: 403 }
+      );
+    }
+
     const { id, ids } = await req.json();
 
     if (!id && !ids) {
-      return NextResponse.json({ error: "Missing required field: id or ids" }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Missing required field: id or ids' },
+        { status: 400 }
+      );
     }
 
-    if (ids && Array.isArray(ids)) {
-      await prisma.marketingCampaign.deleteMany({
-        where: { id: { in: ids } },
-      });
-    } else if (id) {
-      await prisma.marketingCampaign.delete({ where: { id } });
+    const targetIds: string[] = Array.isArray(ids) ? ids : id ? [id] : [];
+
+    if (targetIds.length === 0) {
+      return NextResponse.json(
+        { error: 'Missing required field: id or ids' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json({ message: "Campaign(s) deleted successfully" }, { status: 200 });
+    // Only delete campaigns owned by the current user.
+    // EmailRecipient rows cascade via schema onDelete: Cascade.
+    await db.marketingCampaign.deleteMany({
+      where: { id: { in: targetIds }, restaurant: { userId } },
+    });
+
+    return NextResponse.json(
+      { message: 'Campaign(s) deleted successfully' },
+      { status: 200 }
+    );
   } catch (error) {
     console.error('Error deleting MarketingCampaign:', error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-  }
-}
-
-// Get MarketingCampaigns for a User
-export async function GET() {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { clerkId: userId },
-      include: { shops: true },
-    });
-
-    if (!user || !user.shops || user.shops.length === 0) {
-      return NextResponse.json({ error: "No shops found for this user" }, { status: 404 });
-    }
-
-    const shopIds = user.shops.map((shop) => shop.id);
-
-    const campaigns = await prisma.marketingCampaign.findMany({
-      where: { shopId: { in: shopIds } },
-      include: { shop: true },
-    });
-
-    return NextResponse.json(campaigns, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching MarketingCampaigns:", error);
-    return NextResponse.json({ error: "Failed to fetch campaigns" }, { status: 500 });
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

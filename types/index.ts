@@ -1,3 +1,5 @@
+import type { MenuAppearance } from '@/schemas';
+
 export type Restaurant = {
     id: string;
     userId: string;
@@ -18,6 +20,9 @@ export type Restaurant = {
     instagramstate: Settings;
     tiktokstate: Settings;
     googlestate: Settings;
+    // Per-restaurant diner-menu appearance settings (Requirement 4). Null/undefined
+    // means the owner has not customized it and the default look applies.
+    menuAppearance?: MenuAppearance | null;
     menus: Menu[];
     campaigns: MarketingCampaign[];
     reviews: Review[];

@@ -1,13 +1,20 @@
 
 import { NextRequest , NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import { db } from '@/lib/db';
+import { currentUserId } from '@/lib/authentication';
+import { getWorkspaceOwnerId } from '@/data/workspace';
 
-
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const ownerId = await getWorkspaceOwnerId(userId);
+
     const { name, description, photo, price, 
      categoryId, allergenes } = await req.json();
     
@@ -16,11 +23,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    // Workspace ownership: the parent category must belong to the caller's owner
+    // (via its menu → restaurant).
+    const ownedCategory = await db.menuCategory.findFirst({
+      where: { id: categoryId, menu: { restaurant: { userId: ownerId } } },
+      select: { id: true },
+    });
+    if (!ownedCategory) {
+      return NextResponse.json(
+        { error: "Action réservée au propriétaire du compte." },
+        { status: 403 }
+      );
+    }
 
 
 
 
-    const maxPosition = await prisma.dish.aggregate({
+
+    const maxPosition = await db.dish.aggregate({
       _max: {
         position: true,
       },
@@ -31,7 +51,7 @@ export async function POST(req: NextRequest) {
 
 
     const id = uuidv4();
-    const newDish = await prisma.dish.create({
+    const newDish = await db.dish.create({
       data: {
         id,
         name,
@@ -56,6 +76,12 @@ export async function POST(req: NextRequest) {
 // Update an Offer
 export async function PUT(req: NextRequest) {
     try {
+      const userId = await currentUserId();
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const ownerId = await getWorkspaceOwnerId(userId);
+
       const { id, name, description, photo,  state,
         position, price } = await req.json();
   
@@ -63,18 +89,33 @@ export async function PUT(req: NextRequest) {
       if (!id) {
         return NextResponse.json({ error: "Missing required field: id" }, { status: 400 });
       }
+
+      // Workspace ownership: the dish must belong to the caller's owner
+      // (via its category → menu → restaurant). Blocks cross-workspace edits.
+      const ownedDish = await db.dish.findFirst({
+        where: { id, category: { menu: { restaurant: { userId: ownerId } } } },
+        select: { id: true },
+      });
+      if (!ownedDish) {
+        return NextResponse.json({ error: "Plat introuvable" }, { status: 404 });
+      }
   
-      const updatedDish = await prisma.dish.update({
+      // Only update fields that were actually provided. Crucially, `state` is
+      // never defaulted to 'ACTIVE': the edit modal PUT ({id,name,description,
+      // price[,photo]}) omits state and must NOT re-activate a deactivated dish,
+      // while the toggle PUT ({id,state}) changes only state.
+      const data: Prisma.DishUpdateInput = { updatedAt: new Date() };
+
+      if (name !== undefined) data.name = name;
+      if (description !== undefined) data.description = description;
+      if (photo !== undefined) data.photo = photo;
+      if (price !== undefined) data.price = price;
+      if (position !== undefined) data.position = position;
+      if (state !== undefined) data.state = state;
+
+      const updatedDish = await db.dish.update({
         where: { id },
-        data: {
-          name,
-          description,
-          photo,
-          price,
-          state: state || 'ACTIVE',
-          position,
-          updatedAt: new Date(),
-        },
+        data,
       });
   
       return NextResponse.json(updatedDish, { status: 200 });
@@ -89,15 +130,27 @@ export async function PUT(req: NextRequest) {
 // Delete a Category
 export async function DELETE(req: NextRequest) {
     try {
-      const { id } = await req.json();
+      const userId = await currentUserId();
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const ownerId = await getWorkspaceOwnerId(userId);
+
+      const { id, ids } = await req.json();
   
       // Validate required field
-      if (!id) {
+      if (!id && !ids) {
         return NextResponse.json({ error: "Missing required field: id" }, { status: 400 });
       }
-  
-      await prisma.dish.delete({
-        where: { id },
+
+      const targetIds: string[] = Array.isArray(ids) ? ids : id ? [id] : [];
+
+      // Scope the delete to dishes within the caller's workspace only.
+      await db.dish.deleteMany({
+        where: {
+          id: { in: targetIds },
+          category: { menu: { restaurant: { userId: ownerId } } },
+        },
       });
   
       return NextResponse.json({ message: "Dish deleted successfully" }, { status: 200 });
@@ -114,12 +167,21 @@ export async function DELETE(req: NextRequest) {
 
 
 
-// Get all Categories for the authenticated user's shops
-// Get all Dishes
-export async function GET(req: NextRequest) {
+// Get all Dishes for the caller's workspace owner
+export async function GET() {
   try {
-    // Fetch all dishes without any filter
-    const dishes = await prisma.dish.findMany({
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // Resolve the workspace owner so a member sees the OWNER's dishes and no
+    // cross-workspace dishes leak out.
+    const ownerId = await getWorkspaceOwnerId(userId);
+
+    const dishes = await db.dish.findMany({
+      where: {
+        category: { menu: { restaurant: { userId: ownerId } } },
+      },
       include: {
         category: true, // Optionally include related categories if needed
       },

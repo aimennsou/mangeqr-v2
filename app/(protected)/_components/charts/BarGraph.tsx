@@ -46,10 +46,9 @@ interface BarGraphProps {
 
 
 export function BarGraph({ data }: BarGraphProps) {
-  const [activeChart, setActiveChart] =
-    React.useState<keyof typeof chartConfig>('shop1');
+  const [activeChart] = React.useState<keyof typeof chartConfig>('shop1');
 
-console.log(data)
+  const isEmpty = !data || data.length === 0;
 
   return (
     <Card>
@@ -64,6 +63,11 @@ console.log(data)
       
       </CardHeader>
       <CardContent className="px-2 sm:p-6">
+        {isEmpty ? (
+          <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+            Aucune donnée sur la période.
+          </div>
+        ) : (
         <ChartContainer
           config={chartConfig}
           className="aspect-auto h-[280px] w-full"
@@ -106,9 +110,14 @@ console.log(data)
                 />
               }
             />
-            <Bar dataKey={activeChart} fill={`var(--color-${activeChart})`} />
+            <Bar
+              dataKey={activeChart}
+              fill={`var(--color-${activeChart})`}
+              maxBarSize={64}
+            />
           </BarChart>
         </ChartContainer>
+        )}
       </CardContent>
       
     </Card>

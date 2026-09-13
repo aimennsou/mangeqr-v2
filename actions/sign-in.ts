@@ -107,13 +107,25 @@ export async function signIn(
     }
   }
 
+  // Compute a role-aware destination. We authenticate with `redirect: false`
+  // so NextAuth only sets the session cookie and does NOT throw NEXT_REDIRECT.
+  // The client form (useTransition) then reads `redirectTo` from the returned
+  // object and calls router.push — a single, consistent navigation strategy.
+  const redirectTo =
+    callbackUrl ||
+    (existingUser.role === 'SUPERADMIN'
+      ? '/superadmin'
+      : DEFAULT_SIGNIN_REDIRECT);
+
   try {
     await authSignIn('credentials', {
       email,
       password,
-      redirectTo: callbackUrl || DEFAULT_SIGNIN_REDIRECT
+      redirect: false
     });
   } catch (error) {
+    // With redirect:false, success no longer throws NEXT_REDIRECT, so any
+    // thrown error here is a genuine auth failure.
     if (error instanceof AuthError) {
       switch (error.type) {
         case 'CredentialsSignin':
@@ -122,7 +134,9 @@ export async function signIn(
           return { error: 'Oops! Something went wrong.' };
       }
     }
-
     throw error;
   }
+
+  // Cookie is set; tell the client where to navigate.
+  return { success: 'Connexion réussie.', redirectTo };
 }
