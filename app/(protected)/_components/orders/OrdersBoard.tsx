@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import type { OrderView } from '@/data/orders';
 import { resolvePrinterConfig, type PrinterConfig } from '@/schemas';
 import { printOrderTicket } from './print-ticket';
+import FullscreenButton from '../FullscreenButton';
 
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -49,6 +50,7 @@ export function OrdersBoard() {
   }, [restaurants]);
   const printerConfigsRef = useRef(printerConfigs);
   printerConfigsRef.current = printerConfigs;
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -120,7 +122,10 @@ export function OrdersBoard() {
   const newCount = newIds.size;
 
   return (
-    <div className="space-y-6">
+    <div
+      ref={rootRef}
+      className="space-y-6 bg-background [&:fullscreen]:overflow-auto [&:fullscreen]:p-6"
+    >
       {/* Controls */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end">
         <div className="grid w-full gap-2 md:max-w-xs">
@@ -166,6 +171,7 @@ export function OrdersBoard() {
               <VolumeX className="h-4 w-4" />
             )}
           </Button>
+          <FullscreenButton target={rootRef} />
         </div>
       </div>
 

@@ -483,6 +483,18 @@ const fr: Dict = {
   "tooltip.previewMenu": "Ouvrir l'aperçu du menu",
   "tooltip.downloadQr": "Télécharger le QR code",
 
+  // --- Fullscreen toggle (Commandes / Cuisine / Plan de salle) ---
+  "fullscreen.enter": "Plein écran",
+  "fullscreen.exit": "Quitter le plein écran",
+
+  // --- Floor plan (Plan de salle) — availability ---
+  "tables.addTable": "Ajouter une table",
+  "tables.status.free": "Libre",
+  "tables.status.occupied": "Occupée",
+  "tables.status.order": "commande",
+  "tables.status.orders": "commandes",
+  "tables.status.liveHint": "Statut en direct d'après les commandes en cours.",
+
   // --- Ticket printer configuration (account/settings) ---
   "printer.title": "Imprimante des tickets",
   "printer.subtitle":
@@ -973,6 +985,18 @@ const ar: Dict = {
   "tooltip.previewMenu": "فتح معاينة القائمة",
   "tooltip.downloadQr": "تنزيل رمز QR",
 
+  // --- ملء الشاشة ---
+  "fullscreen.enter": "ملء الشاشة",
+  "fullscreen.exit": "إنهاء ملء الشاشة",
+
+  // --- مخطط القاعة — التوفر ---
+  "tables.addTable": "إضافة طاولة",
+  "tables.status.free": "متاحة",
+  "tables.status.occupied": "مشغولة",
+  "tables.status.order": "طلب",
+  "tables.status.orders": "طلبات",
+  "tables.status.liveHint": "الحالة مباشرة بناءً على الطلبات الجارية.",
+
   // --- إعدادات طابعة التذاكر ---
   "printer.title": "طابعة التذاكر",
   "printer.subtitle": "اضبط تنسيق وطباعة تذاكر الحساب.",
@@ -1460,6 +1484,18 @@ const en: Dict = {
   "tooltip.copyLink": "Copy menu link",
   "tooltip.previewMenu": "Open menu preview",
   "tooltip.downloadQr": "Download QR code",
+
+  // --- Fullscreen toggle (Orders / Kitchen / Floor plan) ---
+  "fullscreen.enter": "Fullscreen",
+  "fullscreen.exit": "Exit fullscreen",
+
+  // --- Floor plan — availability ---
+  "tables.addTable": "Add a table",
+  "tables.status.free": "Free",
+  "tables.status.occupied": "Occupied",
+  "tables.status.order": "order",
+  "tables.status.orders": "orders",
+  "tables.status.liveHint": "Live status based on ongoing orders.",
 
   // --- Ticket printer configuration (account/settings) ---
   "printer.title": "Ticket printer",

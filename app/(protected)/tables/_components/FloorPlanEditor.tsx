@@ -24,6 +24,11 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { saveFloorPlan } from '@/actions/tables';
+import { useI18n } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n/dictionaries';
+import { useMemo } from 'react';
+import type { OrderView } from '@/data/orders';
+import FullscreenButton from '../../_components/FullscreenButton';
 
 interface Zone {
   id: string;
@@ -44,6 +49,7 @@ const TABLE_W = 72;
 const TABLE_H = 72;
 
 export function FloorPlanEditor() {
+  const { t } = useI18n();
   const [restaurants, setRestaurants] = useState<any[]>([]);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState('');
   const [zones, setZones] = useState<Zone[]>([]);
@@ -52,7 +58,10 @@ export function FloorPlanEditor() {
   const [isSaving, startSaving] = useTransition();
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
   const [newZoneName, setNewZoneName] = useState('');
+  // Live occupancy: active DINE_IN orders for the selected restaurant, polled.
+  const [activeOrders, setActiveOrders] = useState<OrderView[]>([]);
 
+  const rootRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLDivElement | null>(null);
   // Active pointer-drag state (which table + grab offset within it).
   const dragRef = useRef<{ id: string; dx: number; dy: number } | null>(null);
@@ -96,6 +105,55 @@ export function FloorPlanEditor() {
   useEffect(() => {
     loadPlan(selectedRestaurantId);
   }, [selectedRestaurantId, loadPlan]);
+
+  // ---- Live occupancy: poll active dine-in orders for the restaurant ----
+  useEffect(() => {
+    if (!selectedRestaurantId) {
+      setActiveOrders([]);
+      return;
+    }
+    let cancelled = false;
+    const fetchActive = async () => {
+      try {
+        const res = await fetch(
+          `/api/owner-orders?restaurantId=${encodeURIComponent(
+            selectedRestaurantId
+          )}&activeOnly=1`,
+          { cache: 'no-store' }
+        );
+        const data = res.ok ? await res.json() : { orders: [] };
+        if (!cancelled) {
+          setActiveOrders(Array.isArray(data.orders) ? data.orders : []);
+        }
+      } catch {
+        if (!cancelled) setActiveOrders([]);
+      }
+    };
+    fetchActive();
+    const id = setInterval(fetchActive, 10000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, [selectedRestaurantId]);
+
+  // Map table label -> number of active dine-in orders occupying it. A table is
+  // "occupied" when it has at least one active DINE_IN order (RECEIVED →
+  // SERVED). Matched by label, since orders carry a denormalized tableLabel.
+  const occupancyByLabel = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const o of activeOrders) {
+      if (o.type !== 'DINE_IN' || !o.tableLabel) continue;
+      m.set(o.tableLabel, (m.get(o.tableLabel) ?? 0) + 1);
+    }
+    return m;
+  }, [activeOrders]);
+
+  const occupiedCount = useMemo(
+    () => tables.filter((t) => occupancyByLabel.has(t.label)).length,
+    [tables, occupancyByLabel]
+  );
+  const freeCount = tables.length - occupiedCount;
 
   // ---- Drag handling (pointer events, absolute positioning) ----
   const onTablePointerDown = (e: React.PointerEvent, table: TableItem) => {
@@ -219,21 +277,24 @@ export function FloorPlanEditor() {
   }
 
   return (
-    <div className="space-y-6">
+    <div
+      ref={rootRef}
+      className="space-y-6 bg-background [&:fullscreen]:overflow-auto [&:fullscreen]:p-6"
+    >
       {/* Restaurant selector + save */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end">
         <div className="grid w-full gap-2 md:max-w-xs">
-          <Label>Restaurant</Label>
+          <Label>{t('common.restaurant')}</Label>
           <Select
             value={selectedRestaurantId}
             onValueChange={setSelectedRestaurantId}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Choisissez un restaurant" />
+              <SelectValue placeholder={t('common.chooseRestaurant')} />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Mes restaurants</SelectLabel>
+                <SelectLabel>{t('common.myRestaurants')}</SelectLabel>
                 {restaurants.map((r) => (
                   <SelectItem key={r.id} value={r.id}>
                     {r.name}
@@ -245,9 +306,9 @@ export function FloorPlanEditor() {
         </div>
 
         {selectedRestaurantId && (
-          <div className="flex gap-2 md:ml-auto">
+          <div className="flex flex-wrap items-center gap-2 md:ml-auto">
             <Button variant="outline" onClick={addTable}>
-              <Plus className="mr-2 h-4 w-4" /> Ajouter une table
+              <Plus className="mr-2 h-4 w-4" /> {t('tables.addTable')}
             </Button>
             <Button
               className="bg-yellow-400 text-black hover:bg-yellow-400"
@@ -259,11 +320,29 @@ export function FloorPlanEditor() {
               ) : (
                 <Save className="mr-2 h-4 w-4" />
               )}
-              Enregistrer
+              {t('common.save')}
             </Button>
+            <FullscreenButton target={rootRef} />
           </div>
         )}
       </div>
+
+      {/* Occupancy legend + counts */}
+      {selectedRestaurantId && tables.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded-full bg-green-500" />
+            {t('tables.status.free')} · <strong>{freeCount}</strong>
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="inline-block h-3 w-3 rounded-full bg-red-500" />
+            {t('tables.status.occupied')} · <strong>{occupiedCount}</strong>
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {t('tables.status.liveHint')}
+          </span>
+        </div>
+      ) : null}
 
       {!selectedRestaurantId ? (
         <div className="py-16 text-center text-muted-foreground">
@@ -292,37 +371,65 @@ export function FloorPlanEditor() {
                 Ajoutez une table puis glissez-la pour la positionner.
               </div>
             ) : null}
-            {tables.map((t) => {
-              const isSelected = t.id === selectedTableId;
+            {tables.map((tbl) => {
+              const isSelected = tbl.id === selectedTableId;
+              const orderCount = occupancyByLabel.get(tbl.label) ?? 0;
+              const isOccupied = orderCount > 0;
+              // Occupancy sets the base color (green free / red occupied);
+              // selection adds a ring on top so both stay visible.
+              const occupancyClass = isOccupied
+                ? 'border-red-400 bg-red-50 text-red-900 dark:border-red-500/60 dark:bg-red-950/40 dark:text-red-200'
+                : 'border-green-400 bg-green-50 text-green-900 dark:border-green-500/60 dark:bg-green-950/40 dark:text-green-200';
               return (
                 <button
-                  key={t.id}
+                  key={tbl.id}
                   type="button"
-                  onPointerDown={(e) => onTablePointerDown(e, t)}
+                  onPointerDown={(e) => onTablePointerDown(e, tbl)}
+                  title={
+                    isOccupied
+                      ? `${t('tables.status.occupied')} · ${orderCount} ${
+                          orderCount > 1
+                            ? t('tables.status.orders')
+                            : t('tables.status.order')
+                        }`
+                      : t('tables.status.free')
+                  }
                   className={
-                    'absolute flex flex-col items-center justify-center rounded-lg border text-xs font-medium shadow-sm transition-shadow touch-none ' +
-                    (isSelected
-                      ? 'border-yellow-500 bg-yellow-100 text-black ring-2 ring-yellow-400'
-                      : 'border-border bg-card hover:shadow-md')
+                    'absolute flex flex-col items-center justify-center rounded-lg border text-xs font-medium shadow-sm transition-shadow touch-none hover:shadow-md ' +
+                    occupancyClass +
+                    (isSelected ? ' ring-2 ring-yellow-400' : '')
                   }
                   style={{
-                    left: t.posX,
-                    top: t.posY,
+                    left: tbl.posX,
+                    top: tbl.posY,
                     width: TABLE_W,
                     height: TABLE_H,
                     cursor: 'grab'
                   }}
                 >
-                  <span className="text-sm font-semibold">{t.label}</span>
-                  {t.seats != null ? (
-                    <span className="mt-0.5 flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                      <Users className="h-3 w-3" />
-                      {t.seats}
+                  {/* Occupied order-count badge */}
+                  {isOccupied ? (
+                    <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white shadow">
+                      {orderCount}
                     </span>
                   ) : null}
-                  {t.zoneId ? (
-                    <span className="mt-0.5 max-w-[64px] truncate text-[9px] text-muted-foreground">
-                      {zoneName(t.zoneId)}
+                  {/* Status dot */}
+                  <span
+                    className={
+                      'absolute left-1.5 top-1.5 h-2 w-2 rounded-full ' +
+                      (isOccupied ? 'bg-red-500' : 'bg-green-500')
+                    }
+                  />
+                  <span className="text-sm font-semibold">{tbl.label}</span>
+                  {tbl.seats != null ? (
+                    <span className="mt-0.5 flex items-center gap-0.5 text-[10px] opacity-70">
+                      <Users className="h-3 w-3" />
+                      {tbl.seats}
+                    </span>
+                  ) : null}
+                  {tbl.zoneId ? (
+                    <span className="mt-0.5 max-w-[64px] truncate text-[9px] opacity-70">
+                      {zoneName(tbl.zoneId)}
                     </span>
                   ) : null}
                 </button>

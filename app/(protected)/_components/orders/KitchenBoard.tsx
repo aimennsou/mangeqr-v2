@@ -23,6 +23,7 @@ import { OrderCard } from './OrderCard';
 import { printOrderTicket } from './print-ticket';
 import { playNewOrderChime } from './notify';
 import { ORDER_STATUS_LABEL, statusBadgeClass } from './order-status';
+import FullscreenButton from '../FullscreenButton';
 
 const ALL = '__all__';
 
@@ -58,6 +59,7 @@ export function KitchenBoard() {
   }, [restaurants]);
   const printerConfigsRef = useRef(printerConfigs);
   printerConfigsRef.current = printerConfigs;
+  const rootRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -97,7 +99,10 @@ export function KitchenBoard() {
   }, [orders]);
 
   return (
-    <div className="space-y-6">
+    <div
+      ref={rootRef}
+      className="space-y-6 bg-background [&:fullscreen]:overflow-auto [&:fullscreen]:p-6"
+    >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="grid w-full gap-2 sm:max-w-xs">
           <Label>Restaurant</Label>
@@ -118,7 +123,7 @@ export function KitchenBoard() {
             </SelectContent>
           </Select>
         </div>
-        <div className="sm:ml-auto">
+        <div className="flex items-center gap-2 sm:ml-auto">
           <Button
             variant="outline"
             size="icon"
@@ -131,6 +136,7 @@ export function KitchenBoard() {
               <VolumeX className="h-4 w-4" />
             )}
           </Button>
+          <FullscreenButton target={rootRef} />
         </div>
       </div>
 
