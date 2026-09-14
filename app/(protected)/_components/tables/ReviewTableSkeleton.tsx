@@ -19,15 +19,18 @@ const COLUMNS = ["Client", "Note", "Message", "Restaurant", "Source"];
  */
 export default function ReviewTableSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="w-full">
-      {/* Top restaurant selector */}
-      <div className="mb-6 grid max-w-xs gap-2">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-10 w-full" />
+    <div className="w-full space-y-8">
+      {/* Editorial header: title + subtitle left, selector right */}
+      <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <Skeleton className="h-10 w-full sm:w-[260px]" />
       </div>
 
       {/* Shareable badge card */}
-      <div className="mb-8 rounded-lg border p-4">
+      <div className="rounded-xl border border-border p-5">
         <Skeleton className="h-5 w-56" />
         <Skeleton className="mt-2 h-4 w-full max-w-md" />
         <div className="mt-4 grid gap-6 md:grid-cols-2">
@@ -54,7 +57,7 @@ export default function ReviewTableSkeleton({ rows = 5 }: { rows?: number }) {
         <Skeleton className="h-10 w-40" />
       </div>
 
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border border-border">
         <Table>
           <TableHeader>
             <TableRow>

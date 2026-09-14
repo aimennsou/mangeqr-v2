@@ -124,18 +124,27 @@ export default function ReviewsPage() {
         // pulsating skeleton — not just a bare table under an empty top area.
         <ReviewTableSkeleton />
       ) : (
-        <>
-          {restaurants.length > 0 && (
-            <>
-              {/* Page-level restaurant selector (top): drives the shareable badge. */}
-              <div className="mb-6 grid gap-2 max-w-xs">
-                <Label>{t("common.restaurant")}</Label>
+        <div className="space-y-8">
+          {/* Editorial header: serif title + subtitle left, restaurant
+              selector aligned right, hairline beneath. */}
+          <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+                {t("reviews.heading")}
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {t("reviews.subheading")}
+              </p>
+            </div>
+            {restaurants.length > 0 && (
+              <div className="grid w-full gap-2 sm:w-[260px]">
+                <Label className="sr-only">{t("common.restaurant")}</Label>
                 <Select
                   value={selectedRestaurantId}
                   onValueChange={setSelectedRestaurantId}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Choisissez un restaurant" />
+                    <SelectValue placeholder={t("common.chooseRestaurant")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
@@ -148,18 +157,20 @@ export default function ReviewsPage() {
                   </SelectContent>
                 </Select>
               </div>
+            )}
+          </div>
 
-              <ReviewBadgeShare
-                restaurants={restaurants}
-                selectedId={selectedRestaurantId}
-              />
-            </>
+          {restaurants.length > 0 && (
+            <ReviewBadgeShare
+              restaurants={restaurants}
+              selectedId={selectedRestaurantId}
+            />
           )}
 
           {hasReviews ? (
             <ReviewTable reviews={reviews} />
           ) : (
-        <div className="text-center text-gray-500 py-6">
+        <div className="text-center text-muted-foreground py-6">
           <div className="flex justify-center">
             <Image
               className={`${theme === "dark" ? "dark:invert" : ""}`}
@@ -169,11 +180,11 @@ export default function ReviewsPage() {
               height={400}
             />
           </div>
-          <p className="text-lg  font-semibold mt-4">{t("reviews.empty.title")}</p>
+          <p className="text-lg  font-semibold mt-4 text-foreground">{t("reviews.empty.title")}</p>
           <p className="mt-2">{t("reviews.empty.subtitle")}</p>
         </div>
           )}
-        </>
+        </div>
       )}
 
         </div>

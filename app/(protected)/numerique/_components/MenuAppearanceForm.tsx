@@ -174,7 +174,7 @@ export default function MenuAppearanceForm({
     <Form {...form}>
       <form className="space-y-6" onSubmit={form.handleSubmit(onSubmit)}>
         {/* Typographie & couleurs */}
-        <Card>
+        <Card className="rounded-xl border-border shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Palette className="h-4 w-4" />
@@ -264,7 +264,7 @@ export default function MenuAppearanceForm({
         </Card>
 
         {/* Informations affichées */}
-        <Card>
+        <Card className="rounded-xl border-border shadow-none">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <ListChecks className="h-4 w-4" />
@@ -281,7 +281,7 @@ export default function MenuAppearanceForm({
                 control={form.control}
                 name={toggle.name}
                 render={({ field }) => (
-                  <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                  <FormItem className="flex flex-row items-center justify-between rounded-xl border border-border p-3">
                     <div className="space-y-0.5 pr-4">
                       <FormLabel>{toggle.label}</FormLabel>
                       <FormDescription>{toggle.description}</FormDescription>
@@ -301,7 +301,7 @@ export default function MenuAppearanceForm({
         </Card>
 
         <div className="flex justify-end">
-          <Button disabled={isPending} type="submit" className="text-black">
+          <Button disabled={isPending} type="submit" className="bg-yellow-400 text-black hover:bg-yellow-400/90">
             {isPending ? (
               <>
                 <Loader2 className="animate-spin mr-2" size={18} />

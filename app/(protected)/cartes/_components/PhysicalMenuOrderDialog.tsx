@@ -151,7 +151,7 @@ export default function PhysicalMenuOrderDialog({
                       'relative rounded-lg border p-3 text-left transition-all',
                       active
                         ? 'border-yellow-400 ring-2 ring-yellow-400/40'
-                        : 'hover:border-gray-300'
+                        : 'hover:border-yellow-400/60'
                     )}
                   >
                     {active && (
@@ -251,7 +251,7 @@ export default function PhysicalMenuOrderDialog({
             <Button
               type="submit"
               disabled={isPending}
-              className="bg-yellow-400 text-black hover:bg-yellow-400"
+              className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
             >
               {isPending ? 'Envoi…' : 'Envoyer la commande'}
             </Button>

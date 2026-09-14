@@ -128,6 +128,8 @@ const fr: Dict = {
 
   // --- Reviews page (owner) ---
   "reviews.title": "Avis clients",
+  "reviews.heading": "Avis clients",
+  "reviews.subheading": "Collectez les avis positifs et suivez votre réputation en ligne.",
   "reviews.loading": "Chargement des avis...",
   "reviews.empty.title": "Aucun avis client disponible...",
   "reviews.empty.subtitle":
@@ -371,6 +373,8 @@ const fr: Dict = {
   // --- Digital menu (numérique) page (owner) ---
   "numerique.copySuccess": "Lien copié dans le presse-papiers !",
   "numerique.copyError": "Impossible de copier le lien.",
+  "numerique.heading": "Menu numérique",
+  "numerique.subheading": "Votre QR code, l'apparence de votre carte en ligne et vos designs.",
   "numerique.tab.qr": "QR code",
   "numerique.tab.appearance": "Apparence",
   "numerique.tab.design": "Commander un design",
@@ -384,6 +388,8 @@ const fr: Dict = {
   "cartes.exportPdf": "Exporter en PDF",
   "cartes.exportPng": "Exporter en PNG",
   "cartes.exportJpeg": "Exporter en JPEG",
+  "cartes.heading": "Menu physique",
+  "cartes.subheading": "Générez une carte imprimable à partir de votre menu numérique.",
   "cartes.print": "Imprimer / Exporter PDF",
   "cartes.empty.title": "Sélectionnez un restaurant et un menu.",
   "cartes.empty.subtitle": "Choisissez un menu pour générer une carte imprimable.",
@@ -650,6 +656,8 @@ const ar: Dict = {
 
   // --- Reviews page (owner) ---
   "reviews.title": "آراء العملاء",
+  "reviews.heading": "آراء العملاء",
+  "reviews.subheading": "اجمع الآراء الإيجابية وتابع سمعتك على الإنترنت.",
   "reviews.loading": "جارٍ تحميل الآراء...",
   "reviews.empty.title": "لا توجد آراء عملاء متاحة...",
   "reviews.empty.subtitle":
@@ -884,6 +892,8 @@ const ar: Dict = {
   // --- Digital menu (numérique) page (owner) ---
   "numerique.copySuccess": "تم نسخ الرابط إلى الحافظة!",
   "numerique.copyError": "تعذّر نسخ الرابط.",
+  "numerique.heading": "القائمة الرقمية",
+  "numerique.subheading": "رمز QR الخاص بك، ومظهر قائمتك على الإنترنت، وتصاميمك.",
   "numerique.tab.qr": "رمز QR",
   "numerique.tab.appearance": "المظهر",
   "numerique.tab.design": "طلب تصميم",
@@ -897,6 +907,8 @@ const ar: Dict = {
   "cartes.exportPdf": "تصدير بصيغة PDF",
   "cartes.exportPng": "تصدير بصيغة PNG",
   "cartes.exportJpeg": "تصدير بصيغة JPEG",
+  "cartes.heading": "القائمة المطبوعة",
+  "cartes.subheading": "أنشئ قائمة قابلة للطباعة انطلاقًا من قائمتك الرقمية.",
   "cartes.print": "طباعة / تصدير PDF",
   "cartes.empty.title": "اختر مطعماً وقائمة.",
   "cartes.empty.subtitle": "اختر قائمة لإنشاء بطاقة قابلة للطباعة.",
@@ -1156,6 +1168,8 @@ const en: Dict = {
 
   // --- Reviews page (owner) ---
   "reviews.title": "Customer reviews",
+  "reviews.heading": "Customer reviews",
+  "reviews.subheading": "Collect positive reviews and track your online reputation.",
   "reviews.loading": "Loading reviews...",
   "reviews.empty.title": "No customer reviews available yet...",
   "reviews.empty.subtitle":
@@ -1392,6 +1406,8 @@ const en: Dict = {
   // --- Digital menu (numérique) page (owner) ---
   "numerique.copySuccess": "Link copied to clipboard!",
   "numerique.copyError": "Could not copy the link.",
+  "numerique.heading": "Digital menu",
+  "numerique.subheading": "Your QR code, the look of your online menu, and your designs.",
   "numerique.tab.qr": "QR code",
   "numerique.tab.appearance": "Appearance",
   "numerique.tab.design": "Order a design",
@@ -1405,6 +1421,8 @@ const en: Dict = {
   "cartes.exportPdf": "Export as PDF",
   "cartes.exportPng": "Export as PNG",
   "cartes.exportJpeg": "Export as JPEG",
+  "cartes.heading": "Printed menu",
+  "cartes.subheading": "Generate a printable menu from your digital menu.",
   "cartes.print": "Print / Export PDF",
   "cartes.empty.title": "Select a restaurant and a menu.",
   "cartes.empty.subtitle": "Choose a menu to generate a printable card.",

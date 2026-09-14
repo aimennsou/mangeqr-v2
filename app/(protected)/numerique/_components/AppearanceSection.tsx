@@ -85,13 +85,13 @@ export default function AppearanceSection() {
 
   if (loading) {
     return (
-      <div className="text-center text-gray-500 py-16">Chargement...</div>
+      <div className="text-center text-muted-foreground py-16">Chargement...</div>
     );
   }
 
   if (restaurants.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-6">
+      <div className="text-center text-muted-foreground py-6">
         <div className="flex justify-center">
           <Image
             className={`${theme === 'dark' ? 'dark:invert' : ''}`}

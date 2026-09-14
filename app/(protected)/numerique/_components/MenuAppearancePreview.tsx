@@ -74,10 +74,10 @@ export default function MenuAppearancePreview({
 
   return (
     <div className={cn('flex flex-col items-center gap-3', className)}>
-      <p className="text-sm font-medium text-muted-foreground">Aperçu en direct</p>
+      <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">Aperçu en direct</p>
 
       {/* Device frame */}
-      <div className="w-[300px] rounded-[2.5rem] border-[10px] border-gray-900 bg-gray-900 shadow-xl">
+      <div className="w-[300px] rounded-[2.5rem] border-[10px] border-neutral-800 bg-neutral-800 shadow-lg">
         {/* Screen (portal target for the contained dish dialog) */}
         <div
           ref={setScreenEl}

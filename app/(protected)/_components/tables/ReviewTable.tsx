@@ -104,7 +104,7 @@ export function ReviewTable({ reviews }: { reviews: Review[] }) {
                       className={
                         i <= review
                           ? "h-4 w-4 fill-yellow-400 text-yellow-400"
-                          : "h-4 w-4 text-gray-300"
+                          : "h-4 w-4 text-muted-foreground/30"
                       }
                     />
                   ))}
@@ -214,7 +214,7 @@ export function ReviewTable({ reviews }: { reviews: Review[] }) {
           </Select>
         </div>
       </div>
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border border-border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (

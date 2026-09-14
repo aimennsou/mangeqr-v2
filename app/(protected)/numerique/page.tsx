@@ -114,6 +114,15 @@ export default function NumeriquePage() {
       </Breadcrumb>
       <Card className="rounded-lg border-none  mt-6">
         <CardContent className="p-6">
+          {/* Editorial header */}
+          <div className="mb-8 border-b border-border pb-6">
+            <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+              {t("numerique.heading")}
+            </h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {t("numerique.subheading")}
+            </p>
+          </div>
           <Tabs defaultValue="qr" className="w-full">
             <TabsList>
               <TabsTrigger value="qr">{t("numerique.tab.qr")}</TabsTrigger>
@@ -124,9 +133,9 @@ export default function NumeriquePage() {
             <TabsContent value="qr">
           <div className="mt-6">
             {loading ? (
-              <div className="text-center text-gray-500 py-16">{t("common.loading")}</div>
+              <div className="text-center text-muted-foreground py-16">{t("common.loading")}</div>
             ) : restaurants.length === 0 ? (
-              <div className="text-center text-gray-500 py-6">
+              <div className="text-center text-muted-foreground py-6">
                 <div className="flex justify-center">
                   <Image
                     className={`${theme === "dark" ? "dark:invert" : ""}`}
@@ -137,7 +146,7 @@ export default function NumeriquePage() {
                     priority
                   />
                 </div>
-                <p className="text-lg  font-semibold mt-4">{t("numerique.empty.title")}</p>
+                <p className="text-lg  font-semibold mt-4 text-foreground">{t("numerique.empty.title")}</p>
                 <p className="mt-2">{t("numerique.empty.subtitle")}</p>
               </div>
             ) : (
@@ -157,7 +166,7 @@ export default function NumeriquePage() {
                   </SelectContent>
                 </Select>
 
-                <div className="flex flex-col items-center gap-4 rounded-lg border p-6">
+                <div className="flex flex-col items-center gap-4 rounded-xl border border-border bg-card p-6">
                   {qrDataUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={qrDataUrl} alt="QR code" className="h-56 w-56" />
@@ -172,7 +181,7 @@ export default function NumeriquePage() {
                     <Input readOnly value={ensureHttp(qrUrl)} />
                     <Tooltip delayDuration={100}>
                       <TooltipTrigger asChild>
-                        <Button size="icon" onClick={handleCopy} className="text-black shrink-0" aria-label={t("tooltip.copyLink")}>
+                        <Button size="icon" onClick={handleCopy} className="shrink-0 bg-yellow-400 text-black hover:bg-yellow-400/90" aria-label={t("tooltip.copyLink")}>
                           <Copy className="h-4 w-4" />
                         </Button>
                       </TooltipTrigger>
@@ -183,7 +192,7 @@ export default function NumeriquePage() {
                   <div className="flex w-full flex-col gap-2 sm:flex-row">
                     <Tooltip delayDuration={100}>
                       <TooltipTrigger asChild>
-                        <Button onClick={handleDownloadPng} className="flex-1 text-black">
+                        <Button onClick={handleDownloadPng} className="flex-1 bg-yellow-400 text-black hover:bg-yellow-400/90">
                           <Download className="mr-2 h-4 w-4" /> {t("numerique.downloadQr")}
                         </Button>
                       </TooltipTrigger>

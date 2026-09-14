@@ -231,6 +231,15 @@ export default function PhysiquePage() {
       <Card className="rounded-lg border-none mt-6">
         <CardContent className="p-6">
           <div className="mt-6">
+            {/* Editorial header */}
+            <div className="mb-8 border-b border-border pb-6">
+              <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+                {t("cartes.heading")}
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {t("cartes.subheading")}
+              </p>
+            </div>
             {/* Controls */}
             <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6">
               <div className="grid gap-2 w-full md:max-w-xs">
@@ -283,7 +292,7 @@ export default function PhysiquePage() {
                     currency={selectedRestaurant?.currency}
                   />
                   <Button
-                    className="bg-yellow-400 hover:bg-yellow-400 text-black"
+                    className="bg-yellow-400 text-black hover:bg-yellow-400/90"
                     onClick={() => window.print()}
                   >
                     <Printer className="w-4 h-4 mr-2" /> {t("cartes.print")}
@@ -293,7 +302,7 @@ export default function PhysiquePage() {
             </div>
 
             {loading ? (
-              <div className="flex justify-center items-center py-16 text-gray-500">
+              <div className="flex justify-center items-center py-16 text-muted-foreground">
                 <Loader2 className="w-6 h-6 animate-spin mr-2" />
                 <span>{t("common.loading")}</span>
               </div>
@@ -307,10 +316,10 @@ export default function PhysiquePage() {
                       type="button"
                       onClick={() => setTemplateId(t.id)}
                       className={cn(
-                        "text-left rounded-lg border p-3 w-56 transition-colors",
+                        "w-56 rounded-xl border border-border p-3 text-left transition-colors",
                         templateId === t.id
                           ? "border-yellow-400 ring-2 ring-yellow-400/40"
-                          : "hover:border-gray-300"
+                          : "hover:border-yellow-400/60"
                       )}
                     >
                       <p className="font-semibold">{t.label}</p>
@@ -327,8 +336,8 @@ export default function PhysiquePage() {
                     owner sees a realistic representation of the printed page.
                     The template root uses width:100%/max-width:210mm, so here it
                     fills the 794px card, matching the printed content box. */}
-                <div className="overflow-auto rounded-lg border bg-gray-100 p-6">
-                  <div className="mx-auto shadow-lg bg-white w-full max-w-[794px]">
+                <div className="overflow-auto rounded-xl border border-border bg-muted p-6">
+                  <div className="mx-auto w-full max-w-[794px] bg-white shadow-lg">
                     <Template data={menuData} />
                   </div>
                 </div>
@@ -346,7 +355,7 @@ export default function PhysiquePage() {
                   )}
               </>
             ) : (
-              <div className="text-center text-gray-500 py-6">
+              <div className="text-center text-muted-foreground py-6">
                 <div className="flex justify-center">
                   <Image
                     className={`${theme === "dark" ? "dark:invert" : ""}`}
@@ -356,7 +365,7 @@ export default function PhysiquePage() {
                     height={400}
                   />
                 </div>
-                <p className="text-lg font-semibold mt-4">
+                <p className="text-lg font-semibold mt-4 text-foreground">
                   {t("cartes.empty.title")}
                 </p>
                 <p className="mt-2">

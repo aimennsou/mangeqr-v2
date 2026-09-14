@@ -185,12 +185,12 @@ export default function DesignOrderSection() {
   };
 
   if (loading) {
-    return <div className="text-center text-gray-500 py-16">Chargement...</div>;
+    return <div className="text-center text-muted-foreground py-16">Chargement...</div>;
   }
 
   if (restaurants.length === 0) {
     return (
-      <div className="text-center text-gray-500 py-6">
+      <div className="text-center text-muted-foreground py-6">
         <div className="flex justify-center">
           <Image
             className={`${theme === 'dark' ? 'dark:invert' : ''}`}
@@ -212,7 +212,7 @@ export default function DesignOrderSection() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
-        <h3 className="text-lg font-semibold">Commander un design de QR code</h3>
+        <h3 className="font-serif-display text-2xl font-light tracking-tight text-foreground">Commander un design de QR code</h3>
         <p className="text-sm text-muted-foreground">
           Choisissez un support physique pour votre QR code. Notre équipe
           prépare et vous livre le design personnalisé de votre restaurant.
@@ -233,7 +233,7 @@ export default function DesignOrderSection() {
                 'group relative flex flex-col overflow-hidden rounded-xl border bg-card p-4 text-left transition-all',
                 active
                   ? 'border-yellow-400 ring-2 ring-yellow-400/40'
-                  : 'hover:border-gray-300'
+                  : 'hover:border-yellow-400/60'
               )}
             >
               {active && (
@@ -373,7 +373,7 @@ export default function DesignOrderSection() {
           <Button
             type="submit"
             disabled={isPending}
-            className="bg-yellow-400 text-black hover:bg-yellow-400"
+            className="bg-yellow-400 text-black hover:bg-yellow-400/90"
           >
             {isPending ? 'Envoi…' : 'Commander ce design'}
           </Button>

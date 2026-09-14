@@ -57,8 +57,10 @@ export function ReviewBadgeShare({
   if (restaurants.length === 0) return null;
 
   return (
-    <div className="mb-8 rounded-lg border p-4">
-      <h3 className="font-semibold">Badge d&apos;avis partageable</h3>
+    <div className="rounded-xl border border-border bg-card p-5">
+      <h3 className="font-serif-display text-xl font-medium tracking-tight text-foreground">
+        Badge d&apos;avis partageable
+      </h3>
       <p className="mt-1 text-sm text-muted-foreground">
         Affichez votre note sur votre site web. Copiez le lien ou le code
         d&apos;intégration.
@@ -74,7 +76,7 @@ export function ReviewBadgeShare({
               <Button
                 type="button"
                 size="icon"
-                className="shrink-0 text-black"
+                className="shrink-0 bg-yellow-400 text-black hover:bg-yellow-400/90"
                 onClick={() => copy(badgeUrl, "link")}
               >
                 {copied === "link" ? (
@@ -93,7 +95,7 @@ export function ReviewBadgeShare({
               <Button
                 type="button"
                 size="icon"
-                className="shrink-0 text-black"
+                className="shrink-0 bg-yellow-400 text-black hover:bg-yellow-400/90"
                 onClick={() => copy(iframeSnippet, "iframe")}
               >
                 {copied === "iframe" ? (
@@ -109,7 +111,7 @@ export function ReviewBadgeShare({
         {/* Live preview */}
         <div className="grid gap-2">
           <Label>Aperçu</Label>
-          <div className="flex items-center justify-center rounded-lg border bg-muted/30 p-3">
+          <div className="flex items-center justify-center rounded-xl border border-border bg-muted/30 p-3">
             {badgeUrl ? (
               <iframe
                 key={badgeUrl}
