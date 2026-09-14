@@ -37,42 +37,155 @@ import { createDesignOrder } from '@/actions/design-order';
  * `createDesignOrder` server action.
  */
 
-// A small CSS-rendered mockup of each design so no image assets are needed.
-function DesignPreview({ product }: { product: DesignProduct }) {
-  const shapeClass =
-    product.shape === 'disc'
-      ? 'rounded-full'
-      : product.shape === 'sticker'
-        ? 'rounded-2xl'
-        : 'rounded-md';
+// A deterministic 7x7 QR-ish matrix (stable pattern, three finder squares) so
+// every mockup renders a plausible QR code without an image asset.
+const QR_CELLS = Array.from({ length: 49 }, (_, i) => {
+  const r = Math.floor(i / 7);
+  const c = i % 7;
+  const finder =
+    (r < 3 && c < 3) || (r < 3 && c > 3) || (r > 3 && c < 3); // 3 corner eyes
+  if (finder) {
+    const rr = r % 4;
+    const cc = c % 4;
+    return rr === 0 || rr === 2 || cc === 0 || cc === 2; // ring look
+  }
+  return (i * 5 + 2) % 3 === 0;
+});
 
+/**
+ * A small QR block. `tone` controls whether the "dark" modules are ink (poster/
+ * sticker) or an engraved recess (wood). Rendered as a CSS grid so no assets
+ * are needed.
+ */
+function QrBlock({
+  className,
+  cellClass,
+  onClass,
+  offClass,
+}: {
+  className?: string;
+  cellClass?: string;
+  onClass: string;
+  offClass: string;
+}) {
   return (
-    <div
-      className={cn(
-        'relative flex aspect-[3/4] w-full flex-col items-center justify-center gap-2 p-4',
-        product.shape === 'disc' && 'aspect-square',
-        product.shape === 'sticker' && 'aspect-square',
-        shapeClass,
-        product.previewClass
-      )}
-    >
-      <span className="text-xs font-semibold uppercase tracking-widest opacity-80">
-        Menu
-      </span>
-      {/* Fake QR grid */}
-      <div className="grid grid-cols-4 gap-0.5">
-        {Array.from({ length: 16 }).map((_, i) => (
-          <span
-            key={i}
-            className={cn(
-              'h-3 w-3 rounded-[1px]',
-              // deterministic checker pattern so it reads as a QR code
-              (i * 7 + 3) % 3 === 0 ? 'bg-current' : 'bg-current/20'
-            )}
+    <div className={cn('grid grid-cols-7 gap-[2px]', className)}>
+      {QR_CELLS.map((on, i) => (
+        <span
+          key={i}
+          className={cn('rounded-[1px]', cellClass, on ? onClass : offClass)}
+        />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Per-support CSS mockups of each physical QR design — an elegant black/gold
+ * poster, a laser-engraved wooden disc, and a die-cut table sticker. Each is a
+ * distinct, plausible product rather than the same flat card.
+ */
+function DesignPreview({ product }: { product: DesignProduct }) {
+  // Wooden laser-engraved medallion.
+  if (product.shape === 'disc') {
+    return (
+      <div className="relative flex aspect-square w-full items-center justify-center">
+        {/* Wood medallion: radial grain + a darker rim like a lathed edge */}
+        <div
+          className="relative flex h-full w-full flex-col items-center justify-center rounded-full p-5 shadow-inner"
+          style={{
+            background:
+              'radial-gradient(circle at 38% 30%, #d9a86a 0%, #c8914e 38%, #a9702f 72%, #8a561f 100%)',
+            boxShadow:
+              'inset 0 2px 6px rgba(255,236,200,0.45), inset 0 -6px 16px rgba(80,45,15,0.55), 0 2px 8px rgba(80,45,15,0.25)',
+          }}
+        >
+          {/* Wood grain streaks */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 rounded-full opacity-40 mix-blend-multiply"
+            style={{
+              background:
+                'repeating-radial-gradient(circle at 42% 34%, rgba(120,70,25,0) 0px, rgba(120,70,25,0) 5px, rgba(120,70,25,0.25) 6px, rgba(120,70,25,0) 8px)',
+            }}
           />
-        ))}
+          {/* Hanging hole */}
+          <span
+            className="absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full"
+            style={{ background: 'rgba(80,45,15,0.6)', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.5)' }}
+          />
+          <span className="text-[9px] font-semibold uppercase tracking-[0.25em] text-[#5a3a17]/90">
+            Menu
+          </span>
+          {/* Engraved QR: recessed dark modules on the burnt-wood tone */}
+          <QrBlock
+            className="my-2 w-[52%]"
+            cellClass="aspect-square"
+            onClass="bg-[#4a2f13] shadow-[inset_0_1px_1px_rgba(0,0,0,0.6)]"
+            offClass="bg-transparent"
+          />
+          <span className="text-[7px] uppercase tracking-widest text-[#5a3a17]/80">
+            Scannez
+          </span>
+        </div>
       </div>
-      <span className="text-[10px] opacity-80">Scannez le QR code</span>
+    );
+  }
+
+  // Die-cut table sticker.
+  if (product.shape === 'sticker') {
+    return (
+      <div className="relative flex aspect-square w-full items-center justify-center p-2">
+        {/* Cut line (dashed) around a rounded red sticker */}
+        <div className="absolute inset-1 rounded-2xl border border-dashed border-red-300" />
+        <div className="relative flex h-full w-full flex-col items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-br from-red-500 to-red-600 p-4 text-white shadow-md">
+          {/* Peel corner */}
+          <span className="absolute right-0 top-0 h-5 w-5 rounded-bl-2xl rounded-tr-2xl bg-white/25" />
+          <span className="text-[9px] font-bold uppercase tracking-[0.2em]">
+            Scan &amp; Menu
+          </span>
+          <div className="rounded-md bg-white p-1.5">
+            <QrBlock
+              className="w-16"
+              cellClass="aspect-square"
+              onClass="bg-neutral-900"
+              offClass="bg-transparent"
+            />
+          </div>
+          <span className="text-[7px] font-medium uppercase tracking-widest text-white/90">
+            Notre carte
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Elegant black & gold poster (default / menu-sheet).
+  return (
+    <div className="relative flex aspect-[3/4] w-full items-center justify-center">
+      <div className="relative flex h-full w-full flex-col items-center justify-center gap-2 rounded-md bg-gradient-to-b from-neutral-900 to-black p-4">
+        {/* Inner gold hairline frame */}
+        <div className="pointer-events-none absolute inset-2 rounded-sm border border-amber-300/40" />
+        <span className="text-[8px] font-medium uppercase tracking-[0.35em] text-amber-300/80">
+          Le Restaurant
+        </span>
+        <span className="font-serif-display text-lg font-medium leading-none text-amber-200">
+          Menu
+        </span>
+        <span className="h-px w-8 bg-amber-300/50" />
+        {/* Ink QR on a white plaque */}
+        <div className="rounded-[3px] bg-white p-1.5">
+          <QrBlock
+            className="w-14"
+            cellClass="aspect-square"
+            onClass="bg-neutral-900"
+            offClass="bg-transparent"
+          />
+        </div>
+        <span className="text-[7px] uppercase tracking-[0.2em] text-amber-100/70">
+          Scannez le QR code
+        </span>
+      </div>
     </div>
   );
 }
@@ -225,7 +338,7 @@ export default function DesignOrderSection() {
               onClick={() => setSelectedDesign(product.id)}
               aria-pressed={active}
               className={cn(
-                'group relative flex flex-col overflow-hidden rounded-xl border bg-card p-4 text-left transition-all',
+                'group relative flex flex-col overflow-hidden rounded-xl border border-border bg-card p-4 text-left transition-colors',
                 active
                   ? 'border-yellow-400 ring-2 ring-yellow-400/40'
                   : 'hover:border-yellow-400/60'
