@@ -124,9 +124,11 @@ export default function RestaurantsPage() {
                 <Plus className="w-4 h-4 mr-2" /> {t("restaurants.add")}
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] ">
-              <DialogHeader>
-                <DialogTitle>{t("restaurants.create.title")}</DialogTitle>
+            <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[520px]">
+              <DialogHeader className="border-b border-border px-6 py-5">
+                <DialogTitle className="font-serif-display text-2xl font-medium tracking-tight">
+                  {t("restaurants.create.title")}
+                </DialogTitle>
                 <DialogDescription>
                   {t("restaurants.create.desc")}
                 </DialogDescription>

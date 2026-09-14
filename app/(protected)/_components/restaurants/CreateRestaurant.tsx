@@ -4,7 +4,18 @@ import { useState } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Coins, DollarSign, Euro } from "lucide-react";
+import {
+  Coins,
+  DollarSign,
+  Euro,
+  Globe,
+  Instagram,
+  MapPin,
+  Music2,
+  Phone,
+  Store,
+  Wifi,
+} from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PhoneInput } from "@/components/phone-input";
 import ImageUpload from "@/components/ImageUpload";
@@ -68,91 +79,126 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
   };
 
   return (
-      <div className="bg-background  overflow-y-auto px-2 rounded-lg overflow-hidden ">
+    <form onSubmit={handleSubmit} className="flex max-h-[calc(90vh-8rem)] flex-col">
+      <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+        {/* Cover photo — focal element at the top */}
+        <div className="space-y-2">
+          <Label>{t("restaurants.field.cover")}</Label>
+          <ImageUpload setFileKey={setFileKey} />
+        </div>
 
-        <form onSubmit={handleSubmit} className="max-h-[400px]  ">
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">{t("restaurants.field.nameEstab")}</Label>
-              <Input name="name" type="text" id="name" placeholder="e.g. Artisto food" />
+        {/* Essential info */}
+        <div className="space-y-4">
+          <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+            {t("restaurants.section.info")}
+          </p>
+          <div className="grid gap-2">
+            <Label htmlFor="name">
+              {t("restaurants.field.nameEstab")} <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <Store className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input name="name" id="name" placeholder="e.g. Artisto food" className="pl-9" required />
             </div>
-            <div>
-              <Label htmlFor="adresse">{t("restaurants.field.addressReq")}</Label>
-              <Input name="adresse" type="text" id="adresse" placeholder="e.g. Rue de paris, France" />
-            </div>
-            <div>
-              <Label htmlFor="tel">{t("restaurants.field.phoneReq")}</Label>
-              <PhoneInput value={phoneNumber} onChange={setPhoneNumber} placeholder={t("restaurants.field.phonePlaceholder")} />
-            </div>
-            <div>
-              <Label htmlFor="subdomain">{t("restaurants.field.subdomain")}</Label>
-              <div className="flex">
-                <Input id="subdomain" name="subdomain" placeholder="artisto" className="rounded-e-none" />
-                <span className="inline-flex items-center rounded-e-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
-                  .{getRootDomain()}
-                </span>
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="currency">{t("restaurants.field.currency")}</Label>
-              <ToggleGroup value={currency} onValueChange={setCurrency} type="single" className="grid grid-cols-3">
-                <ToggleGroupItem value="EURO">
-                  <Euro className="w-4 h-4 mr-2" /> Euro
-                </ToggleGroupItem>
-                <ToggleGroupItem value="DOLLAR">
-                  <DollarSign className="w-4 h-4 mr-2" /> Dollar
-                </ToggleGroupItem>
-                <ToggleGroupItem value="DINAR">
-                  <Coins className="w-4 h-4 mr-2" /> Dinar
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
-            <div>
-              <Label htmlFor="wifi">{t("restaurants.field.wifi")}</Label>
-              <Input name="wifi" type="text" id="wifi" placeholder="e.g. wifi-pass" />
-            </div>
-            <div>
-              <Label htmlFor="website">{t("restaurants.field.website")}</Label>
-              <Input name="website" type="text" id="website" placeholder="www.example.com" />
-            </div>
-            <div>
-              <Label htmlFor="instagram">{t("restaurants.field.instagram")}</Label>
-              <div className="flex">
-                <span className="inline-flex items-center rounded-l-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
-                  instagram.com/
-                </span>
-                <Input name="instagram" type="text" id="instagram" placeholder="artisto" className="rounded-s-none" />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="tiktok">{t("restaurants.field.tiktok")}</Label>
-              <div className="flex">
-                <span className="inline-flex items-center rounded-l-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
-                  tiktok.com/
-                </span>
-                <Input name="tiktok" type="text" id="tiktok" placeholder="@artisto" className="rounded-s-none" />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="google">{t("restaurants.field.google")}</Label>
-              <Input name="google" type="text" id="google" placeholder="e.g. https://g.page/r/CZm8bK6bE_Zeld6" />
-            </div>
-            <div>
-              <Label htmlFor="logo">{t("restaurants.field.cover")}</Label>
-              <ImageUpload setFileKey={setFileKey} />
-            </div>
-            <Button
-              className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? t("common.saving") : t("common.save")}
-            </Button>
           </div>
-        </form>
-  
+          <div className="grid gap-2">
+            <Label htmlFor="adresse">
+              {t("restaurants.field.addressReq")} <span className="text-red-500">*</span>
+            </Label>
+            <div className="relative">
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input name="adresse" id="adresse" placeholder="e.g. Rue de Paris, France" className="pl-9" required />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="tel">
+              {t("restaurants.field.phoneReq")} <span className="text-red-500">*</span>
+            </Label>
+            <PhoneInput
+              value={phoneNumber}
+              onChange={setPhoneNumber}
+              placeholder={t("restaurants.field.phonePlaceholder")}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="subdomain">{t("restaurants.field.subdomain")}</Label>
+            <div className="flex">
+              <Input id="subdomain" name="subdomain" placeholder="artisto" className="rounded-e-none" />
+              <span className="inline-flex items-center rounded-e-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
+                .{getRootDomain()}
+              </span>
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="currency">{t("restaurants.field.currency")}</Label>
+            <ToggleGroup value={currency} onValueChange={setCurrency} type="single" className="grid grid-cols-3">
+              <ToggleGroupItem value="EURO">
+                <Euro className="w-4 h-4 mr-2" /> Euro
+              </ToggleGroupItem>
+              <ToggleGroupItem value="DOLLAR">
+                <DollarSign className="w-4 h-4 mr-2" /> Dollar
+              </ToggleGroupItem>
+              <ToggleGroupItem value="DINAR">
+                <Coins className="w-4 h-4 mr-2" /> Dinar
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="wifi">{t("restaurants.field.wifi")}</Label>
+            <div className="relative">
+              <Wifi className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input name="wifi" id="wifi" placeholder="e.g. wifi-pass" className="pl-9" />
+            </div>
+          </div>
+        </div>
+
+        {/* Presence & links */}
+        <div className="space-y-4">
+          <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+            {t("restaurants.section.presence")}
+          </p>
+          <div className="grid gap-2">
+            <Label htmlFor="website">{t("restaurants.field.website")}</Label>
+            <div className="relative">
+              <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input name="website" id="website" placeholder="www.example.com" className="pl-9" />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="instagram">{t("restaurants.field.instagram")}</Label>
+            <div className="relative">
+              <Instagram className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input name="instagram" id="instagram" placeholder="artisto" className="pl-9" />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="tiktok">{t("restaurants.field.tiktok")}</Label>
+            <div className="relative">
+              <Music2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input name="tiktok" id="tiktok" placeholder="@artisto" className="pl-9" />
+            </div>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="google">{t("restaurants.field.google")}</Label>
+            <div className="relative">
+              <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input name="google" id="google" placeholder="https://g.page/..." className="pl-9" />
+            </div>
+          </div>
+        </div>
       </div>
 
+      {/* Sticky footer submit */}
+      <div className="border-t border-border px-6 py-4">
+        <Button
+          className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? t("common.saving") : t("common.save")}
+        </Button>
+      </div>
+    </form>
   );
 };
 
