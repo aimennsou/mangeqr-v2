@@ -819,7 +819,7 @@ import { useI18n } from "@/lib/i18n";
            
             </div>
           </div>
-          <div className="rounded-md border">
+          <div className="overflow-hidden rounded-xl border border-border">
             <Table>
               <TableHeader>
                 {table.getHeaderGroups().map((headerGroup) => (

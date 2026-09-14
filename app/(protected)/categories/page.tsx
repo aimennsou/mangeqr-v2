@@ -497,6 +497,15 @@ export default function CategoriesPage() {
       <Card className="rounded-lg border-none  mt-6">
         <CardContent className="p-6">
           <div className="mt-6">
+            {/* Editorial header: serif title + subtitle, hairline beneath. */}
+            <div className="mb-8 border-b border-border pb-6">
+              <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+                {t("categories.title")}
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {t("categories.subheading")}
+              </p>
+            </div>
             {/* Restaurant + menu selectors and the single top-level add-category action */}
             <div className="flex flex-col md:flex-row md:items-end gap-4 mb-6">
               <div className="grid gap-2 w-full md:max-w-xs">
@@ -586,11 +595,11 @@ export default function CategoriesPage() {
                       return (
                       <SortableCategory key={category.id} category={category}>
                         {(dragHandleProps) => (
-                          <div className="rounded-lg border bg-card shadow-sm overflow-hidden">
+                          <div className="overflow-hidden rounded-xl border border-border bg-card">
                             {/* Category header (with the add-dish action inline) */}
                             <CategoryCard
                               id={category.id}
-                              logo={<span className="text-2xl">{category.logo}</span>}
+                              logo={category.logo}
                               logoValue={category.logo}
                               name={category.name}
                               dishCount={category.dishes?.length ?? 0}
@@ -637,7 +646,7 @@ export default function CategoriesPage() {
                                 category. Only rendered when expanded
                                 (IMPROVEMENT-5). Collapsed by default. */}
                             {isExpanded && (
-                            <div className="border-t bg-muted/30 p-4">
+                            <div className="border-t border-border bg-muted/30 p-4">
                               <SortableContext
                                 items={category.dishes.map((d) => dishId(d.id))}
                                 strategy={verticalListSortingStrategy}

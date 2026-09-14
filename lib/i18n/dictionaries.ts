@@ -186,6 +186,7 @@ const fr: Dict = {
 
   // --- Restaurants page (owner) ---
   "restaurants.add": "Ajouter un restaurant",
+  "restaurants.subheading": "Gérez vos établissements, leurs infos et leurs QR codes.",
   "restaurants.create.title": "Créer votre restaurant",
   "restaurants.create.desc":
     "Renseignez les informations de votre établissement puis enregistrez.",
@@ -235,6 +236,7 @@ const fr: Dict = {
 
   // --- Menus page (owner) ---
   "menus.add": "Ajouter un menu",
+  "menus.subheading": "Créez et organisez les cartes de vos restaurants.",
   "menus.create.title": "Créer votre menu",
   "menus.create.desc":
     "Ajoutez les détails de votre menu ici. Enregistrez lorsque vous avez terminé.",
@@ -287,6 +289,7 @@ const fr: Dict = {
 
   // --- Categories & dishes page (owner) ---
   "categories.title": "Categories et plats",
+  "categories.subheading": "Organisez vos catégories et vos plats par glisser-déposer.",
   "categories.add": "Ajouter une catégorie",
   "categories.create.title": "Créer une catégorie",
   "categories.create.desc": "Ajoutez les détails de votre catégorie ici.",
@@ -704,6 +707,7 @@ const ar: Dict = {
 
   // --- Restaurants page (owner) ---
   "restaurants.add": "إضافة مطعم",
+  "restaurants.subheading": "أدر مطاعمك ومعلوماتها ورموز QR الخاصة بها.",
   "restaurants.create.title": "أنشئ مطعمك",
   "restaurants.create.desc": "أدخل معلومات منشأتك ثم احفظ.",
   "restaurants.loading": "جارٍ تحميل مطاعمك...",
@@ -750,6 +754,7 @@ const ar: Dict = {
 
   // --- Menus page (owner) ---
   "menus.add": "إضافة قائمة",
+  "menus.subheading": "أنشئ ونظّم قوائم مطاعمك.",
   "menus.create.title": "أنشئ قائمتك",
   "menus.create.desc": "أضف تفاصيل قائمتك هنا. احفظ عند الانتهاء.",
   "menus.loading": "جارٍ تحميل قوائمك...",
@@ -800,6 +805,7 @@ const ar: Dict = {
 
   // --- Categories & dishes page (owner) ---
   "categories.title": "الفئات والأطباق",
+  "categories.subheading": "نظّم فئاتك وأطباقك عبر السحب والإفلات.",
   "categories.add": "إضافة فئة",
   "categories.create.title": "إنشاء فئة",
   "categories.create.desc": "أضف تفاصيل فئتك هنا.",
@@ -1207,6 +1213,7 @@ const en: Dict = {
 
   // --- Restaurants page (owner) ---
   "restaurants.add": "Add a restaurant",
+  "restaurants.subheading": "Manage your venues, their details and their QR codes.",
   "restaurants.create.title": "Create your restaurant",
   "restaurants.create.desc":
     "Enter your establishment's information then save.",
@@ -1254,6 +1261,7 @@ const en: Dict = {
 
   // --- Menus page (owner) ---
   "menus.add": "Add a menu",
+  "menus.subheading": "Create and organize your restaurants' menus.",
   "menus.create.title": "Create your menu",
   "menus.create.desc": "Add your menu details here. Save when you're done.",
   "menus.loading": "Loading your menus...",
@@ -1304,6 +1312,7 @@ const en: Dict = {
 
   // --- Categories & dishes page (owner) ---
   "categories.title": "Categories and dishes",
+  "categories.subheading": "Organize your categories and dishes by drag and drop.",
   "categories.add": "Add a category",
   "categories.create.title": "Create a category",
   "categories.create.desc": "Add your category details here.",

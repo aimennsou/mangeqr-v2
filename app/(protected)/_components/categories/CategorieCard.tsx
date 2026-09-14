@@ -182,7 +182,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
       className={
         bare
           ? "p-4 w-full"
-          : "p-4 w-full hover:shadow-md border rounded-lg transition-shadow duration-300"
+          : "w-full rounded-xl border border-border bg-card p-4 shadow-none transition-colors duration-200 hover:border-yellow-400/60"
       }
     >
       <div className="flex flex-col md:flex-row justify-between gap-8 w-full">
@@ -218,8 +218,10 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 
           {/* Logo and Name */}
           <div className="flex mr-auto items-center space-x-3">
-            {logo}
-            <p className="text-md text-foreground overflow-hidden text-ellipsis whitespace-nowrap md:max-w-[300px] max-w-[150px]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-yellow-400/15 text-xl">
+              {logo}
+            </span>
+            <p className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-semibold text-foreground md:max-w-[300px] max-w-[150px]">
               {name}
             </p>
           </div>
@@ -228,7 +230,10 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
         {/* Action Buttons */}
         <div className="flex justify-between items-center space-x-2">
           {headerAction}
-          <Badge variant="secondary">
+          <Badge
+            variant="outline"
+            className="shrink-0 whitespace-nowrap tabular-nums text-muted-foreground"
+          >
             {dishCount} {t("categories.dishCount")}
           </Badge>
           <Switch checked={status} onCheckedChange={handleToggle} />

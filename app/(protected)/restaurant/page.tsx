@@ -102,12 +102,25 @@ export default function RestaurantsPage() {
       </Breadcrumb>
       <Card className="rounded-lg border-none  mt-6">
       <CardContent className="p-6">
-      <div className="mt-6">
+      <div className="mt-6 space-y-8">
 
-        <div className="flex justify-end mb-4">
+        {/* Editorial header: serif title + subtitle left, add button right,
+            hairline beneath. */}
+        <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+              {t("nav.restaurants")}
+            </h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {t("restaurants.subheading")}
+            </p>
+          </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="lg" className="text-black">
+              <Button
+                size="lg"
+                className="bg-yellow-400 text-black hover:bg-yellow-400/90"
+              >
                 <Plus className="w-4 h-4 mr-2" /> {t("restaurants.add")}
               </Button>
             </DialogTrigger>

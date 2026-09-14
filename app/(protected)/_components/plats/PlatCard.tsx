@@ -209,7 +209,7 @@ const DishCard: React.FC<DishCardProps> = ({
   };
 
   return (
-    <div className="p-4 flex flex-row hover:shadow-md border rounded-lg transition-shadow duration-300">
+    <div className="flex flex-row rounded-xl border border-border bg-card p-4 shadow-none transition-colors duration-200 hover:border-yellow-400/60">
       {/* Dish Content (Name, Description, Price) */}
       <div className="flex flex-col justify-between flex-1">
         {/* Action Buttons */}
@@ -304,16 +304,22 @@ const DishCard: React.FC<DishCardProps> = ({
         <div className="flex-shrink-0">
 
         <div className="w-24 h-24 justify-center">
-        <img src={resolveImageSrc(imageUrl)} alt={name} className="w-full h-full object-cover rounded-lg" />
+        <img src={resolveImageSrc(imageUrl)} alt={name} className="w-full h-full rounded-xl border border-border object-cover" />
       </div> </div>
         {/* Dish Info */}
-        <div className="mt-4 border-t pt-4">
-          <div className="flex justify-between items-center">
-            <p className="text-xl font-semibold text-foreground">{name}</p>
-            <p className="text-lg font-semibold text-green-600 dark:text-green-400">{price}</p>
+        <div className="mt-4 border-t border-border pt-4">
+          <div className="flex items-baseline justify-between gap-3">
+            <p className="truncate text-lg font-semibold text-foreground">{name}</p>
+            <p className="font-serif-display shrink-0 text-xl font-medium tracking-tight text-foreground">
+              {price}
+            </p>
           </div>
-          <p className="text-sm text-muted-foreground">{description}</p>
-          <p className="text-sm text-muted-foreground">{allergenes}</p>
+          {description ? (
+            <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{description}</p>
+          ) : null}
+          {allergenes ? (
+            <p className="mt-1 text-xs text-muted-foreground">{allergenes}</p>
+          ) : null}
         </div>
       </div>
 

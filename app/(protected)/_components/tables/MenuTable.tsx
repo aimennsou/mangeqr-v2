@@ -741,7 +741,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
           </AlertDialog>
         </div>
       </div>
-      <div className="rounded-md border">
+      <div className="overflow-hidden rounded-xl border border-border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
