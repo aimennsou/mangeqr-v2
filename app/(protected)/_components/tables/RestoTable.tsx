@@ -1,8 +1,14 @@
 import {
-     Copy, Download, Pencil, Share2, Check,
+     Pencil,
      ChevronUpIcon,
      ChevronDownIcon,
-    
+     Globe,
+     Instagram,
+     MapPin,
+     Music2,
+     Phone,
+     Store,
+     Wifi,
   } from "lucide-react";
   import { cn } from "@/lib/utils";
   import { Button } from "@/components/ui/button";
@@ -34,11 +40,7 @@ import {
   import { useEffect, useState } from "react";
   import { getS3Url, uploadToS3 } from "@/lib/s3";
   import {
-    DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, 
-    DropdownMenuSeparator, DropdownMenuTrigger
-  } from "@/components/ui/dropdown-menu";
-  import {
-    Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, 
+    Dialog, DialogContent, DialogDescription, DialogHeader,
     DialogTitle, DialogTrigger
   } from "@/components/ui/dialog";
 
@@ -60,71 +62,6 @@ import { useI18n } from "@/lib/i18n";
   
   export function RestoTable({ restaurants }: { restaurants: Restaurant[] }) {
     const { t } = useI18n();
-    const [copied, setCopied] = useState(false);
-
-   
-  
-  
-    const handleCopy = (qrUrl:string) => {
-      setCopied(true);
-      navigator.clipboard.writeText(qrUrl || "").then(() => {
-        toast.success(t("numerique.copySuccess"));
-        setTimeout(() => setCopied(false), 2000);
-      }).catch(err => {
-        toast.error( err.message );
-      });
-    };
- 
-    const handleDownloadPDF = async (qrUrl:string) => {
-      try {
-        const response = await fetch('/api/download-pdf', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-      
-            qrUrl,
-    
-          }),
-        });
-        if (!response.ok) throw new Error('Failed to download PDF');
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'QR-code.pdf';
-        link.click();
-      } catch (error) {
-        console.error('Error downloading PDF:', error);
-      }
-    };
-    
-    
-      const handleDownloadJPEG = async (qrUrl:string) => {
-        try {
-          const response = await fetch('/api/download-jpeg', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-            
-              qrUrl,
-              
-            }),
-          });
-          if (!response.ok) throw new Error('Failed to download QR code JPEG');
-          const blob = await response.blob();
-          const url = window.URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.href = url;
-          link.download = 'QR-code.jpeg';
-          link.click();
-        } catch (error) {
-          console.error('Error downloading QR code JPEG:', error);
-        }
-      };
 
 
 
@@ -289,94 +226,6 @@ import { useI18n } from "@/lib/i18n";
         },
         
         {
-            accessorKey: "lien",
-            enableSorting: false,
-            header: t("restaurants.col.link"),
-            cell: ({ row }) => (
-                <div>
-                    {row.original.qrUrl ? (
-                             <Dialog>
-                             <DialogTrigger asChild>
-                             <Button size="icon" className="text-gray-400  bg-inherit shadow-none rounded-full opacity-80 hover:text-gray-500 hover:bg-gray-200">
-                                 <Share2 />
-                                 </Button>
-                             </DialogTrigger>
-                                                       <DialogContent className="max-w-[300px] rounded-md">
-                               <DialogHeader className="items-start">
-                               <DialogTitle>{t("common.share")}</DialogTitle>
-                       <DialogDescription className="text-start">
-                         {t("restaurants.shareDesc")}
-                       </DialogDescription>
-                               </DialogHeader>
-                               <div className="flex items-center space-x-2">
-                                 <div className="grid flex-1 gap-2">
-                                   <Label htmlFor="link" className="sr-only">
-                                     Link
-                                   </Label>
-                                   <Input
-                                     id="link"
-                                     defaultValue={row.original.qrUrl}
-                                     readOnly
-                                   />
-                                 </div>
-                                      <Button onClick={() => handleCopy(row.original.qrUrl!)} size="sm" className="px-3">
-                                   <span className="sr-only">{t("common.copy")}</span>
-                                   {copied ? (
-                               <Check className="h-4 w-4 text-black" />
-                             ) : (
-                               <Copy className="h-4 w-4 text-black" />
-                             )}
-                                 </Button>
-                               </div>
-                               <DialogFooter className="sm:justify-start">
-                                 <DialogClose asChild>
-                                   <Button type="button" variant="secondary">
-                                     {t("common.close")}
-                                   </Button>
-                                 </DialogClose>
-                               </DialogFooter>
-                             </DialogContent>
-                           </Dialog>
-                    ) : null}
-                </div>
-            ),
-        },
-        
-        
-      
-        
-        
-        
-        {
-            accessorKey: "qrcode",
-            enableSorting: false,
-            header: t("restaurants.col.qrcode"),
-            cell: ({ row }) => (
-                <div>
-                    {row.original.qrUrl ? (
-                           <DropdownMenu >
-                           <DropdownMenuTrigger asChild>
-                             <Button size="icon" className="text-gray-400  bg-inherit shadow-none rounded-full opacity-80 hover:text-gray-500 hover:bg-gray-200">
-                               <Download />
-                             </Button>
-                           </DropdownMenuTrigger>
-                           <DropdownMenuContent className="">
-                             <DropdownMenuLabel className="">{t("restaurants.qrFormat")}</DropdownMenuLabel>
-                             <DropdownMenuSeparator />
-                             <DropdownMenuCheckboxItem className=" hover:bg-muted" onClick={(e:any) => handleDownloadJPEG(row.original.qrUrl!)} >
-                               JPEG
-                             </DropdownMenuCheckboxItem>
-                             <DropdownMenuCheckboxItem className="hover:bg-muted" onClick={(e:any) => handleDownloadPDF(row.original.qrUrl!)} >
-                               PDF
-                             </DropdownMenuCheckboxItem>
-                           </DropdownMenuContent>
-                         </DropdownMenu>
-                    ) : null}
-                </div>
-            ),
-        },
-      
-        {
           id: "actions",
           enableSorting: false,
           header: t("restaurants.col.edit"),
@@ -474,154 +323,138 @@ import { useI18n } from "@/lib/i18n";
              <Pencil />
             </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] "> 
-        <DialogHeader>
-
-          <DialogTitle>{t("restaurants.edit.title")}</DialogTitle>
-          <DialogDescription>
-          {t("restaurants.edit.desc")}
-          </DialogDescription>
+      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[520px]">
+        <DialogHeader className="border-b border-border px-6 py-5">
+          <DialogTitle className="font-serif-display text-2xl font-medium tracking-tight">
+            {t("restaurants.edit.title")}
+          </DialogTitle>
+          <DialogDescription>{t("restaurants.edit.desc")}</DialogDescription>
         </DialogHeader>
 
-        <div className="bg-background  overflow-y-auto px-2 rounded-lg overflow-hidden ">
-
-<form onSubmit={handleSubmit} className="max-h-[400px]  ">
-
-   
-                        <div className="flex flex-col gap-4 p-4  ">
-                        <div className="grid gap-2">
-                        <Label htmlFor="name">{t("restaurants.field.name")} <span className="text-red-500">*</span></Label>                            <Input
-                              type="text"
-                              id="name"
-                              name="name"
-                              value={editData.name}
-                              onChange={handleInputChange}
-                              className="mt-1 block w-full border rounded-md p-2"
-                              required
-                            />
-                     
-                          <div className="grid gap-2">
-                          <Label htmlFor="adresse">{t("restaurants.field.address")} <span className="text-red-500">*</span></Label>
-                          <Input
-                              type="text"
-                              id="address"
-                              name="address"
-                              value={editData.address}
-                              onChange={handleInputChange}
-                              className="mt-1 block w-full border rounded-md p-2"
-                              required
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                          <Label htmlFor="tel">{t("restaurants.field.phone")} <span className="text-red-500">*</span></Label>
-                          <Input
-                              type="text"
-                              id="phone"
-                              name="phone"
-                              value={editData.phone}
-                              onChange={handleInputChange}
-                              className="mt-1 block w-full border rounded-md p-2"
-                              required
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                          <Label htmlFor="wifi">{t("restaurants.field.wifi")}</Label>
-                          <Input
-                              type="text"
-                              id="wifi"
-                              name="wifi"
-                              value={editData.wifi}
-                              onChange={handleInputChange}
-                              className="mt-1 block w-full border rounded-md p-2"
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                          <Label htmlFor="website">{t("restaurants.field.website")}</Label>
-                          <Input
-                              type="text"
-                              id="website"
-                              name="website"
-                              value={editData.website}
-                              onChange={handleInputChange}
-                              className="mt-1 block w-full border rounded-md p-2"
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                          <Label htmlFor="instagram">{t("restaurants.field.instagram")}</Label>
-                          <Input
-                              type="text"
-                              id="instagram"
-                              name="instagram"
-                              value={editData.instagram}
-                              onChange={handleInputChange}
-                              className="mt-1 block w-full border rounded-md p-2"
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                          <Label htmlFor="tiktok">{t("restaurants.field.tiktok")}</Label>
-                          <Input
-                              type="text"
-                              id="tiktok"
-                              name="tiktok"
-                              value={editData.tiktok}
-                              onChange={handleInputChange}
-                              className="mt-1 block w-full border rounded-md p-2"
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                          <Label htmlFor="google">{t("restaurants.field.google")}</Label>
-                          <Input
-                              type="text"
-                              id="google"
-                              name="google"
-                              value={editData.google}
-                              onChange={handleInputChange}
-                              className="mt-1 block w-full border rounded-md p-2"
-                            />
-                          </div>
-                          <div className="grid gap-2">
-                          <Label htmlFor="coverPhoto">{t("restaurants.field.cover")}</Label>
-                          {newPhoto && (
-                              <div className="relative mt-2">
-                                <img src={newPhoto as string} alt="Preview" className="w-full h-48 object-cover rounded-md" />
-              
-            <Button size="icon"
-                                  type="button"
-                                  title="Modifier la photo"
-                                  onClick={() => document.getElementById('fileInput')?.click()}
-                                  className="absolute top-2 right-2 rounded-full bg-background/90 text-foreground shadow-none opacity-90 hover:bg-background hover:text-foreground"
-                                >
-                                  <Pencil />
-                                  </Button>
-                              </div>
-                            )}
-                            <input
-                              type="file"
-                              id="fileInput"
-                              name="coverPhoto"
-                              accept="image/*"
-                              onChange={handleFileChange}
-                              className="hidden"
-                            />
-                          </div>
-                        </div>
-        
-                        {/* Submit button */}
-                      
-                        <Button
-                  className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
-                  type="submit"
-                  disabled={isSubmitting}
+        <form onSubmit={handleSubmit} className="flex max-h-[calc(90vh-8rem)] flex-col">
+          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-5">
+            {/* Cover photo — focal element at the top */}
+            <div className="space-y-2">
+              <Label>{t("restaurants.field.cover")}</Label>
+              <div className="group relative overflow-hidden rounded-xl border border-border">
+                {newPhoto ? (
+                  <img
+                    src={newPhoto as string}
+                    alt="Preview"
+                    className="h-40 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-40 w-full items-center justify-center bg-muted text-sm text-muted-foreground">
+                    {t("restaurants.field.cover")}
+                  </div>
+                )}
+                <button
+                  type="button"
+                  title={t("plats.editPhoto")}
+                  onClick={() => document.getElementById("fileInput")?.click()}
+                  className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-medium text-white opacity-0 transition-opacity hover:bg-black/40 hover:opacity-100"
                 >
-                  {isSubmitting ? t("common.saving") : t("common.save")}
-                </Button>
+                  <Pencil className="h-4 w-4" /> {t("plats.editPhoto")}
+                </button>
+              </div>
+              <input
+                type="file"
+                id="fileInput"
+                name="coverPhoto"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+            </div>
+
+            {/* Essential info */}
+            <div className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+                {t("restaurants.section.info")}
+              </p>
+              <div className="grid gap-2">
+                <Label htmlFor="name">
+                  {t("restaurants.field.name")} <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Store className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="name" name="name" value={editData.name} onChange={handleInputChange} className="pl-9" required />
                 </div>
-                      </form>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="address">
+                  {t("restaurants.field.address")} <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="address" name="address" value={editData.address} onChange={handleInputChange} className="pl-9" required />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="phone">
+                  {t("restaurants.field.phone")} <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="phone" name="phone" value={editData.phone} onChange={handleInputChange} className="pl-9" required />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="wifi">{t("restaurants.field.wifi")}</Label>
+                <div className="relative">
+                  <Wifi className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="wifi" name="wifi" value={editData.wifi ?? ""} onChange={handleInputChange} className="pl-9" />
+                </div>
+              </div>
+            </div>
 
-                      </div>
+            {/* Presence & links */}
+            <div className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+                {t("restaurants.section.presence")}
+              </p>
+              <div className="grid gap-2">
+                <Label htmlFor="website">{t("restaurants.field.website")}</Label>
+                <div className="relative">
+                  <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="website" name="website" value={editData.website ?? ""} onChange={handleInputChange} className="pl-9" placeholder="www.example.com" />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="instagram">{t("restaurants.field.instagram")}</Label>
+                <div className="relative">
+                  <Instagram className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="instagram" name="instagram" value={editData.instagram ?? ""} onChange={handleInputChange} className="pl-9" placeholder="artisto" />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="tiktok">{t("restaurants.field.tiktok")}</Label>
+                <div className="relative">
+                  <Music2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="tiktok" name="tiktok" value={editData.tiktok ?? ""} onChange={handleInputChange} className="pl-9" placeholder="@artisto" />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="google">{t("restaurants.field.google")}</Label>
+                <div className="relative">
+                  <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input id="google" name="google" value={editData.google ?? ""} onChange={handleInputChange} className="pl-9" placeholder="https://g.page/..." />
+                </div>
+              </div>
+            </div>
+          </div>
 
-
-        
+          {/* Sticky footer submit */}
+          <div className="border-t border-border px-6 py-4">
+            <Button
+              className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? t("common.saving") : t("common.save")}
+            </Button>
+          </div>
+        </form>
       </DialogContent>
     </Dialog>
 
