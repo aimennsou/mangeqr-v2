@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -298,13 +297,40 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t("categories.edit.title")}</DialogTitle>
+        <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[480px]">
+          <DialogHeader className="border-b border-border px-6 py-5">
+            <DialogTitle className="font-serif-display text-2xl font-medium tracking-tight">
+              {t("categories.edit.title")}
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-2">
+          <div className="space-y-5 px-6 py-5">
+            {/* Icon focal element */}
+            <div className="flex items-center gap-4">
+              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-border bg-yellow-400/10 text-3xl">
+                {editIcon}
+              </span>
+              <div className="grid flex-1 gap-2">
+                <Label htmlFor={`cat-icon-${id}`}>{t("categories.field.icon")}</Label>
+                <Select value={editIcon} onValueChange={setEditIcon}>
+                  <SelectTrigger id={`cat-icon-${id}`}>
+                    <SelectValue placeholder={t("categories.chooseIcon")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      {ICON_OPTIONS.map((icon) => (
+                        <SelectItem key={icon} value={icon}>
+                          <span className="text-lg">{icon}</span>
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="grid gap-2">
-              <Label htmlFor={`cat-name-${id}`}>{t("categories.field.name")}</Label>
+              <Label htmlFor={`cat-name-${id}`}>
+                {t("categories.field.name")} <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id={`cat-name-${id}`}
                 value={editName}
@@ -312,33 +338,16 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
                 placeholder={t("categories.namePlaceholder")}
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`cat-icon-${id}`}>{t("categories.field.icon")}</Label>
-              <Select value={editIcon} onValueChange={setEditIcon}>
-                <SelectTrigger id={`cat-icon-${id}`}>
-                  <SelectValue placeholder={t("categories.chooseIcon")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {ICON_OPTIONS.map((icon) => (
-                      <SelectItem key={icon} value={icon}>
-                        <span className="text-lg">{icon}</span>
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-          <DialogFooter>
+          <div className="border-t border-border px-6 py-4">
             <Button
-              className="bg-yellow-400 text-black hover:bg-yellow-400/90"
+              className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
               onClick={handleSaveEdit}
               disabled={saving}
             >
               {saving ? t("common.saving") : t("common.save")}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

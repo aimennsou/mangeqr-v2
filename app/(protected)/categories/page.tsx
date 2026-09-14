@@ -554,13 +554,15 @@ export default function CategoriesPage() {
                 <div className="md:ml-auto">
                   <Dialog open={categoryDialogOpen} onOpenChange={setCategoryDialogOpen}>
                     <DialogTrigger asChild>
-                      <Button className="bg-yellow-400 hover:bg-yellow-400 text-black">
+                      <Button className="bg-yellow-400 text-black hover:bg-yellow-400/90">
                         <Plus className="w-4 h-4 mr-2" /> {t("categories.add")}
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                      <DialogHeader>
-                        <DialogTitle>{t("categories.create.title")}</DialogTitle>
+                    <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[480px]">
+                      <DialogHeader className="border-b border-border px-6 py-5">
+                        <DialogTitle className="font-serif-display text-2xl font-medium tracking-tight">
+                          {t("categories.create.title")}
+                        </DialogTitle>
                         <DialogDescription>
                           {t("categories.create.desc")}
                         </DialogDescription>
@@ -620,14 +622,16 @@ export default function CategoriesPage() {
                                   <DialogTrigger asChild>
                                     <Button
                                       size="sm"
-                                      className="bg-yellow-400 hover:bg-yellow-400 text-black whitespace-nowrap"
+                                      className="whitespace-nowrap bg-yellow-400 text-black hover:bg-yellow-400/90"
                                     >
                                       <Plus className="w-4 h-4 mr-1" /> {t("plats.add")}
                                     </Button>
                                   </DialogTrigger>
-                                  <DialogContent className="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                      <DialogTitle>{t("plats.add")}</DialogTitle>
+                                  <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[480px]">
+                                    <DialogHeader className="border-b border-border px-6 py-5">
+                                      <DialogTitle className="font-serif-display text-2xl font-medium tracking-tight">
+                                        {t("plats.add")}
+                                      </DialogTitle>
                                       <DialogDescription>
                                         {t("plats.addTo").replace("{name}", category.name)}
                                       </DialogDescription>

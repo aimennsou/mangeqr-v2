@@ -93,10 +93,8 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
   };
 
   return (
-    <div className="sm:max-w-md rounded-lg overflow-hidden">
-      <div className="max-h-[500px] overflow-y-auto">
-        <form onSubmit={handleDishSubmit}>
-          <div className="flex flex-col gap-4 p-4">
+        <form onSubmit={handleDishSubmit} className="flex max-h-[calc(90vh-8rem)] flex-col">
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
             {!fixedCategoryId && (
               <div className="grid gap-2">
                 <Label>{t("plats.field.category")}</Label>
@@ -204,7 +202,9 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
                 emptyLabel={t("upload.hint")}
               />
             </div>
+          </div>
 
+          <div className="border-t border-border px-6 py-4">
             <Button
               type="submit"
               className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
@@ -214,8 +214,6 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
             </Button>
           </div>
         </form>
-      </div>
-    </div>
   );
 };
 

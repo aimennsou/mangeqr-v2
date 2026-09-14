@@ -261,8 +261,11 @@ export default function DesignOrderSection() {
       {/* Order form */}
       <form
         onSubmit={handleSubmit}
-        className="grid gap-4 rounded-xl border bg-card p-6"
+        className="grid gap-4 rounded-xl border border-border bg-card p-6"
       >
+        <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+          Votre commande
+        </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
             <Label>Restaurant</Label>

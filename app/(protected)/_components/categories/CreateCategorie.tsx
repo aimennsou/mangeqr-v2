@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -74,21 +73,14 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
   };
 
   return (
-    <div className="sm:max-w-md rounded-lg overflow-hidden ">
-      <div className="max-h-[400px] max-w-full overflow-y-auto p-4">
-        <form className={cn("grid items-start gap-4")} onSubmit={handleSubmit}>
-          <div className="grid gap-2">
-            <Label htmlFor="categoryName">{t("categories.field.name")}</Label>
-            <Input
-              type="text"
-              id="categoryName"
-              placeholder={t("categories.namePlaceholder")}
-              value={categoryName}
-              onChange={(e) => setCategoryName(e.target.value)}
-            />
-          </div>
-
-          <div className="grid gap-2">
+    <form className="flex max-h-[calc(90vh-8rem)] flex-col" onSubmit={handleSubmit}>
+      <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+        {/* Icon picker as a visual focal element */}
+        <div className="flex items-center gap-4">
+          <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border border-border bg-yellow-400/10 text-3xl">
+            {selectedIcon}
+          </span>
+          <div className="grid flex-1 gap-2">
             <Label htmlFor="icon">{t("categories.field.icon")}</Label>
             <Select value={selectedIcon} onValueChange={(value) => setSelectedIcon(value)}>
               <SelectTrigger>
@@ -105,17 +97,32 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
               </SelectContent>
             </Select>
           </div>
+        </div>
 
-          <Button
-            className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
-            type="submit"
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? t("common.saving") : t("common.save")}
-          </Button>
-        </form>
+        <div className="grid gap-2">
+          <Label htmlFor="categoryName">
+            {t("categories.field.name")} <span className="text-red-500">*</span>
+          </Label>
+          <Input
+            type="text"
+            id="categoryName"
+            placeholder={t("categories.namePlaceholder")}
+            value={categoryName}
+            onChange={(e) => setCategoryName(e.target.value)}
+          />
+        </div>
       </div>
-    </div>
+
+      <div className="border-t border-border px-6 py-4">
+        <Button
+          className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
+          type="submit"
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? t("common.saving") : t("common.save")}
+        </Button>
+      </div>
+    </form>
   );
 };
 

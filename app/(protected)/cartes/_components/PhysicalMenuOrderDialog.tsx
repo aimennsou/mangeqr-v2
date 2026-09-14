@@ -125,16 +125,19 @@ export default function PhysicalMenuOrderDialog({
           <ShoppingCart className="mr-2 h-4 w-4" /> Commander l&apos;impression
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Commander l&apos;impression du menu</DialogTitle>
+      <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-lg">
+        <DialogHeader className="border-b border-border px-6 py-5">
+          <DialogTitle className="font-serif-display text-2xl font-medium tracking-tight">
+            Commander l&apos;impression du menu
+          </DialogTitle>
           <DialogDescription>
             Faites imprimer professionnellement la carte que vous avez conçue.
             {menuName ? ` Menu sélectionné : « ${menuName} ».` : ''}
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="grid gap-4">
+        <form onSubmit={handleSubmit} className="flex max-h-[calc(90vh-8rem)] flex-col">
+          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
           {/* Format picker */}
           <div className="grid gap-2">
             <Label>Format d&apos;impression</Label>
@@ -247,7 +250,9 @@ export default function PhysicalMenuOrderDialog({
             />
           </div>
 
-          <div className="flex justify-end">
+          </div>
+
+          <div className="border-t border-border px-6 py-4">
             <Button
               type="submit"
               disabled={isPending}

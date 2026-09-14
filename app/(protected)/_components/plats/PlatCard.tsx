@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -299,11 +298,13 @@ const DishCard: React.FC<DishCardProps> = ({
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>{t("plats.edit.title")}</DialogTitle>
+        <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[480px]">
+          <DialogHeader className="border-b border-border px-6 py-5">
+            <DialogTitle className="font-serif-display text-2xl font-medium tracking-tight">
+              {t("plats.edit.title")}
+            </DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-2">
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
             <div className="grid gap-2">
               <Label>{t("plats.field.photo")}</Label>
               <CoverImageUpload
@@ -343,15 +344,15 @@ const DishCard: React.FC<DishCardProps> = ({
               />
             </div>
           </div>
-          <DialogFooter>
+          <div className="border-t border-border px-6 py-4">
             <Button
-              className="bg-yellow-400 text-black hover:bg-yellow-400/90"
+              className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
               onClick={handleSaveEdit}
               disabled={saving}
             >
               {saving ? t("common.saving") : t("common.save")}
             </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
 
