@@ -2,7 +2,18 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { Heart, Instagram, Facebook, Youtube, MapPin } from 'lucide-react';
+import {
+  ChefHat,
+  Facebook,
+  Flame,
+  Heart,
+  Instagram,
+  Leaf,
+  MapPin,
+  Sun,
+  Youtube,
+  type LucideIcon,
+} from 'lucide-react';
 import { FaTiktok, FaXTwitter } from 'react-icons/fa6';
 import { cn } from '@/lib/utils';
 
@@ -138,21 +149,22 @@ const MENU: Record<Tab, Category[]> = {
   ],
 };
 
-const TAG_TONES = {
-  green: { bg: 'rgba(34,197,94,0.14)', fg: '#15803d', icon: '🌱' },
-  orange: { bg: 'rgba(249,115,22,0.14)', fg: '#c2410c', icon: '🏠' },
-  red: { bg: 'rgba(239,68,68,0.14)', fg: '#b91c1c', icon: '🌶️' },
-  yellow: { bg: 'rgba(234,179,8,0.16)', fg: '#a16207', icon: '🍂' },
-} as const;
+const TAG_TONES: Record<Tag['tone'], { bg: string; fg: string; icon: LucideIcon }> = {
+  green: { bg: 'rgba(34,197,94,0.14)', fg: '#15803d', icon: Leaf },
+  orange: { bg: 'rgba(249,115,22,0.14)', fg: '#c2410c', icon: ChefHat },
+  red: { bg: 'rgba(239,68,68,0.14)', fg: '#b91c1c', icon: Flame },
+  yellow: { bg: 'rgba(234,179,8,0.16)', fg: '#a16207', icon: Sun },
+};
 
 function TagBadge({ label, tone }: Tag) {
   const s = TAG_TONES[tone];
+  const TagIcon = s.icon;
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-medium"
+      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium"
       style={{ backgroundColor: s.bg, color: s.fg }}
     >
-      <span aria-hidden>{s.icon}</span>
+      <TagIcon className="h-2.5 w-2.5" aria-hidden />
       {label}
     </span>
   );
@@ -163,21 +175,21 @@ function ItemCard({ item }: { item: Item }) {
   const likeCount = item.likes + (liked ? 1 : 0);
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-2.5 shadow-sm">
+    <div className="rounded-2xl border border-gray-200 bg-white p-3">
       <div className="flex gap-3">
-        <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-gray-100">
-          <Image src={item.photo} alt={item.name} fill className="object-cover" sizes="64px" />
+        <div className="relative h-[68px] w-[68px] shrink-0 overflow-hidden rounded-xl bg-gray-100">
+          <Image src={item.photo} alt={item.name} fill className="object-cover" sizes="68px" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className="text-sm font-semibold leading-tight text-gray-900">
+            <p className="text-[13px] font-semibold leading-snug text-gray-900">
               {item.name}
             </p>
-            <p className="shrink-0 text-sm font-bold text-gray-900">
+            <p className="shrink-0 text-[13px] font-bold tabular-nums text-gray-900">
               {item.price}
             </p>
           </div>
-          <p className="mt-0.5 line-clamp-2 text-[11px] leading-snug text-gray-500">
+          <p className="mt-0.5 line-clamp-2 text-[11px] leading-relaxed text-gray-500">
             {item.description}
           </p>
           <div className="mt-1.5 flex flex-wrap gap-1.5">
@@ -202,7 +214,7 @@ function ItemCard({ item }: { item: Item }) {
         </div>
       ) : null}
 
-      <div className="mt-1.5">
+      <div className="mt-2.5">
         <button
           type="button"
           onClick={() => setLiked((v) => !v)}
@@ -305,9 +317,12 @@ export default function LiveMenu() {
       <div className="mt-2 flex-1 space-y-3 overflow-y-auto px-3 pb-4">
         {categories.map((cat) => (
           <div key={cat.title} className="space-y-2">
-            <p className="px-1 text-xs font-semibold text-gray-800">
-              {cat.title}
-            </p>
+            <div className="flex items-center gap-2 px-1">
+              <p className="text-sm font-bold tracking-tight text-gray-900">
+                {cat.title}
+              </p>
+              <span className="h-px flex-1 bg-gray-200" />
+            </div>
             {cat.items.map((item) => (
               <ItemCard key={item.name} item={item} />
             ))}
