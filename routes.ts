@@ -20,6 +20,9 @@ export const publicRoutePrefixes: string[] = [
   // are used by unauthenticated diners (from the QR menu), so they're public.
   '/api/orders',
   '/order',
+  // Stripe webhook: called by Stripe's servers (no user session); verified via
+  // the signature secret instead of auth.
+  '/api/stripe/webhook',
 ];
 
 /**

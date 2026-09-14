@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { getPlanLimits } from "@/lib/plan";
+import { isStripeEnabled } from "@/lib/stripe";
+import BillingActions from "./billing-actions";
 
 // Libellés FR pour les plans.
 const PLAN_LABELS: Record<Plan, string> = {
@@ -203,6 +205,13 @@ export default function PlanCard({
             limit={limits.campaigns}
           />
         </div>
+
+        {/* Online subscription controls (Stripe). Hidden when Stripe isn't
+            configured — the cash/contact note above still applies. */}
+        <BillingActions
+          stripeEnabled={isStripeEnabled()}
+          isPaidOnline={!isFreePlan && planPaymentMethod === "ONLINE"}
+        />
       </CardContent>
     </Card>
   );
