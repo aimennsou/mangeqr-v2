@@ -95,7 +95,7 @@ export function OrderCard({
   return (
     <div
       className={cn(
-        'rounded-lg border bg-card p-4 shadow-sm transition-all',
+        'rounded-xl border border-border bg-card p-4 shadow-none transition-colors hover:border-yellow-400/60',
         isNew && 'ring-2 ring-yellow-400 animate-pulse'
       )}
       onMouseEnter={() => isNew && onSeen?.(order.id)}

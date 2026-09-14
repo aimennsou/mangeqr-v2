@@ -509,6 +509,12 @@ const fr: Dict = {
   "tables.status.order": "commande",
   "tables.status.orders": "commandes",
   "tables.status.liveHint": "Statut en direct d'après les commandes en cours.",
+  "orders.heading": "Commandes",
+  "orders.subheading": "Suivez les commandes en temps réel et gérez leur statut.",
+  "kitchen.heading": "Cuisine",
+  "kitchen.subheading": "Les commandes actives, organisées par étape de préparation.",
+  "tables.heading": "Plan de salle",
+  "tables.subheading": "Organisez vos tables et voyez lesquelles sont libres ou occupées.",
 
   // --- Ticket printer configuration (account/settings) ---
   "printer.title": "Imprimante des tickets",
@@ -1025,6 +1031,12 @@ const ar: Dict = {
   "tables.status.order": "طلب",
   "tables.status.orders": "طلبات",
   "tables.status.liveHint": "الحالة مباشرة بناءً على الطلبات الجارية.",
+  "orders.heading": "الطلبات",
+  "orders.subheading": "تابع الطلبات لحظة بلحظة وأدر حالتها.",
+  "kitchen.heading": "المطبخ",
+  "kitchen.subheading": "الطلبات النشطة مرتبة حسب مرحلة التحضير.",
+  "tables.heading": "مخطط القاعة",
+  "tables.subheading": "نظّم طاولاتك واعرف المتاحة منها والمشغولة.",
 
   // --- إعدادات طابعة التذاكر ---
   "printer.title": "طابعة التذاكر",
@@ -1539,6 +1551,12 @@ const en: Dict = {
   "tables.status.order": "order",
   "tables.status.orders": "orders",
   "tables.status.liveHint": "Live status based on ongoing orders.",
+  "orders.heading": "Orders",
+  "orders.subheading": "Track orders in real time and manage their status.",
+  "kitchen.heading": "Kitchen",
+  "kitchen.subheading": "Active orders, organized by preparation stage.",
+  "tables.heading": "Floor plan",
+  "tables.subheading": "Arrange your tables and see which are free or occupied.",
 
   // --- Ticket printer configuration (account/settings) ---
   "printer.title": "Ticket printer",

@@ -181,7 +181,7 @@ export function OrdersBoard() {
         </div>
       ) : visible.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
-          <p className="text-lg font-semibold">Aucune commande en cours.</p>
+          <p className="text-lg font-semibold text-foreground">Aucune commande en cours.</p>
           <p className="mt-2">
             Les nouvelles commandes des clients apparaîtront ici.
           </p>
@@ -191,7 +191,7 @@ export function OrdersBoard() {
           {/* Dine-in, grouped by table */}
           {tableGroups.length > 0 ? (
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+              <h3 className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
                 Sur place
               </h3>
               {tableGroups.map((grp) => (
@@ -219,7 +219,7 @@ export function OrdersBoard() {
           {/* Delivery */}
           {delivery.length > 0 ? (
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold uppercase text-muted-foreground">
+              <h3 className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
                 Livraison
               </h3>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
