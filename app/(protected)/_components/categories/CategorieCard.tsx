@@ -332,7 +332,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
           </div>
           <DialogFooter>
             <Button
-              className="bg-yellow-400 hover:bg-yellow-400 text-black"
+              className="bg-yellow-400 text-black hover:bg-yellow-400/90"
               onClick={handleSaveEdit}
               disabled={saving}
             >

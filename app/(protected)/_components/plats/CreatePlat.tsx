@@ -101,7 +101,7 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
               <div className="grid gap-2">
                 <Label>{t("plats.field.category")}</Label>
                 <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value)}>
-                  <SelectTrigger className="w-full bg-white">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder={t("plats.field.categoryPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -139,7 +139,7 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
 
             <div className="space-y-2">
               <Label htmlFor="input-16">{t("plats.field.price")}</Label>
-              <div className="relative flex rounded-lg shadow-sm shadow-black/5">
+              <div className="relative flex">
                 <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-sm text-muted-foreground">
                   €
                 </span>
@@ -203,7 +203,7 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
 
             <Button
               type="submit"
-              className="w-full bg-yellow-400 hover:bg-yellow-400 text-black"
+              className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
               disabled={isSubmitting}
             >
               {isSubmitting ? t("plats.adding") : t("common.add")}

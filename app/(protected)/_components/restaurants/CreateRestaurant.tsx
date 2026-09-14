@@ -87,8 +87,8 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
             <div>
               <Label htmlFor="subdomain">{t("restaurants.field.subdomain")}</Label>
               <div className="flex">
-                <Input id="subdomain" name="subdomain" placeholder="artisto" />
-                <span className="inline-flex items-center rounded-e-lg border border-input bg-gray-100 px-3 text-sm text-gray-600">
+                <Input id="subdomain" name="subdomain" placeholder="artisto" className="rounded-e-none" />
+                <span className="inline-flex items-center rounded-e-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
                   .{getRootDomain()}
                 </span>
               </div>
@@ -118,19 +118,19 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
             <div>
               <Label htmlFor="instagram">{t("restaurants.field.instagram")}</Label>
               <div className="flex">
-                <span className="inline-flex items-center rounded-l-lg border border-input bg-gray-100 px-3 text-sm text-gray-600">
+                <span className="inline-flex items-center rounded-l-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
                   instagram.com/
                 </span>
-                <Input name="instagram" type="text" id="instagram" placeholder="artisto" />
+                <Input name="instagram" type="text" id="instagram" placeholder="artisto" className="rounded-s-none" />
               </div>
             </div>
             <div>
               <Label htmlFor="tiktok">{t("restaurants.field.tiktok")}</Label>
               <div className="flex">
-                <span className="inline-flex items-center rounded-l-lg border border-input bg-gray-100 px-3 text-sm text-gray-600">
+                <span className="inline-flex items-center rounded-l-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
                   tiktok.com/
                 </span>
-                <Input name="tiktok" type="text" id="tiktok" placeholder="@artisto" />
+                <Input name="tiktok" type="text" id="tiktok" placeholder="@artisto" className="rounded-s-none" />
               </div>
             </div>
             <div>
@@ -142,7 +142,7 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
               <ImageUpload setFileKey={setFileKey} />
             </div>
             <Button
-              className="bg-yellow-400 hover:bg-yellow-400 w-full text-black"
+              className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
               type="submit"
               disabled={isSubmitting}
             >

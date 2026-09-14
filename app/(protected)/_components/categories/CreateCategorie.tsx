@@ -107,7 +107,7 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
           </div>
 
           <Button
-            className="bg-yellow-400 hover:bg-yellow-400 text-black"
+            className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
             type="submit"
             disabled={isSubmitting}
           >

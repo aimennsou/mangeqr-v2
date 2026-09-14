@@ -609,7 +609,7 @@ import { useI18n } from "@/lib/i18n";
                         {/* Submit button */}
                       
                         <Button
-                  className="bg-yellow-400 hover:bg-yellow-400 text-black"
+                  className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
                   type="submit"
                   disabled={isSubmitting}
                 >

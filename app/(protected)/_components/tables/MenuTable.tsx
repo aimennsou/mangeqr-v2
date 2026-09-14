@@ -572,7 +572,7 @@ export function MenuTable({ menus: initialMenus }: { menus: Menu[] }) {
                       </ToggleGroup>
 
                       <Button
-                        className="bg-yellow-400 hover:bg-yellow-400 text-black"
+                        className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
                         type="submit"
                         disabled={isSubmitting}
                       >
