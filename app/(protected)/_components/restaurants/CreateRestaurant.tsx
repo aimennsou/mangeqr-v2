@@ -1,6 +1,7 @@
 "use client";
 import * as React from "react";
 import { useState } from "react";
+import { useDropzone } from "react-dropzone";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,22 +11,117 @@ import {
   Euro,
   Globe,
   Instagram,
+  Loader2,
   MapPin,
   Music2,
+  Pencil,
   Phone,
   Store,
+  Upload,
   Wifi,
 } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { PhoneInput } from "@/components/phone-input";
-import ImageUpload from "@/components/ImageUpload";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { uploadToS3 } from "@/lib/s3";
 import { getRootDomain } from "@/lib/subdomain";
 import { useI18n } from "@/lib/i18n";
 
 interface DrawerDialogDemoProps {
   onAddRestaurant: (newRestaurant: any) => void;
+}
+
+/**
+ * Cover-photo field styled like the edit dialog: a framed rounded box that is a
+ * drop zone when empty, and shows the uploaded image with a hover "change"
+ * overlay once a photo is picked. Uploads to S3 and reports the file key up.
+ */
+function CoverPhotoField({
+  onUploaded,
+  changeLabel
+}: {
+  onUploaded: (fileKey: string) => void;
+  changeLabel: string;
+}) {
+  const [preview, setPreview] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const { getRootProps, getInputProps, open } = useDropzone({
+    accept: { "image/*": [".jpg", ".jpeg", ".png"] },
+    maxFiles: 1,
+    noClick: !!preview, // once we have a preview, only the overlay button opens the picker
+    onDrop: async (acceptedFiles: File[]) => {
+      const file = acceptedFiles[0];
+      if (!file) return;
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Fichier trop volumineux");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => setPreview(reader.result as string);
+      reader.readAsDataURL(file);
+      try {
+        setUploading(true);
+        const data = await uploadToS3(file);
+        if (!data?.file_key) {
+          toast.error("Merci de réessayer");
+          return;
+        }
+        onUploaded(data.file_key);
+        toast.success("Votre image a été transmise avec succès !");
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setUploading(false);
+      }
+    }
+  });
+
+  return (
+    <div
+      {...getRootProps({
+        className:
+          "group relative flex h-40 w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-muted/40 transition-colors hover:border-yellow-400/60 focus:outline-none"
+      })}
+    >
+      <input {...getInputProps()} />
+      {preview ? (
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+          <button
+            type="button"
+            title={changeLabel}
+            onClick={(e) => {
+              e.stopPropagation();
+              open();
+            }}
+            className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-medium text-white opacity-0 transition-opacity hover:bg-black/40 hover:opacity-100"
+          >
+            <Pencil className="h-4 w-4" /> {changeLabel}
+          </button>
+          {uploading ? (
+            <span className="absolute right-2 top-2 rounded-full bg-background/90 p-1.5">
+              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+            </span>
+          ) : null}
+        </>
+      ) : (
+        <div className="flex flex-col items-center gap-2 px-4 text-center text-sm text-muted-foreground">
+          {uploading ? (
+            <Loader2 className="h-5 w-5 animate-spin" />
+          ) : (
+            <Upload className="h-5 w-5" />
+          )}
+          <span>
+            Déposez votre image ici, ou cliquez pour sélectionner
+            <span className="block text-xs opacity-70">.jpg · .jpeg · .png</span>
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestaurant }) => {
@@ -84,7 +180,7 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
         {/* Cover photo — focal element at the top */}
         <div className="space-y-2">
           <Label>{t("restaurants.field.cover")}</Label>
-          <ImageUpload setFileKey={setFileKey} />
+          <CoverPhotoField onUploaded={setFileKey} changeLabel={t("plats.editPhoto")} />
         </div>
 
         {/* Essential info */}
