@@ -151,6 +151,12 @@ const fr: Dict = {
   "performances.empty.title": "Aucune donnée disponible..",
   "performances.empty.subtitle":
     "Créez votre premier restaurant pour pouvoir visualiser vos performances..",
+  "performances.heading": "Vos performances",
+  "performances.subheading":
+    "Un aperçu de votre activité sur les 30 derniers jours.",
+  "performances.group.overview": "Vue d'ensemble",
+  "performances.group.orders": "Commandes",
+  "performances.group.charts": "Graphiques",
   "performances.kpi.scans": "Scans",
   "performances.kpi.scansDesc": "Total des scans sur la période",
   "performances.kpi.reviews": "Avis",
@@ -664,6 +670,11 @@ const ar: Dict = {
   "performances.empty.title": "لا توجد بيانات متاحة..",
   "performances.empty.subtitle":
     "أنشئ مطعمك الأول لتتمكن من عرض أدائك..",
+  "performances.heading": "أداؤك",
+  "performances.subheading": "نظرة على نشاطك خلال آخر 30 يومًا.",
+  "performances.group.overview": "نظرة عامة",
+  "performances.group.orders": "الطلبات",
+  "performances.group.charts": "الرسوم البيانية",
   "performances.kpi.scans": "المسحات",
   "performances.kpi.scansDesc": "إجمالي المسحات خلال الفترة",
   "performances.kpi.reviews": "التقييمات",
@@ -1162,6 +1173,11 @@ const en: Dict = {
   "performances.empty.title": "No data available..",
   "performances.empty.subtitle":
     "Create your first restaurant to view your performance..",
+  "performances.heading": "Your performance",
+  "performances.subheading": "A look at your activity over the last 30 days.",
+  "performances.group.overview": "Overview",
+  "performances.group.orders": "Orders",
+  "performances.group.charts": "Charts",
   "performances.kpi.scans": "Scans",
   "performances.kpi.scansDesc": "Total scans over the period",
   "performances.kpi.reviews": "Reviews",

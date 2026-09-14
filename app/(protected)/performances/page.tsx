@@ -385,9 +385,18 @@ export default function PerformancesPage() {
           <p className="mt-2">{t("performances.empty.subtitle")}</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* Restaurant selector */}
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-10">
+          {/* Editorial header: serif title + subtitle on the left, the
+              restaurant selector aligned right (asymmetric), hairline below. */}
+          <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+                {t("performances.heading")}
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {t("performances.subheading")}
+              </p>
+            </div>
             <Select value={shopId} onValueChange={setShopId}>
               <SelectTrigger className="w-full sm:w-[260px]">
                 <SelectValue placeholder={t("common.chooseRestaurant")} />
@@ -404,7 +413,11 @@ export default function PerformancesPage() {
             </Select>
           </div>
 
-          {/* KPI cards */}
+          {/* Overview KPIs */}
+          <div className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+              {t("performances.group.overview")}
+            </p>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <KpiCard
               title={t("performances.kpi.scans")}
@@ -438,9 +451,14 @@ export default function PerformancesPage() {
               }
             />
           </div>
+          </div>
 
           {/* Order KPIs (FEAT-1) — only when ordering is enabled for this shop */}
           {orderMetrics?.orderingEnabled ? (
+            <div className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+                {t("performances.group.orders")}
+              </p>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <KpiCard
                 title={t("performances.kpi.orders")}
@@ -471,6 +489,7 @@ export default function PerformancesPage() {
                 description={t("performances.kpi.splitDesc")}
               />
             </div>
+            </div>
           ) : null}
 
           {/* Order revenue chart (FEAT-1) */}
@@ -482,9 +501,14 @@ export default function PerformancesPage() {
           ) : null}
 
           {/* Charts */}
-          <div className="grid gap-4 lg:grid-cols-2">
-            <BarGraph data={bargraphData} />
-            <AreaGraph data={areagraphData} />
+          <div className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+              {t("performances.group.charts")}
+            </p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <BarGraph data={bargraphData} />
+              <AreaGraph data={areagraphData} />
+            </div>
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             <PieGraph data={piegraphData} />

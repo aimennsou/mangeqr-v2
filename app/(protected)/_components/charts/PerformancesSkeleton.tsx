@@ -8,26 +8,35 @@ import { Skeleton } from "@/components/ui/skeleton";
  */
 export default function PerformancesSkeleton() {
   return (
-    <div className="space-y-4">
-      {/* Restaurant selector */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-10">
+      {/* Editorial header: title + subtitle left, selector right */}
+      <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-9 w-56" />
+          <Skeleton className="h-4 w-72" />
+        </div>
         <Skeleton className="h-10 w-full sm:w-[260px]" />
       </div>
 
-      {/* KPI cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-5 w-5 rounded-md" />
-            </CardHeader>
-            <CardContent>
-              <Skeleton className="h-8 w-24" />
-              <Skeleton className="mt-2 h-3 w-32" />
-            </CardContent>
-          </Card>
-        ))}
+      {/* Overview KPIs */}
+      <div className="space-y-4">
+        <Skeleton className="h-3 w-28" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Card key={i} className="rounded-xl shadow-none">
+              <CardContent className="flex flex-col gap-4 p-5">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-8 w-8 rounded-lg" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
 
       {/* Bar + Area charts */}
