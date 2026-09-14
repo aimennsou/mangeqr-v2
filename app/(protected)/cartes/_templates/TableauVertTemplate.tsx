@@ -21,10 +21,15 @@ import type { PhysicalMenuData, PhysicalMenuCategory } from "./types";
 // never sits alone at a page bottom, and dish lists still flow between dishes
 // for very long categories.
 
-const ACCENT = "#c5d92d"; // yellow-green accent (name, prices, ribbons)
-const ACCENT_DARK = "#8a9a1f"; // darker green used for the ribbon "fold"
-const BOARD = "#242a26"; // near-black slate board
-const RIBBON_TEXT = "#1f2530"; // dark text sits readably on the light-green
+// Paper-first palette (was a dark board; dark backgrounds don't print when the
+// browser's "background graphics" option is off).
+// Paper-first palette. Ink text everywhere so it stays legible even when the
+// browser prints WITHOUT background graphics (the common default).
+const ACCENT = "#7fa06a"; // sage-green ribbon fill (dark ink reads on it)
+const ACCENT_DARK = "#5c7d49"; // darker green used for the ribbon "fold"
+const BOARD = "#f4f2e9"; // warm paper
+const INK = "#26302a"; // near-black ink text
+const RIBBON_TEXT = "#20301a"; // dark ink on the sage ribbon (safe if band drops)
 
 const SCRIPT = '"Brush Script MT", "Segoe Script", cursive';
 const SANS =
@@ -71,13 +76,13 @@ function RibbonBanner({
           display: "inline-block",
           background: ACCENT,
           color: RIBBON_TEXT,
+          border: `1px solid ${ACCENT_DARK}`,
           fontFamily: SANS,
           fontSize: 15,
           fontWeight: 700,
           letterSpacing: 2,
           textTransform: "uppercase",
           padding: "5px 18px",
-          boxShadow: "0 2px 0 rgba(0,0,0,0.35)",
           whiteSpace: "nowrap",
         }}
       >
@@ -113,7 +118,7 @@ function DishList({ cat, currencySymbol }: { cat: PhysicalMenuCategory; currency
                 fontSize: 14,
                 fontWeight: 600,
                 letterSpacing: 0.5,
-                color: "#f5f5f4",
+                color: INK,
               }}
             >
               {dish.name}
@@ -121,7 +126,7 @@ function DishList({ cat, currencySymbol }: { cat: PhysicalMenuCategory; currency
             <span
               style={{
                 flex: 1,
-                borderBottom: "1px dotted #6b7280",
+                borderBottom: "1px dotted #bcae90",
                 margin: "0 4px 4px",
               }}
             />
@@ -130,7 +135,7 @@ function DishList({ cat, currencySymbol }: { cat: PhysicalMenuCategory; currency
                 fontFamily: SANS,
                 fontSize: 14,
                 fontWeight: 700,
-                color: ACCENT,
+                color: ACCENT_DARK,
                 whiteSpace: "nowrap",
               }}
             >
@@ -143,14 +148,14 @@ function DishList({ cat, currencySymbol }: { cat: PhysicalMenuCategory; currency
                 margin: "1px 0 0",
                 fontSize: 11.5,
                 lineHeight: 1.35,
-                color: "#c0c4c0",
+                color: "#5f6a58",
               }}
             >
               {dish.description}
             </p>
           ) : null}
           {dish.allergenes && dish.allergenes.length > 0 ? (
-            <p style={{ margin: "2px 0 0", fontSize: 10, color: "#9ca3af" }}>
+            <p style={{ margin: "2px 0 0", fontSize: 10, color: "#8a927f" }}>
               {dish.allergenes.join(" · ")}
             </p>
           ) : null}
@@ -171,10 +176,8 @@ export function TableauVertTemplate({ data }: { data: PhysicalMenuData }) {
     <div
       className="menu-sheet"
       style={{
-        background:
-          "radial-gradient(circle at 18% 15%, rgba(255,255,255,0.05), transparent 38%), radial-gradient(circle at 82% 55%, rgba(255,255,255,0.055), transparent 34%), radial-gradient(circle at 50% 90%, rgba(255,255,255,0.04), transparent 40%), " +
-          BOARD,
-        color: "#f5f5f4",
+        background: BOARD,
+        color: INK,
         fontFamily: SANS,
         width: "100%",
         maxWidth: "210mm",
@@ -192,14 +195,14 @@ export function TableauVertTemplate({ data }: { data: PhysicalMenuData }) {
             alignItems: "center",
             justifyContent: "center",
             gap: 10,
-            color: "#e7e5e4",
+            color: "#6f7a68",
           }}
         >
-          <span style={{ width: 26, height: 1, background: "#9ca3af" }} />
-          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#9ca3af" }} />
+          <span style={{ width: 26, height: 1, background: "#9caf8f" }} />
+          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#9caf8f" }} />
           <span style={{ fontFamily: SCRIPT, fontSize: 26, lineHeight: 1 }}>Menu</span>
-          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#9ca3af" }} />
-          <span style={{ width: 26, height: 1, background: "#9ca3af" }} />
+          <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#9caf8f" }} />
+          <span style={{ width: 26, height: 1, background: "#9caf8f" }} />
         </div>
 
         {/* Restaurant name: big, bold, UPPERCASE, accent green */}
@@ -211,7 +214,7 @@ export function TableauVertTemplate({ data }: { data: PhysicalMenuData }) {
             fontWeight: 700,
             letterSpacing: 4,
             textTransform: "uppercase",
-            color: ACCENT,
+            color: ACCENT_DARK,
             lineHeight: 1.05,
           }}
         >
@@ -225,7 +228,7 @@ export function TableauVertTemplate({ data }: { data: PhysicalMenuData }) {
             fontSize: 13,
             letterSpacing: 3,
             textTransform: "uppercase",
-            color: "#f5f5f4",
+            color: INK,
           }}
         >
           {data.menuName}
@@ -243,11 +246,11 @@ export function TableauVertTemplate({ data }: { data: PhysicalMenuData }) {
             margin: "14px auto 0",
           }}
         >
-          <span style={{ width: 48, height: 1, background: ACCENT }} />
+          <span style={{ width: 48, height: 1, background: ACCENT_DARK }} />
           <span
             style={{
-              border: `1px solid ${ACCENT}`,
-              color: ACCENT,
+              border: `1px solid ${ACCENT_DARK}`,
+              color: ACCENT_DARK,
               fontSize: 10,
               letterSpacing: 4,
               textTransform: "uppercase",
@@ -256,7 +259,7 @@ export function TableauVertTemplate({ data }: { data: PhysicalMenuData }) {
           >
             Bon Appétit
           </span>
-          <span style={{ width: 48, height: 1, background: ACCENT }} />
+          <span style={{ width: 48, height: 1, background: ACCENT_DARK }} />
         </div>
       </header>
 
@@ -286,7 +289,7 @@ export function TableauVertTemplate({ data }: { data: PhysicalMenuData }) {
                 <RibbonBanner label={left.name} fold="right" />
                 {right ? (
                   <>
-                    <span style={{ borderTop: "2px dotted #6b7280", height: 0 }} />
+                    <span style={{ borderTop: "2px dotted #bcae90", height: 0 }} />
                     <RibbonBanner label={right.name} fold="left" />
                   </>
                 ) : null}
@@ -317,7 +320,7 @@ export function TableauVertTemplate({ data }: { data: PhysicalMenuData }) {
             marginTop: 28,
             textAlign: "center",
             fontSize: 11,
-            color: "#a8a29e",
+            color: "#6f7a68",
             letterSpacing: 1,
           }}
         >

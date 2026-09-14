@@ -26,21 +26,31 @@ export function BistroTemplate({ data }: { data: PhysicalMenuData }) {
       }}
     >
       {/* Red ribbon header */}
+      {/* Header — ink on cream so it prints reliably; the rustic bistro
+          identity comes from the deep-red small-caps title, a gold double rule,
+          and the gold-framed content below (no full color band that vanishes
+          when print backgrounds are off). */}
       <header
         style={{
-          background: "#8c2f2f",
-          color: "#faf6ee",
           textAlign: "center",
-          padding: "26px 40px",
-          borderBottom: "6px double #d8b26e",
+          padding: "10mm 40px 0",
         }}
       >
-        <h1 style={{ margin: 0, fontSize: 32, letterSpacing: 2, fontVariant: "small-caps" }}>
+        <h1
+          style={{
+            margin: 0,
+            fontSize: 34,
+            letterSpacing: 2,
+            fontVariant: "small-caps",
+            color: "#8c2f2f",
+          }}
+        >
           {data.restaurantName}
         </h1>
-        <p style={{ margin: "6px 0 0", fontStyle: "italic", color: "#f3dfae", fontSize: 14 }}>
+        <p style={{ margin: "6px 0 0", fontStyle: "italic", color: "#8a6d3b", fontSize: 14 }}>
           {data.menuName}
         </p>
+        <div style={{ margin: "14px auto 0", maxWidth: 220, borderBottom: "5px double #b98a3e" }} />
       </header>
 
       {/* Framed content */}
@@ -68,7 +78,6 @@ export function BistroTemplate({ data }: { data: PhysicalMenuData }) {
                   breakAfter: "avoid",
                 }}
               >
-                {cat.logo ? `${cat.logo} ` : ""}
                 {cat.name}
               </h2>
               <div

@@ -88,7 +88,6 @@ export function ElegantDoreTemplate({ data }: { data: PhysicalMenuData }) {
               breakAfter: "avoid",
             }}
           >
-            {cat.logo ? `${cat.logo} ` : ""}
             {cat.name}
           </h2>
           <div

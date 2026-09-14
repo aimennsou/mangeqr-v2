@@ -27,12 +27,13 @@ export function ModerneTemplate({ data }: { data: PhysicalMenuData }) {
         boxSizing: "border-box",
       }}
     >
-      {/* Header band */}
+      {/* Header — ink on paper (prints reliably with or without background
+          graphics). A bold amber accent bar under the title carries the modern
+          identity without a full dark band that vanishes when print backgrounds
+          are off. */}
       <header
         style={{
-          background: "#111827",
-          color: "#fff",
-          padding: "30px 12mm",
+          padding: "10mm 12mm 0",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "flex-end",
@@ -40,20 +41,20 @@ export function ModerneTemplate({ data }: { data: PhysicalMenuData }) {
         }}
       >
         <div>
-          <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "#facc15", marginBottom: 6 }}>
+          <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "#b8860b", marginBottom: 6 }}>
             {data.menuName}
           </div>
-          <h1 style={{ fontSize: 36, margin: 0, fontWeight: 800, letterSpacing: -1 }}>
+          <h1 style={{ fontSize: 36, margin: 0, fontWeight: 800, letterSpacing: -1, color: "#111827" }}>
             {data.restaurantName}
           </h1>
         </div>
-        <div style={{ textAlign: "right", fontSize: 11, color: "#cbd5e1", lineHeight: 1.6 }}>
+        <div style={{ textAlign: "right", fontSize: 11, color: "#6b7280", lineHeight: 1.6 }}>
           {data.address ? <div>{data.address}</div> : null}
           {data.phone ? <div>{data.phone}</div> : null}
           {data.website ? <div>{data.website}</div> : null}
         </div>
       </header>
-      <div style={{ height: 4, background: "#facc15" }} />
+      <div style={{ height: 4, background: "#facc15", margin: "10px 12mm 0", borderRadius: 2 }} />
 
       {/* Categories: print-safe two-column grid. */}
       <main
@@ -86,7 +87,6 @@ export function ModerneTemplate({ data }: { data: PhysicalMenuData }) {
                 breakAfter: "avoid",
               }}
             >
-              {cat.logo ? `${cat.logo} ` : ""}
               {cat.name}
             </h2>
 

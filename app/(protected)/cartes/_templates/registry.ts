@@ -17,13 +17,13 @@ export const MENU_TEMPLATES: MenuTemplate[] = [
   {
     id: "moderne",
     label: "Moderne",
-    description: "Bandeau sombre, accents jaunes, deux colonnes.",
+    description: "Sans-serif épuré, accent ambre, deux colonnes.",
     Component: ModerneTemplate,
   },
   {
     id: "ardoise",
-    label: "Ardoise",
-    description: "Ambiance bistrot : fond ardoise, écriture craie, deux colonnes.",
+    label: "Bistrot",
+    description: "Papier crème, titre manuscrit, bandeaux ambre, deux colonnes.",
     Component: ArdoiseTemplate,
   },
   {
@@ -40,8 +40,8 @@ export const MENU_TEMPLATES: MenuTemplate[] = [
   },
   {
     id: "tableau-vert",
-    label: "Tableau Vert",
-    description: "Ardoise sombre, bandeaux verts pliés, en-tête script — style brasserie.",
+    label: "Brasserie Verte",
+    description: "Papier crème, bandeaux verts pliés, en-tête script, deux colonnes.",
     Component: TableauVertTemplate,
   },
 ];
