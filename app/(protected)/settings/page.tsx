@@ -154,15 +154,27 @@ export default async function SettingsPage() {
 
       {/* One white section wrapping the whole account page (like performances). */}
       <Card className="rounded-lg border-none mt-6">
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-6 space-y-8">
+
+      {/* Editorial header */}
+      <div className="border-b border-border pb-6">
+        <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+          {t("nav.account")}
+        </h2>
+        <p className="mt-1.5 text-sm text-muted-foreground">
+          {t("account.subheading")}
+        </p>
+      </div>
 
       {/* Profil : pleine largeur en haut */}
       <div>
         {/* Résumé du profil */}
-        <Card className="rounded-lg">
+        <Card className="rounded-xl border-border shadow-none">
           <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400/15 text-yellow-600 dark:text-yellow-500">
+                <ShieldCheck className="h-5 w-5" />
+              </span>
               <h3 className="text-lg md:text-xl font-semibold">{t("account.profile")}</h3>
             </div>
           </CardHeader>
@@ -217,10 +229,12 @@ export default async function SettingsPage() {
         />
 
         {/* Section de mise à jour du profil */}
-        <Card className="rounded-lg">
+        <Card className="rounded-xl border-border shadow-none">
           <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <UserCog className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400/15 text-yellow-600 dark:text-yellow-500">
+                <UserCog className="h-5 w-5" />
+              </span>
               <h3 className="text-lg md:text-xl font-semibold">{t("account.profileSettings")}</h3>
             </div>
           </CardHeader>
@@ -230,10 +244,12 @@ export default async function SettingsPage() {
         </Card>
 
         {/* Section de mise à jour du mot de passe */}
-        <Card className="rounded-lg">
+        <Card className="rounded-xl border-border shadow-none">
           <CardHeader className="pb-3">
-            <div className="flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-muted-foreground" />
+            <div className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400/15 text-yellow-600 dark:text-yellow-500">
+                <KeyRound className="h-5 w-5" />
+              </span>
               <h3 className="text-lg md:text-xl font-semibold">{t("account.updatePassword")}</h3>
             </div>
           </CardHeader>

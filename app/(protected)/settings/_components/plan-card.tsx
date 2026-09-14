@@ -103,10 +103,12 @@ export default function PlanCard({
   const limits = getPlanLimits(effectivePlan);
 
   return (
-    <Card className="rounded-lg">
+    <Card className="rounded-xl border-border shadow-none">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <CreditCard className="h-5 w-5 text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400/15 text-yellow-600 dark:text-yellow-500">
+            <CreditCard className="h-5 w-5" />
+          </span>
           <h3 className="text-lg md:text-xl font-semibold">Mon abonnement</h3>
         </div>
       </CardHeader>
@@ -114,8 +116,8 @@ export default function PlanCard({
         {/* Type de plan + statut */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-sm text-muted-foreground">Plan souscrit</p>
-            <p className="text-2xl font-bold">{PLAN_LABELS[subscribedPlan]}</p>
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">Plan souscrit</p>
+            <p className="font-serif-display text-3xl font-medium tracking-tight text-foreground">{PLAN_LABELS[subscribedPlan]}</p>
             {expired ? (
               <p className="mt-1 text-xs text-muted-foreground">
                 Accès limité au plan Starter

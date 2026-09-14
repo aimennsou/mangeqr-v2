@@ -155,10 +155,12 @@ export default function PrinterSettingsCard() {
   };
 
   return (
-    <Card className="rounded-lg">
+    <Card className="rounded-xl border-border shadow-none">
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
-          <Printer className="h-5 w-5 text-muted-foreground" />
+        <div className="flex items-center gap-3">
+          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400/15 text-yellow-600 dark:text-yellow-500">
+            <Printer className="h-5 w-5" />
+          </span>
           <h3 className="text-lg md:text-xl font-semibold">
             {t('printer.title')}
           </h3>
