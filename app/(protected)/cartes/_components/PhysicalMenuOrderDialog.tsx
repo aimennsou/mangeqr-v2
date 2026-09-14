@@ -2,7 +2,22 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
-import { Check, ShoppingCart } from 'lucide-react';
+import {
+  Check,
+  BookOpen,
+  FileText,
+  Layers,
+  ShoppingCart,
+  type LucideIcon,
+} from 'lucide-react';
+
+// Real lucide icons per printed format (never emoji). Keyed by product id for
+// clear distinctions: A4 sheet / laminated / booklet.
+const PRODUCT_ICON: Record<string, LucideIcon> = {
+  'printed-menu-a4': FileText,
+  'laminated-menu': Layers,
+  'menu-booklet': BookOpen,
+};
 
 import {
   Dialog,
@@ -144,6 +159,7 @@ export default function PhysicalMenuOrderDialog({
             <div className="grid gap-2 sm:grid-cols-3">
               {PHYSICAL_MENU_PRODUCTS.map((p) => {
                 const active = p.id === productId;
+                const Icon = PRODUCT_ICON[p.id] ?? FileText;
                 return (
                   <button
                     key={p.id}
@@ -151,10 +167,10 @@ export default function PhysicalMenuOrderDialog({
                     onClick={() => setProductId(p.id)}
                     aria-pressed={active}
                     className={cn(
-                      'relative rounded-lg border p-3 text-left transition-all',
+                      'relative rounded-xl border p-3 text-left transition-colors',
                       active
                         ? 'border-yellow-400 ring-2 ring-yellow-400/40'
-                        : 'hover:border-yellow-400/60'
+                        : 'border-border hover:border-yellow-400/60'
                     )}
                   >
                     {active && (
@@ -162,11 +178,13 @@ export default function PhysicalMenuOrderDialog({
                         <Check className="h-3 w-3" />
                       </span>
                     )}
-                    <div className="text-2xl">{p.accents.join(' ')}</div>
-                    <p className="mt-1 text-sm font-semibold leading-tight">
+                    <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-yellow-400/15 text-yellow-600 dark:text-yellow-500">
+                      <Icon className="h-5 w-5" strokeWidth={1.75} />
+                    </span>
+                    <p className="mt-3 text-sm font-semibold leading-tight">
                       {p.name}
                     </p>
-                    <p className="mt-1 text-[11px] text-yellow-600">{p.price}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{p.price}</p>
                   </button>
                 );
               })}

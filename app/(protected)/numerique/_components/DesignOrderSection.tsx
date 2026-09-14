@@ -72,11 +72,6 @@ function DesignPreview({ product }: { product: DesignProduct }) {
           />
         ))}
       </div>
-      <div className="flex items-center gap-2 text-lg">
-        {product.accents.map((a, i) => (
-          <span key={i}>{a}</span>
-        ))}
-      </div>
       <span className="text-[10px] opacity-80">Scannez le QR code</span>
     </div>
   );
