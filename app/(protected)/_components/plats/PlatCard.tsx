@@ -12,9 +12,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { GripVertical, Trash, CopyPlus, Pencil, Loader2, ListPlus } from "lucide-react";
+import { GripVertical, Trash, CopyPlus, Pencil, ListPlus } from "lucide-react";
 import { toast } from "sonner";
-import { getS3Url, uploadToS3 } from "@/lib/s3";
+import { getS3Url } from "@/lib/s3";
+import CoverImageUpload from "@/components/CoverImageUpload";
 import { useOrderingEnabled } from "@/hooks/use-workspace-role";
 import { DishAddonsDialog } from "./DishAddonsDialog";
 import { useI18n } from "@/lib/i18n";
@@ -74,7 +75,6 @@ const DishCard: React.FC<DishCardProps> = ({
   // one. `editPhotoUrl` is the resolved display URL (empty for the local
   // placeholder fallback).
   const [editPhotoKey, setEditPhotoKey] = useState<string | null>(photoValue ?? null);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Resolve a display URL for a dish image source: real S3 keys (`uploads/...`)
   // go through getS3Url, while a local placeholder path is used as-is.
@@ -148,32 +148,6 @@ const DishCard: React.FC<DishCardProps> = ({
     setEditPhotoKey(photoValue ?? null);
     setEditOpen(true);
     onEdit?.(id);
-  };
-
-  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Fichier trop volumineux");
-      return;
-    }
-    try {
-      setUploadingPhoto(true);
-      const { file_key } = await uploadToS3(file);
-      if (!file_key) {
-        toast.error("Merci de réessayer");
-        return;
-      }
-      setEditPhotoKey(file_key);
-      toast.success(t("common.imageUploaded"));
-    } catch (error) {
-      console.error("Error uploading dish photo", error);
-      toast.error(t("common.imageUploadError"));
-    } finally {
-      setUploadingPhoto(false);
-      // Allow re-selecting the same file.
-      e.target.value = "";
-    }
   };
 
   const handleSaveEdit = async () => {
@@ -332,41 +306,12 @@ const DishCard: React.FC<DishCardProps> = ({
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
               <Label>{t("plats.field.photo")}</Label>
-              <div className="relative w-full">
-                {editPhotoUrl ? (
-                  <img
-                    src={editPhotoUrl}
-                    alt={editName || name}
-                    className="w-full h-40 object-cover rounded-md border"
-                  />
-                ) : (
-                  <div className="flex h-40 w-full items-center justify-center rounded-md border bg-muted/50 text-sm text-muted-foreground">
-                    {t("plats.noPhoto")}
-                  </div>
-                )}
-                <Button
-                  size="icon"
-                  type="button"
-                  title={t("plats.editPhoto")}
-                  aria-label={t("plats.editPhoto")}
-                  disabled={uploadingPhoto}
-                  onClick={() => document.getElementById(`dish-photo-${id}`)?.click()}
-                  className="absolute top-2 right-2 rounded-full bg-background/90 text-foreground shadow-none opacity-90 hover:bg-background hover:text-foreground"
-                >
-                  {uploadingPhoto ? (
-                    <Loader2 className="animate-spin" size={18} />
-                  ) : (
-                    <Pencil />
-                  )}
-                </Button>
-                <input
-                  type="file"
-                  id={`dish-photo-${id}`}
-                  accept="image/*"
-                  onChange={handlePhotoChange}
-                  className="hidden"
-                />
-              </div>
+              <CoverImageUpload
+                initialUrl={editPhotoUrl || null}
+                onUploaded={setEditPhotoKey}
+                changeLabel={t("plats.editPhoto")}
+                emptyLabel={t("upload.hint")}
+              />
             </div>
             <div className="grid gap-2">
               <Label htmlFor={`dish-name-${id}`}>{t("plats.field.name")}</Label>

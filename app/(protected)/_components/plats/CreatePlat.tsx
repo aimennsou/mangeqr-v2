@@ -18,7 +18,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
-import ImageUpload from "@/components/ImageUpload";
+import CoverImageUpload from "@/components/CoverImageUpload";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
@@ -198,7 +198,11 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
 
             <div className="flex gap-2 flex-col">
               <Label>{t("plats.field.photo")}</Label>
-              <ImageUpload setFileKey={setFileKey} />
+              <CoverImageUpload
+                onUploaded={setFileKey}
+                changeLabel={t("plats.editPhoto")}
+                emptyLabel={t("upload.hint")}
+              />
             </div>
 
             <Button

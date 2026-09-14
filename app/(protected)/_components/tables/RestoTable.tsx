@@ -38,7 +38,7 @@ import {
   } from "@tanstack/react-table";
 
   import { useEffect, useState } from "react";
-  import { getS3Url, uploadToS3 } from "@/lib/s3";
+  import { getS3Url } from "@/lib/s3";
   import {
     Dialog, DialogContent, DialogDescription, DialogHeader,
     DialogTitle, DialogTrigger
@@ -52,6 +52,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Restaurant } from "@/types";
+import CoverImageUpload from "@/components/CoverImageUpload";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 
@@ -262,22 +263,6 @@ import { useI18n } from "@/lib/i18n";
               setEditData((prevState) => ({ ...prevState, [name]: value }));
             };
         
-            const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                try {
-                  const { file_key, file_name } = await uploadToS3(file);
-                  setNewPhoto(getS3Url(file_key));
-                  setEditData((prevData) => ({ ...prevData, coverPhoto: file_key }));
-                   toast.success(t("common.imageUploaded"));
-                } catch (error) {
-                  console.error("Error uploading file: ", error);
-                  toast.error(t("common.imageUploadError"));
-
-                }
-              }
-            };
-        
             const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               e.preventDefault();
               setIsSubmitting(true);
@@ -336,34 +321,14 @@ import { useI18n } from "@/lib/i18n";
             {/* Cover photo — focal element at the top */}
             <div className="space-y-2">
               <Label>{t("restaurants.field.cover")}</Label>
-              <div className="group relative overflow-hidden rounded-xl border border-border">
-                {newPhoto ? (
-                  <img
-                    src={newPhoto as string}
-                    alt="Preview"
-                    className="h-40 w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-40 w-full items-center justify-center bg-muted text-sm text-muted-foreground">
-                    {t("restaurants.field.cover")}
-                  </div>
-                )}
-                <button
-                  type="button"
-                  title={t("plats.editPhoto")}
-                  onClick={() => document.getElementById("fileInput")?.click()}
-                  className="absolute inset-0 flex items-center justify-center gap-2 text-sm font-medium text-white opacity-0 transition-opacity hover:bg-black/40 hover:opacity-100"
-                >
-                  <Pencil className="h-4 w-4" /> {t("plats.editPhoto")}
-                </button>
-              </div>
-              <input
-                type="file"
-                id="fileInput"
-                name="coverPhoto"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="hidden"
+              <CoverImageUpload
+                initialUrl={(newPhoto as string) || null}
+                onUploaded={(fileKey) => {
+                  setNewPhoto(getS3Url(fileKey));
+                  setEditData((prev) => ({ ...prev, coverPhoto: fileKey }));
+                }}
+                changeLabel={t("plats.editPhoto")}
+                emptyLabel={t("upload.hint")}
               />
             </div>
 

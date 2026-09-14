@@ -58,6 +58,7 @@ const fr: Dict = {
   "common.copy": "Copier",
   "common.confirmDeleteTitle": "Êtes-vous absolument sûr ?",
   "common.imageUploaded": "Votre image a été transmise avec succès !",
+  "upload.hint": "Déposez une image ici, ou cliquez pour choisir",
   "common.imageUploadError": "Une erreur s'est produite lors de l'envoi du fichier.",
 
   // --- Diner-facing menu ---
@@ -596,6 +597,7 @@ const ar: Dict = {
   "common.copy": "نسخ",
   "common.confirmDeleteTitle": "هل أنت متأكد تماماً؟",
   "common.imageUploaded": "تم رفع صورتك بنجاح!",
+  "upload.hint": "أفلت صورة هنا، أو انقر للاختيار",
   "common.imageUploadError": "حدث خطأ أثناء رفع الملف.",
 
   "diner.leaveReview": "اترك تقييماً",
@@ -1117,6 +1119,7 @@ const en: Dict = {
   "common.copy": "Copy",
   "common.confirmDeleteTitle": "Are you absolutely sure?",
   "common.imageUploaded": "Your image was uploaded successfully!",
+  "upload.hint": "Drop an image here, or click to choose",
   "common.imageUploadError": "An error occurred while uploading the file.",
 
   "diner.leaveReview": "Leave a review",
