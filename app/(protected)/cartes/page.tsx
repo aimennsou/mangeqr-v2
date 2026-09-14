@@ -162,6 +162,12 @@ export default function PhysiquePage() {
         .menu-print-portal {
           display: none;
         }
+        /* On-screen: the template sheet fills the A4-proportioned preview box so
+           the owner sees the true full-page result (paper fill + spacing). */
+        .menu-preview-sheet .menu-sheet {
+          width: 100%;
+          min-height: 100%;
+        }
         @media print {
           /* Hide the whole app; show only the portaled menu. */
           body > *:not(.menu-print-portal) {
@@ -181,12 +187,15 @@ export default function PhysiquePage() {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
-          /* The printable root fills the @page content box (210mm - 24mm = 186mm).
-             It must NOT carry a fixed 210mm width or a forced min-height, otherwise
-             it overflows the printable area / leaves big blank bands. */
+          /* The printable root fills the full A4 page (edge to edge) so the
+             template's paper background covers the whole sheet instead of a
+             cream band at the top over white. With @page margin:0 the printable
+             box is the full 210x297mm; the sheet fills it and provides its own
+             inner padding. min-height fills the first page even for short menus
+             (no huge white expanse below); content still flows to more pages. */
           .menu-print-area .menu-sheet {
             width: 100% !important;
-            min-height: 0 !important;
+            min-height: 297mm !important;
             box-shadow: none !important;
           }
           /* Pagination rules (predictable, PDF-like cuts):
@@ -205,10 +214,12 @@ export default function PhysiquePage() {
         }
         @page {
           size: A4;
-          /* Equal margins on ALL sides -> symmetric, clean print borders.
-             Printable width = 210mm - 2*12mm = 186mm; a width:100% sheet fills
-             it exactly with no side clipping. */
-          margin: 12mm;
+          /* Zero page margin so the template's paper background bleeds to the
+             page edges (no white frame around the cream sheet). Each template
+             supplies its own inner padding (in mm). margin:0 also removes the
+             space Chrome reserves for its default header/footer, so the
+             localhost/URL/date chrome no longer prints. */
+          margin: 0;
         }
       `}</style>
 
@@ -337,7 +348,9 @@ export default function PhysiquePage() {
                     The template root uses width:100%/max-width:210mm, so here it
                     fills the 794px card, matching the printed content box. */}
                 <div className="overflow-auto rounded-xl border border-border bg-muted p-6">
-                  <div className="mx-auto w-full max-w-[794px] bg-white shadow-lg">
+                  {/* A4-proportioned sheet (794x1123px ≈ 210x297mm @96dpi) so
+                      the on-screen preview matches the printed full page. */}
+                  <div className="menu-preview-sheet mx-auto flex w-full max-w-[794px] overflow-hidden bg-white shadow-lg [aspect-ratio:210/297]">
                     <Template data={menuData} />
                   </div>
                 </div>
