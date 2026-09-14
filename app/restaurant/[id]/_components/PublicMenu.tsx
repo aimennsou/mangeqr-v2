@@ -4,16 +4,21 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import {
+  ChefHat,
+  Flame,
   Globe,
   Heart,
   Instagram,
+  Leaf,
   MapPin,
   Phone,
   Plus,
   ShoppingBag,
   Star,
+  Sun,
   Wifi,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { AddToCartDialog } from "./ordering/AddToCartDialog";
 import { CartSheet } from "./ordering/CartSheet";
@@ -471,16 +476,29 @@ export function PublicMenu({
         ) : (
           <div ref={categoriesRef}>
             {activeMenu.categories.map((category) => (
-              <section key={category.id} className="mt-6">
-                <h2
-                  data-category-id={category.id}
-                  className="flex items-center gap-2 text-lg font-semibold"
-                  style={styles.accent}
-                >
-                  {category.logo ? <span>{category.logo}</span> : null}
-                  {category.name}
-                </h2>
-                <div className="mt-3 space-y-3">
+              <section key={category.id} className="mt-8 first:mt-6">
+                <div className="mb-3 flex items-center gap-2.5">
+                  {category.logo ? (
+                    <span
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-lg"
+                      style={{ backgroundColor: theme.surface }}
+                    >
+                      {category.logo}
+                    </span>
+                  ) : null}
+                  <h2
+                    data-category-id={category.id}
+                    className="text-lg font-bold tracking-tight"
+                    style={styles.accent}
+                  >
+                    {category.name}
+                  </h2>
+                  <span
+                    className="h-px flex-1"
+                    style={{ backgroundColor: theme.border }}
+                  />
+                </div>
+                <div className="space-y-3">
                   {category.dishes.length === 0 ? (
                     <p className="text-sm" style={{ color: theme.muted }}>
                       {t("diner.emptyCategory")}
@@ -622,12 +640,12 @@ export function PublicMenu({
 // Fait maison). These are semantic accent chips independent of the owner theme.
 const TAG_STYLES: Record<
   DietTag["variant"],
-  { bg: string; fg: string; icon: string }
+  { bg: string; fg: string; icon: LucideIcon }
 > = {
-  veg: { bg: "rgba(34,197,94,0.14)", fg: "#15803d", icon: "🌱" },
-  home: { bg: "rgba(249,115,22,0.14)", fg: "#c2410c", icon: "🏠" },
-  spicy: { bg: "rgba(239,68,68,0.14)", fg: "#b91c1c", icon: "🌶️" },
-  season: { bg: "rgba(234,179,8,0.16)", fg: "#a16207", icon: "🍂" },
+  veg: { bg: "rgba(34,197,94,0.14)", fg: "#15803d", icon: Leaf },
+  home: { bg: "rgba(249,115,22,0.14)", fg: "#c2410c", icon: ChefHat },
+  spicy: { bg: "rgba(239,68,68,0.14)", fg: "#b91c1c", icon: Flame },
+  season: { bg: "rgba(234,179,8,0.16)", fg: "#a16207", icon: Sun },
 };
 
 function DishRow({
@@ -675,7 +693,7 @@ function DishRow({
           onOpen();
         }
       }}
-      className="w-full cursor-pointer rounded-2xl border p-3 text-left shadow-sm transition-shadow hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      className="w-full cursor-pointer rounded-2xl border p-3.5 text-left shadow-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
       style={{
         borderColor: theme.border,
         backgroundColor: theme.surface,
@@ -683,10 +701,10 @@ function DishRow({
         "--tw-ring-color": theme.accent,
       }}
     >
-      <div className="flex gap-3">
+      <div className="flex gap-3.5">
         {dish.photo ? (
           <div
-            className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl"
+            className="relative h-[72px] w-[72px] shrink-0 overflow-hidden rounded-xl"
             style={{ backgroundColor: theme.background }}
           >
             <Image
@@ -694,24 +712,33 @@ function DishRow({
               alt={dish.name}
               fill
               className="object-cover"
-              sizes="64px"
+              sizes="72px"
             />
           </div>
         ) : null}
 
         <div className="flex min-w-0 flex-1 flex-col">
           {/* Name + price */}
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-semibold leading-tight" style={{ color: theme.text }}>
+          <div className="flex items-start justify-between gap-3">
+            <h3
+              className="text-[15px] font-semibold leading-snug"
+              style={{ color: theme.text }}
+            >
               {dish.name}
             </h3>
-            <span className="whitespace-nowrap font-bold" style={{ color: theme.text }}>
+            <span
+              className="whitespace-nowrap text-[15px] font-bold tabular-nums"
+              style={{ color: theme.text }}
+            >
               {formatPrice(dish.price)} {currency}
             </span>
           </div>
 
           {dish.description ? (
-            <p className="mt-0.5 line-clamp-2 text-sm" style={{ color: theme.muted }}>
+            <p
+              className="mt-1 line-clamp-2 text-[13px] leading-relaxed"
+              style={{ color: theme.muted }}
+            >
               {dish.description}
             </p>
           ) : null}
@@ -721,13 +748,14 @@ function DishRow({
             <div className="mt-2 flex flex-wrap gap-1.5">
               {tags.map((tag, i) => {
                 const s = TAG_STYLES[tag.variant];
+                const TagIcon = s.icon;
                 return (
                   <span
                     key={`${tag.key}-${i}`}
-                    className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium"
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
                     style={{ backgroundColor: s.bg, color: s.fg }}
                   >
-                    <span aria-hidden>{s.icon}</span>
+                    <TagIcon className="h-3 w-3" aria-hidden />
                     {tagLabel(tag.key)}
                   </span>
                 );
@@ -756,7 +784,7 @@ function DishRow({
       ) : null}
 
       {/* Heart + count (bottom-left) and add-to-cart (bottom-right). */}
-      <div className="mt-2 flex items-center justify-between">
+      <div className="mt-3 flex items-center justify-between">
         <button
           type="button"
           aria-label={favoriteLabel}
@@ -786,7 +814,7 @@ function DishRow({
               e.stopPropagation();
               onAddToCart();
             }}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity hover:opacity-90"
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-transform hover:scale-105 active:scale-95"
             style={{ backgroundColor: theme.accent, color: theme.onAccent }}
           >
             <Plus className="h-4 w-4" />
