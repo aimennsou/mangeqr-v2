@@ -101,7 +101,7 @@ export function KitchenBoard() {
   return (
     <div
       ref={rootRef}
-      className="space-y-6 [&:fullscreen]:overflow-auto [&:fullscreen]:bg-background [&:fullscreen]:p-6"
+      className="fs-surface space-y-6"
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="grid w-full gap-2 sm:max-w-xs">

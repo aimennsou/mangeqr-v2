@@ -111,6 +111,23 @@
   font-family: var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Fullscreen board surface (Commandes / Cuisine / Plan de salle).
+   When a board element enters the Fullscreen API, the browser gives it a black
+   default backdrop. Paint the element AND its ::backdrop with the theme page
+   color so fullscreen matches the app instead of going black. The class is a
+   no-op until the element is actually the fullscreen element. */
+.fs-surface:fullscreen,
+.fs-surface:-webkit-full-screen {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  overflow: auto;
+  padding: 1.5rem;
+}
+.fs-surface:fullscreen::backdrop,
+.fs-surface:-webkit-full-screen::backdrop {
+  background-color: hsl(var(--background));
+}
+
 .text-gradient_indigo-purple {
   background: linear-gradient(90deg, #6366f1 0%, rgb(168 85 247 / 0.8) 100%);
   -webkit-background-clip: text;

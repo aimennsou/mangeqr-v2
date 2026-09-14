@@ -124,7 +124,7 @@ export function OrdersBoard() {
   return (
     <div
       ref={rootRef}
-      className="space-y-6 [&:fullscreen]:overflow-auto [&:fullscreen]:bg-background [&:fullscreen]:p-6"
+      className="fs-surface space-y-6"
     >
       {/* Controls */}
       <div className="flex flex-col gap-4 md:flex-row md:items-end">
