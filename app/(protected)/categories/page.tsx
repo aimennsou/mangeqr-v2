@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -153,6 +154,14 @@ export default function CategoriesPage() {
   const [selectedRestaurantId, setSelectedRestaurantId] = useState<string>("");
   const [selectedMenuId, setSelectedMenuId] = useState<string>("");
 
+  // Deep-link support: /categories?menuId=<id> preselects that menu (used by the
+  // Menus page "Gérer les catégories" action). We resolve its restaurant first,
+  // then select the menu once that restaurant's menus have loaded.
+  const searchParams = useSearchParams();
+  const [pendingMenuId, setPendingMenuId] = useState<string | null>(
+    searchParams.get("menuId")
+  );
+
   const [loading, setLoading] = useState(true);
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
   const [dishDialogCategoryId, setDishDialogCategoryId] = useState<string | null>(null);
@@ -202,6 +211,27 @@ export default function CategoriesPage() {
     fetchRestaurants();
   }, []);
 
+  // Resolve the restaurant that owns a deep-linked menu id, then select it.
+  useEffect(() => {
+    if (!pendingMenuId) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/menu");
+        const data = res.ok ? await res.json() : [];
+        const match = (Array.isArray(data) ? data : []).find(
+          (m: any) => m.id === pendingMenuId
+        );
+        if (match?.restaurantId) {
+          setSelectedRestaurantId(match.restaurantId);
+        } else {
+          setPendingMenuId(null); // unknown/foreign id — drop it
+        }
+      } catch {
+        setPendingMenuId(null);
+      }
+    })();
+  }, [pendingMenuId]);
+
   useEffect(() => {
     if (!selectedRestaurantId) {
       setMenus([]);
@@ -216,15 +246,25 @@ export default function CategoriesPage() {
           `/api/menu?restaurantId=${encodeURIComponent(selectedRestaurantId)}`
         );
         const data = response.ok ? await response.json() : [];
-        setMenus(Array.isArray(data) ? data : []);
+        const list = Array.isArray(data) ? data : [];
+        setMenus(list);
+
+        // Honor a deep-linked menu id once its menus have loaded; otherwise
+        // clear the selection (normal restaurant switch).
+        if (pendingMenuId && list.some((m: any) => m.id === pendingMenuId)) {
+          setSelectedMenuId(pendingMenuId);
+          setPendingMenuId(null);
+        } else {
+          setSelectedMenuId("");
+        }
       } catch (error) {
         console.error("Error fetching menus:", error);
         setMenus([]);
+        setSelectedMenuId("");
       }
     };
     fetchMenus();
-    setSelectedMenuId("");
-  }, [selectedRestaurantId]);
+  }, [selectedRestaurantId, pendingMenuId]);
 
   const fetchCategories = async () => {
     if (!selectedMenuId) {
@@ -667,7 +707,7 @@ export default function CategoriesPage() {
                                         {(dishHandleProps) => (
                                           <DishCard
                                             id={dish.id}
-                                            imageUrl={dish.photo || "/images/empty-menu.png"}
+                                            imageUrl={dish.photo || ""}
                                             name={dish.name}
                                             description={dish.description || ""}
                                             price={`${dish.price} ${symbol}`}
@@ -703,7 +743,7 @@ export default function CategoriesPage() {
                   {activeDish ? (
                     <DishCard
                       id={activeDish.id}
-                      imageUrl={activeDish.photo || "/images/empty-menu.png"}
+                      imageUrl={activeDish.photo || ""}
                       name={activeDish.name}
                       description={activeDish.description || ""}
                       price={`${activeDish.price} ${symbol}`}

@@ -22,15 +22,26 @@ import type { TranslationKey } from "@/lib/i18n/dictionaries";
 
 interface DrawerDialogDemoProps {
   onAddMenu: (newMenu: any) => void;
-
+  /**
+   * When provided, the menu is created for this restaurant and the restaurant
+   * selector is hidden (used by the card-based Menus page where the restaurant
+   * is chosen at the top of the page).
+   */
+  defaultRestaurantId?: string;
 }
 
-const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) => {
+const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu, defaultRestaurantId }) => {
   const { t } = useI18n();
   const [name, setName] = useState("");
-  const [restaurantId, setShopId] = useState("");
+  const [restaurantId, setShopId] = useState(defaultRestaurantId ?? "");
   const [availability, setAvailability] = useState<string[]>([]);
   const [shops, setShops] = useState<{ id: string; name: string }[]>([]);
+
+  // Keep the internal restaurant id in sync when the page-level selection
+  // changes (the dialog may be mounted before the user switches restaurants).
+  useEffect(() => {
+    if (defaultRestaurantId) setShopId(defaultRestaurantId);
+  }, [defaultRestaurantId]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -94,6 +105,9 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
   };
 
   useEffect(() => {
+    // When a default restaurant is provided the selector is hidden, so we don't
+    // need to load the restaurant list.
+    if (defaultRestaurantId) return;
     const fetchShops = async () => {
       try {
         const response = await fetch("/api/magasin");
@@ -112,7 +126,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
     };
 
     fetchShops();
-  }, []);
+  }, [defaultRestaurantId]);
 
   return (
     <div className="sm:max-w-md rounded-lg overflow-hidden ">
@@ -130,37 +144,47 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu }) =>
             />
           </div>
 
-          <Label htmlFor="restaurant">{t("common.restaurant")}</Label>
-          <Select onValueChange={(value) => setShopId(value)}>
-            <SelectTrigger>
-              <SelectValue
-                className="text-foreground"
-                placeholder={t("common.chooseRestaurant")}
-              />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {shops.map((restaurant) => (
-                  <SelectItem key={restaurant.id} value={restaurant.id}>
-                    {restaurant.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          {defaultRestaurantId ? null : (
+            <>
+              <Label htmlFor="restaurant">{t("common.restaurant")}</Label>
+              <Select onValueChange={(value) => setShopId(value)}>
+                <SelectTrigger>
+                  <SelectValue
+                    className="text-foreground"
+                    placeholder={t("common.chooseRestaurant")}
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {shops.map((restaurant) => (
+                      <SelectItem key={restaurant.id} value={restaurant.id}>
+                        {restaurant.name}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </>
+          )}
 
           <Label htmlFor="availability">{t("menus.field.availability")}</Label>
           <ToggleGroup
             size="lg"
             type="multiple"
-            className="grid grid-cols-3"
+            className="grid grid-cols-3 gap-2"
+            value={availability}
             onValueChange={(values) => setAvailability(values)}
           >
             {/* Value stays the French weekday (stored in DB); only the label is
                 translated so availability data remains consistent. */}
             {["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"].map(
               (day) => (
-                <ToggleGroupItem key={day} value={day} aria-label={`Toggle ${day}`}>
+                <ToggleGroupItem
+                  key={day}
+                  value={day}
+                  aria-label={`Toggle ${day}`}
+                  className="border border-border bg-transparent text-muted-foreground hover:bg-muted data-[state=on]:border-green-500 data-[state=on]:bg-green-100 data-[state=on]:text-green-700 data-[state=on]:hover:bg-green-200 dark:data-[state=on]:border-green-700 dark:data-[state=on]:bg-green-900/40 dark:data-[state=on]:text-green-400"
+                >
                   {t(`common.days.${day}` as TranslationKey)}
                 </ToggleGroupItem>
               )
