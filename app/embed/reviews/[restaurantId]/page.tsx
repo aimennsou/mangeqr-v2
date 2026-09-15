@@ -34,12 +34,12 @@ export default async function ReviewsBadgePage({
   );
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-transparent p-3">
+    <div className="bg-transparent p-1">
       <a
         href={appUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="block w-full max-w-[320px] rounded-xl border bg-white p-4 shadow-sm no-underline transition-shadow hover:shadow-md"
+        className="block rounded-xl border bg-white p-4 shadow-sm no-underline transition-shadow hover:shadow-md"
       >
         <div className="flex items-center justify-between">
           <span className="text-sm font-semibold text-zinc-800">

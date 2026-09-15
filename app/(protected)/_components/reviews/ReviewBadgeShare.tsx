@@ -38,7 +38,7 @@ export function ReviewBadgeShare({
   const iframeSnippet = useMemo(
     () =>
       badgeUrl
-        ? `<iframe src="${badgeUrl}" width="340" height="160" frameborder="0" style="border:0;overflow:hidden" title="Avis MangeQR"></iframe>`
+        ? `<iframe src="${badgeUrl}" width="340" height="128" frameborder="0" scrolling="no" style="border:0;overflow:hidden" title="Avis MangeQR"></iframe>`
         : "",
     [badgeUrl]
   );
@@ -111,15 +111,20 @@ export function ReviewBadgeShare({
         {/* Live preview */}
         <div className="grid gap-2">
           <Label>Aperçu</Label>
-          <div className="flex items-center justify-center rounded-xl border border-border bg-muted/30 p-3">
+          <div className="flex items-center justify-center rounded-xl bg-muted/30 p-6">
             {badgeUrl ? (
               <iframe
                 key={badgeUrl}
                 src={badgeUrl}
-                width={340}
-                height={160}
                 frameBorder={0}
-                style={{ border: 0, overflow: "hidden" }}
+                scrolling="no"
+                style={{
+                  border: 0,
+                  overflow: "hidden",
+                  width: 340,
+                  height: 128,
+                  colorScheme: "light",
+                }}
                 title="Aperçu du badge d'avis"
               />
             ) : (
