@@ -21,3 +21,26 @@ export function currencySymbol(currency?: string | null): string {
       return "€";
   }
 }
+
+/**
+ * Maps a restaurant currency enum value (EURO | DOLLAR | DINAR) to its ISO-style
+ * three-letter code, used for the suffix on price inputs.
+ *
+ * - EURO   -> "EUR"
+ * - DOLLAR -> "USD"
+ * - DINAR  -> "DZD"
+ *
+ * Falls back to "EUR" for unknown/undefined values.
+ */
+export function currencyCode(currency?: string | null): string {
+  switch (currency) {
+    case "EURO":
+      return "EUR";
+    case "DOLLAR":
+      return "USD";
+    case "DINAR":
+      return "DZD";
+    default:
+      return "EUR";
+  }
+}

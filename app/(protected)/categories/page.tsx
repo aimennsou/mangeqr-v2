@@ -640,6 +640,7 @@ export default function CategoriesPage() {
                                       categories={categoryOptions}
                                       fixedCategoryId={category.id}
                                       onAddDish={handleAddDish}
+                                      currency={selectedRestaurant?.currency}
                                     />
                                   </DialogContent>
                                 </Dialog>

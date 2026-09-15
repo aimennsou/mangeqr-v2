@@ -22,6 +22,7 @@ import CoverImageUpload from "@/components/CoverImageUpload";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
+import { currencySymbol, currencyCode } from "@/lib/currency";
 
 interface CreatePlatProps {
   categories: { id: string; name: string }[];
@@ -31,9 +32,14 @@ interface CreatePlatProps {
    * selector is hidden (used by the per-category "Ajouter un plat" button).
    */
   fixedCategoryId?: string;
+  /**
+   * The restaurant's currency (EURO | DOLLAR | DINAR). Drives the price field's
+   * symbol/code so the form matches the restaurant's configured currency.
+   */
+  currency?: string | null;
 }
 
-const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCategoryId }) => {
+const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCategoryId, currency }) => {
   const { t } = useI18n();
   const [selectedCategory, setSelectedCategory] = useState(fixedCategoryId ?? "");
   const [dishName, setDishName] = useState("");
@@ -139,17 +145,17 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
               <Label htmlFor="input-16">{t("plats.field.price")}</Label>
               <div className="relative flex">
                 <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-sm text-muted-foreground">
-                  €
+                  {currencySymbol(currency)}
                 </span>
                 <Input
                   type="number"
                   value={dishPrice}
                   onChange={(e) => setDishPrice(parseFloat(e.target.value) || 0)}
-                  className="-me-px rounded-e-none ps-6 shadow-none"
+                  className="-me-px rounded-e-none ps-8 shadow-none"
                   placeholder="0.00"
                 />
                 <span className="inline-flex items-center rounded-e-lg border border-input bg-background px-3 text-sm text-muted-foreground">
-                  EUR
+                  {currencyCode(currency)}
                 </span>
               </div>
             </div>
