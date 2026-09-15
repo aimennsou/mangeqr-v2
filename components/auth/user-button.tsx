@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { FaUser } from 'react-icons/fa';
+import { LogOut, UserCog } from 'lucide-react';
 
 import {
   DropdownMenu,
@@ -46,12 +47,16 @@ export function UserButton() {
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
           <DropdownMenuItem className='cursor-pointer' asChild>
-            <Link href='/settings'>Parametres</Link>
+            <Link href='/settings'>
+              <UserCog className='mr-2 h-4 w-4' />
+              Mon compte
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <SignOutButton>
           <DropdownMenuItem className='cursor-pointer'>
+            <LogOut className='mr-2 h-4 w-4' />
             Déconnexion
           </DropdownMenuItem>
         </SignOutButton>

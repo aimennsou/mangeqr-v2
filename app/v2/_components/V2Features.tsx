@@ -4,9 +4,7 @@ import {
   BatteryCharging,
   EyeOff,
   Gauge,
-  MessageSquare,
   PhoneOff,
-  Send,
   Wand2,
   type LucideIcon
 } from 'lucide-react';
@@ -18,11 +16,6 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
     icon: Wand2,
     title: 'Personnalisez votre menu',
     body: 'Créez une carte qui vous ressemble grâce à des options de personnalisation avancées.'
-  },
-  {
-    icon: Send,
-    title: 'Lancez des campagnes',
-    body: 'Créez et envoyez des campagnes marketing ciblées pour atteindre vos clients.'
   },
   {
     icon: BatteryCharging,
@@ -43,11 +36,6 @@ const FEATURES: { icon: LucideIcon; title: string; body: string }[] = [
     icon: Angry,
     title: 'Gérez votre réputation',
     body: 'Mettez en avant les avis positifs et soignez votre image en ligne.'
-  },
-  {
-    icon: MessageSquare,
-    title: 'Recontactez et fidélisez',
-    body: 'Envoyez des messages personnalisés pour inciter vos clients à revenir.'
   },
   {
     icon: Award,
