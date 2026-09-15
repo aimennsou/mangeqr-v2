@@ -104,16 +104,34 @@ export default function V2Pricing() {
                   </Link>
 
                   <ul className="mt-8 space-y-3 border-t border-border pt-6">
-                    {tier.features.slice(0, 8).map((feat) => (
-                      <li key={feat} className="flex gap-3 text-sm">
-                        <Check
-                          className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500"
-                          strokeWidth={2.25}
-                        />
-                        <span className="text-foreground/90">{feat}</span>
-                      </li>
-                    ))}
+                    {tier.features
+                      .filter((f) => !f.startsWith('Module gestion de commande'))
+                      .slice(0, 7)
+                      .map((feat) => (
+                        <li key={feat} className="flex gap-3 text-sm">
+                          <Check
+                            className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500"
+                            strokeWidth={2.25}
+                          />
+                          <span className="text-foreground/90">{feat}</span>
+                        </li>
+                      ))}
                   </ul>
+
+                  {/* Optional add-on: the ordering module, available on every
+                      plan for +5€/mois. */}
+                  <div className="mt-6 rounded-xl border border-dashed border-yellow-400/60 bg-yellow-400/5 p-3">
+                    <p className="text-xs font-semibold text-foreground">
+                      + Module gestion de commande sur place + livraison{' '}
+                      <span className="text-yellow-600 dark:text-yellow-500">
+                        +5€/mois
+                      </span>
+                    </p>
+                    <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                      Plan de salle, vue cuisine et caisse (POS) avec impression
+                      de tickets.
+                    </p>
+                  </div>
                 </article>
               </Reveal>
             );

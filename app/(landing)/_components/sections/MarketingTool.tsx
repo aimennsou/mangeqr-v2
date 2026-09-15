@@ -92,7 +92,7 @@ export default function MarketingTool() {
               href="/auth/sign-up"
               className="group inline-flex items-center gap-2 rounded-full bg-yellow-400 px-8 py-4 text-lg font-bold text-black shadow-lg shadow-yellow-400/30 transition-transform hover:scale-[1.03]"
             >
-              Créez votre première carte — gratuitement
+              Créez votre première carte
               <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>

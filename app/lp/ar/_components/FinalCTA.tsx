@@ -12,7 +12,7 @@ export function FinalCTA() {
           أطلق قائمتك الرقمية اليوم، وابدأ في كسب زبائن جدد ووقتٍ ثمين.
         </p>
         <div className="mt-8 flex justify-center">
-          <CTA>ابدأ الآن مجانًا</CTA>
+          <CTA>ابدأ الآن</CTA>
         </div>
         <p className="mt-4 text-sm text-neutral-400">
           بدون بطاقة بنكية · الإعداد في 5 دقائق · إلغاء في أي وقت

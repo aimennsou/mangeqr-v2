@@ -253,8 +253,8 @@ export async function countDesignOrders({
 // Monthly reference price per paid plan (EUR), used for a rough MRR estimate.
 // Mirrors the marketing TIERS; annual subs are counted at their monthly-equivalent.
 const PLAN_MONTHLY_EUR: Record<'PRO' | 'PREMIUM', number> = {
-  PRO: 35,
-  PREMIUM: 49
+  PRO: 24,
+  PREMIUM: 37
 };
 
 export interface SuperadminMetrics {

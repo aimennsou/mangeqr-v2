@@ -70,7 +70,7 @@ export default function V2GoogleMaps() {
       <Reveal delay={0.1}>
         <div className="mt-14 flex justify-center">
           <V2Button href="/auth/sign-up">
-            Connecter à Google Maps — gratuit
+            Connecter à Google Maps
           </V2Button>
         </div>
       </Reveal>

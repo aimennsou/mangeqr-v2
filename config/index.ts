@@ -16,8 +16,8 @@ export const TIERS: PricingTier[] = [
     id: "starter",
     title: "Starter",
     price: {
-      mensuel: "10€",
-      annuel: "100€", // Ajoutez un prix annuel si applicable
+      mensuel: "12€",
+      annuel: "120€",
     },
     description: "Une solution idéale pour les petits établissements souhaitant démarrer leur digitalisation de manière simple et efficace.",
     features: [
@@ -33,6 +33,7 @@ export const TIERS: PricingTier[] = [
       "Plats avec photos",
       "Synchronisation automatique",
       "+2€ par table pour la livraison des QR codes personnalisés menus",
+      "Module gestion de commande sur place + livraison (+5€/mois) : plan de salle, vue cuisine & caisse (POS) avec impression de tickets",
       "Assistance incluse",
     ],
     cta: "Contactez-nous",
@@ -41,8 +42,8 @@ export const TIERS: PricingTier[] = [
     id: "pro",
     title: "Pro",
     price: {
-      mensuel: "35€",
-      annuel: "350€", // Ajoutez un prix annuel si applicable
+      mensuel: "24€",
+      annuel: "240€",
     },
     description: "Une solution parfaite pour les établissements multi-sites cherchant une gestion centralisée et optimisée.",
     features: [
@@ -58,6 +59,7 @@ export const TIERS: PricingTier[] = [
       "Plats avec photos",
       "Synchronisation automatique",
       "+2€ par table pour la livraison des QR codes personnalisés menus",
+      "Module gestion de commande sur place + livraison (+5€/mois) : plan de salle, vue cuisine & caisse (POS) avec impression de tickets",
       "Assistance incluse",
     ],
     cta: "Contactez-nous",
@@ -67,8 +69,8 @@ export const TIERS: PricingTier[] = [
     id: "premium",
     title: "Premium",
     price: {
-      mensuel: "49€",
-      annuel: "490€", // Ajoutez un prix annuel si applicable
+      mensuel: "37€",
+      annuel: "370€",
     },
     description: "Une solution complète et avancée pour les grandes structures multi-sites avec des équipes étendues.",
     features: [
@@ -86,6 +88,7 @@ export const TIERS: PricingTier[] = [
       "Livraison des menus gratuite",
       "Suppression du logo",
       "Conception personnalisée de QR code",
+      "Module gestion de commande sur place + livraison (+5€/mois) : plan de salle, vue cuisine & caisse (POS) avec impression de tickets",
       "Assistance incluse",
     ],
     cta: "Contactez-nous",
