@@ -35,6 +35,9 @@ import CopyIdButton from "./_components/copy-id-button";
 import TeamSection from "./_components/team-section";
 import TeamMemberCard from "./_components/team-member-card";
 import PrinterSettingsCard from "./_components/printer-settings-card";
+import SupportCard from "./_components/support-card";
+import SupportTickets from "./_components/support-tickets";
+import { listSupportTicketsForUser } from "@/data/support";
 
 /** Build the copyable redeem link for an invite code (mirrors actions/team). */
 function buildRedeemLink(code: string): string {
@@ -84,6 +87,11 @@ export default async function SettingsPage() {
         db.marketingCampaign.count({ where: { restaurant: { userId } } })
       ])
     : [0, 0, 0];
+
+  // The signed-in user's own support tickets (history + conversation).
+  const supportTickets = userId
+    ? await listSupportTicketsForUser(userId)
+    : [];
 
   // Contexte d'espace de travail (mangeqr-team) : propriétaire vs. membre.
   // Le propriétaire voit la gestion d'équipe ; le membre voit une carte en
@@ -277,6 +285,54 @@ export default async function SettingsPage() {
             <PrinterSettingsCard />
           </div>
         ) : null}
+
+        {/* In-app support — lets any authenticated user send a message that
+            lands in the superadmin support inbox. Full width. */}
+        <SupportCard
+          title={t("account.support")}
+          description={t("account.supportDesc")}
+          defaultName={name}
+          defaultEmail={email}
+          labels={{
+            name: t("account.support.name"),
+            email: t("account.support.email"),
+            message: t("account.support.message"),
+            messagePlaceholder: t("account.support.messagePlaceholder"),
+            submit: t("account.support.submit"),
+            sending: t("account.support.sending")
+          }}
+        />
+
+        {/* Support history — the user's own tickets + conversation. */}
+        <SupportTickets
+          tickets={supportTickets.map((tk) => ({
+            id: tk.id,
+            name: tk.name,
+            email: tk.email,
+            message: tk.message,
+            status: tk.status,
+            createdAt: tk.createdAt.toISOString(),
+            updatedAt: tk.updatedAt.toISOString(),
+            replies: tk.replies.map((r) => ({
+              id: r.id,
+              authorRole: r.authorRole,
+              authorName: r.authorName,
+              body: r.body,
+              createdAt: r.createdAt.toISOString()
+            }))
+          }))}
+          labels={{
+            title: t("account.tickets.title"),
+            description: t("account.tickets.desc"),
+            empty: t("account.tickets.empty"),
+            replyPlaceholder: t("account.tickets.replyPlaceholder"),
+            reply: t("account.tickets.reply"),
+            closed: t("account.tickets.closed"),
+            statusNew: t("account.tickets.statusNew"),
+            statusRead: t("account.tickets.statusRead"),
+            statusResolved: t("account.tickets.statusResolved")
+          }}
+        />
       </div>
 
         </CardContent>

@@ -2,12 +2,13 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle2, Mail, MailOpen, Clock } from 'lucide-react';
+import { CheckCircle2, Mail, MailOpen, Clock, Send } from 'lucide-react';
 import { toast } from 'sonner';
 import type { SupportMessageStatus } from '@prisma/client';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Sheet,
   SheetContent,
@@ -16,7 +17,11 @@ import {
   SheetTitle
 } from '@/components/ui/sheet';
 import type { SuperadminSupportMessageRow } from '@/data/superadmin';
-import { superadminSetSupportStatus } from '@/actions/superadmin';
+import {
+  superadminSetSupportStatus,
+  superadminReplyToTicket
+} from '@/actions/superadmin';
+import SupportThread from '@/components/support/support-thread';
 import { cn } from '@/lib/utils';
 
 type Status = SupportMessageStatus;
@@ -73,6 +78,7 @@ export function SupportInbox({
   const [active, setActive] = useState<SuperadminSupportMessageRow | null>(
     null
   );
+  const [reply, setReply] = useState('');
 
   const visible =
     filter === 'ALL' ? messages : messages.filter((m) => m.status === filter);
@@ -92,8 +98,45 @@ export function SupportInbox({
 
   const openMessage = (m: SuperadminSupportMessageRow) => {
     setActive(m);
+    setReply('');
     // Auto-mark NEW → READ on open.
     if (m.status === 'NEW') setStatus(m.id, 'READ');
+  };
+
+  const sendReply = () => {
+    if (!active || reply.trim().length === 0) return;
+    startTransition(async () => {
+      const res = await superadminReplyToTicket({
+        ticketId: active.id,
+        body: reply.trim()
+      });
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(res.success ?? 'Réponse envoyée.');
+      setReply('');
+      router.refresh();
+      // Optimistically reflect the reply + READ status in the open sheet.
+      setActive((prev) =>
+        prev && prev.id === active.id
+          ? {
+              ...prev,
+              status: 'READ',
+              replies: [
+                ...prev.replies,
+                {
+                  id: `tmp-${Date.now()}`,
+                  authorRole: 'STAFF',
+                  authorName: 'Support MangeQR',
+                  body: reply.trim(),
+                  createdAt: new Date()
+                }
+              ]
+            }
+          : prev
+      );
+    });
   };
 
   return (
@@ -220,29 +263,56 @@ export function SupportInbox({
               </SheetHeader>
 
               <div className="flex-1 overflow-y-auto px-6 py-5">
-                <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">
-                  {active.message}
-                </p>
+                <SupportThread
+                  viewer="staff"
+                  opening={{
+                    name: active.name,
+                    body: active.message,
+                    createdAt: active.createdAt
+                  }}
+                  replies={active.replies}
+                />
               </div>
 
-              <div className="flex flex-wrap gap-2 border-t border-border px-6 py-4">
-                <Button
-                  variant="outline"
-                  className="flex-1"
-                  disabled={isPending || active.status === 'READ'}
-                  onClick={() => setStatus(active.id, 'READ')}
-                >
-                  <MailOpen className="mr-2 h-4 w-4" />
-                  Marquer lu
-                </Button>
-                <Button
-                  className="flex-1 bg-yellow-400 text-black hover:bg-yellow-400/90"
-                  disabled={isPending || active.status === 'RESOLVED'}
-                  onClick={() => setStatus(active.id, 'RESOLVED')}
-                >
-                  <CheckCircle2 className="mr-2 h-4 w-4" />
-                  Marquer traité
-                </Button>
+              <div className="space-y-3 border-t border-border px-6 py-4">
+                {/* Reply box */}
+                <div className="flex flex-col gap-2">
+                  <Textarea
+                    rows={3}
+                    value={reply}
+                    onChange={(e) => setReply(e.target.value)}
+                    placeholder="Répondre au client…"
+                    className="resize-none"
+                    disabled={isPending}
+                  />
+                  <Button
+                    className="self-end bg-yellow-400 text-black hover:bg-yellow-400/90"
+                    disabled={isPending || reply.trim().length === 0}
+                    onClick={sendReply}
+                  >
+                    <Send className="mr-2 h-4 w-4" /> Répondre
+                  </Button>
+                </div>
+                {/* Status controls */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    disabled={isPending || active.status === 'READ'}
+                    onClick={() => setStatus(active.id, 'READ')}
+                  >
+                    <MailOpen className="mr-2 h-4 w-4" />
+                    Marquer lu
+                  </Button>
+                  <Button
+                    className="flex-1 bg-emerald-600 text-white hover:bg-emerald-600/90"
+                    disabled={isPending || active.status === 'RESOLVED'}
+                    onClick={() => setStatus(active.id, 'RESOLVED')}
+                  >
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Marquer traité
+                  </Button>
+                </div>
               </div>
             </>
           ) : null}

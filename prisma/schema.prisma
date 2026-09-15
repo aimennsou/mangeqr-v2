@@ -59,6 +59,7 @@ model User {
   memberOf           Membership?  @relation("WorkspaceMember")
   invitationsCreated Invitation[] @relation("InvitationOwner")
   designOrders       DesignOrder[]
+  supportMessages    SupportMessage[]
 }
 
 model Membership {
@@ -321,25 +322,53 @@ model Newsletter {
   createdAt     DateTime      @default(now())
 }
 
-// Contact / support messages submitted from the landing contact form (and any
-// future in-app support form). Persisted so the SUPERADMIN can triage them in a
+// Contact / support messages submitted from the landing contact form (and the
+// in-app support form). Persisted so the SUPERADMIN can triage them in a
 // support inbox (email delivery via Resend still happens best-effort).
+//
+// Each row is a support TICKET/thread. In-app messages carry `userId` so the
+// author can see their own past tickets, their status, and the conversation
+// (replies). Landing (anonymous) contact messages have a null userId.
 enum SupportMessageStatus {
   NEW
   READ
   RESOLVED
 }
 
+// Who authored a reply in a support thread.
+enum SupportAuthorRole {
+  USER
+  STAFF
+}
+
 model SupportMessage {
   id        String               @id @default(uuid()) @db.Uuid
+  userId    String?              @db.Uuid
+  user      User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
   name      String
   email     String
   message   String
   status    SupportMessageStatus @default(NEW)
+  replies   SupportReply[]
   createdAt DateTime             @default(now())
   updatedAt DateTime             @updatedAt
 
   @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+// A message in a support thread (from the user or from support staff). The
+// original SupportMessage.message is the opening message; replies extend it.
+model SupportReply {
+  id            String            @id @default(uuid()) @db.Uuid
+  ticketId      String            @db.Uuid
+  ticket        SupportMessage    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorRole    SupportAuthorRole
+  authorName    String?
+  body          String
+  createdAt     DateTime          @default(now())
+
+  @@index([ticketId, createdAt])
 }
 
 // A restaurateur's request to have a physical QR-code design produced (poster,

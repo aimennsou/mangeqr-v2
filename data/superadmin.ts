@@ -407,15 +407,28 @@ export async function getSuperadminMetrics(): Promise<SuperadminMetrics> {
 // Support inbox
 // -----------------------------------------------------------------------------
 
-import type { SupportMessageStatus } from '@prisma/client';
+import type {
+  SupportMessageStatus,
+  SupportAuthorRole
+} from '@prisma/client';
+
+export interface SupportReplyRow {
+  id: string;
+  authorRole: SupportAuthorRole;
+  authorName: string | null;
+  body: string;
+  createdAt: Date;
+}
 
 export interface SuperadminSupportMessageRow {
   id: string;
+  userId: string | null;
   name: string;
   email: string;
   message: string;
   status: SupportMessageStatus;
   createdAt: Date;
+  replies: SupportReplyRow[];
 }
 
 interface ListSupportMessagesArgs {
@@ -462,11 +475,22 @@ export async function listSupportMessages({
       take,
       select: {
         id: true,
+        userId: true,
         name: true,
         email: true,
         message: true,
         status: true,
-        createdAt: true
+        createdAt: true,
+        replies: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            id: true,
+            authorRole: true,
+            authorName: true,
+            body: true,
+            createdAt: true
+          }
+        }
       }
     });
     return rows;

@@ -25,7 +25,8 @@ import {
   SuperadminCancelSubscriptionSchema,
   SuperadminSetSupportStatusSchema,
   SuperadminUpsertRestaurantSchema,
-  SuperadminDeleteRestaurantSchema
+  SuperadminDeleteRestaurantSchema,
+  SupportReplySchema
 } from '@/schemas';
 
 /**
@@ -545,6 +546,56 @@ export async function superadminUpsertRestaurant(
   } catch {
     return { error: 'Impossible d’enregistrer le restaurant.' };
   }
+}
+
+
+/**
+ * Post a STAFF reply to a support ticket and mark it READ (a staff answer means
+ * the team has handled it — the user can still reply, which flips it back to
+ * NEW). Superadmin-only.
+ */
+export async function superadminReplyToTicket(
+  values: z.infer<typeof SupportReplySchema>
+): Promise<ActionResult> {
+  if (!(await requireSuperadmin())) {
+    return FORBIDDEN;
+  }
+
+  const parsed = SupportReplySchema.safeParse(values);
+  if (!parsed.success) {
+    return INVALID;
+  }
+
+  const { ticketId, body } = parsed.data;
+
+  const ticket = await db.supportMessage.findUnique({
+    where: { id: ticketId },
+    select: { id: true }
+  });
+  if (!ticket) {
+    return { error: 'Message introuvable.' };
+  }
+
+  try {
+    await db.$transaction([
+      db.supportReply.create({
+        data: {
+          ticketId,
+          authorRole: 'STAFF',
+          authorName: 'Support MangeQR',
+          body
+        }
+      }),
+      db.supportMessage.update({
+        where: { id: ticketId },
+        data: { status: 'READ' }
+      })
+    ]);
+  } catch {
+    return { error: 'Impossible d’envoyer la réponse.' };
+  }
+
+  return { success: 'Réponse envoyée.' };
 }
 
 

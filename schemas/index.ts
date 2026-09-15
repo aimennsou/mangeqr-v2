@@ -322,6 +322,35 @@ export type SuperadminDeleteRestaurantValues = z.infer<
 >;
 
 /**
+ * In-app support message from an authenticated user. Name/email are prefilled
+ * from the session but editable; the message is required. Persisted to the
+ * SupportMessage table so it surfaces in the superadmin support inbox.
+ */
+export const SupportMessageSchema = z.object({
+  name: z.string().trim().min(1, { message: 'Nom requis.' }).max(120),
+  email: z.string().email({ message: 'Email invalide.' }),
+  message: z
+    .string()
+    .trim()
+    .min(5, { message: 'Votre message est trop court.' })
+    .max(4000, { message: 'Votre message est trop long.' })
+});
+
+export type SupportMessageValues = z.infer<typeof SupportMessageSchema>;
+
+/** A reply posted to an existing support ticket (by the user or by staff). */
+export const SupportReplySchema = z.object({
+  ticketId: z.string().uuid({ message: 'A valid ticket id is required.' }),
+  body: z
+    .string()
+    .trim()
+    .min(1, { message: 'Votre réponse est vide.' })
+    .max(4000, { message: 'Votre réponse est trop longue.' })
+});
+
+export type SupportReplyValues = z.infer<typeof SupportReplySchema>;
+
+/**
  * Update a design order's fulfillment status (FEAT-6). SUPERADMIN-only; the
  * status must be one of the DesignOrderStatus enum values.
  */
