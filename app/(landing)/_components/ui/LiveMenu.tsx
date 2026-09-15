@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
   ChefHat,
@@ -239,26 +239,65 @@ export default function LiveMenu() {
   const [tab, setTab] = useState<Tab>('Plats');
   const categories = MENU[tab];
 
+  // Scrollable body ref + the category currently at the top (sticky header).
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const [activeCategory, setActiveCategory] = useState<string>(
+    categories[0]?.title ?? ''
+  );
+
+  // Reset the active category when the tab changes.
+  useEffect(() => {
+    setActiveCategory(categories[0]?.title ?? '');
+  }, [tab, categories]);
+
+  // Track which category heading is at the top of the scroll container.
+  useEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const onScroll = () => {
+      const headings =
+        container.querySelectorAll<HTMLElement>('[data-cat-anchor]');
+      let current = categories[0]?.title ?? '';
+      const top = container.getBoundingClientRect().top;
+      headings.forEach((h) => {
+        if (h.getBoundingClientRect().top - top <= 8) {
+          current = h.dataset.catAnchor ?? current;
+        }
+      });
+      setActiveCategory(current);
+    };
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
+  }, [categories]);
+
+  const scrollToCategory = (title: string) => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const el = container.querySelector<HTMLElement>(
+      `[data-cat-anchor="${title}"]`
+    );
+    if (!el) return;
+    const top =
+      el.getBoundingClientRect().top -
+      container.getBoundingClientRect().top +
+      container.scrollTop -
+      4;
+    container.scrollTo({ top, behavior: 'smooth' });
+  };
+
   return (
     <div className="flex h-full flex-col bg-[#faf7f2] text-left">
-      {/* Top bar: status + logo + centered active tab title */}
+      {/* Top bar: status + centered active tab title (no logo — attribution
+          moved to a "Powered by" footer, mirroring the diner menu). */}
       <div className="bg-[#faf7f2] px-4 pb-1 pt-3">
         <div className="mb-1.5 flex items-center justify-between text-[11px] font-medium text-gray-500">
           <span>9:41</span>
           <span>●●●</span>
         </div>
         <div className="flex items-center gap-2">
-          <Image
-            src="/android-chrome-192x192.png"
-            alt="MangeQR"
-            width={32}
-            height={32}
-            className="h-8 w-8 rounded-xl"
-          />
           <p className="flex-1 text-center text-sm font-bold text-gray-900">
             {tab}
           </p>
-          <div className="h-8 w-8" aria-hidden />
         </div>
       </div>
 
@@ -314,20 +353,62 @@ export default function LiveMenu() {
       </div>
 
       {/* Scrollable menu body */}
-      <div className="mt-2 flex-1 space-y-3 overflow-y-auto px-3 pb-4">
-        {categories.map((cat) => (
-          <div key={cat.title} className="space-y-2">
-            <div className="flex items-center gap-2 px-1">
-              <p className="text-sm font-bold tracking-tight text-gray-900">
+      <div ref={scrollRef} className="relative mt-2 flex-1 overflow-y-auto pb-4">
+        {/* Sticky category chips — pinned at the top of the scroll body; shows
+            ALL categories, highlights the current one, tap any to jump. */}
+        <div className="sticky top-0 z-10 flex gap-1.5 overflow-x-auto bg-[#faf7f2]/90 px-3 py-1.5 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {categories.map((cat) => {
+            const isActive = cat.title === activeCategory;
+            return (
+              <button
+                key={cat.title}
+                type="button"
+                onClick={() => scrollToCategory(cat.title)}
+                className={cn(
+                  'shrink-0 whitespace-nowrap rounded-full px-2.5 py-0.5 text-[10px] font-semibold transition-colors',
+                  isActive
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-white text-gray-500 hover:bg-gray-100'
+                )}
+              >
                 {cat.title}
-              </p>
-              <span className="h-px flex-1 bg-gray-200" />
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="space-y-3 px-3">
+          {categories.map((cat) => (
+            <div key={cat.title} className="space-y-2">
+              <div
+                data-cat-anchor={cat.title}
+                className="flex scroll-mt-8 items-center gap-2 px-1"
+              >
+                <p className="text-sm font-bold tracking-tight text-gray-900">
+                  {cat.title}
+                </p>
+                <span className="h-px flex-1 bg-gray-200" />
+              </div>
+              {cat.items.map((item) => (
+                <ItemCard key={item.name} item={item} />
+              ))}
             </div>
-            {cat.items.map((item) => (
-              <ItemCard key={item.name} item={item} />
-            ))}
+          ))}
+
+          {/* Powered by MangeQR footer */}
+          <div className="pt-3 text-center">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-gray-400">
+              <Image
+                src="/android-chrome-192x192.png"
+                alt="MangeQR"
+                width={12}
+                height={12}
+                className="h-3 w-3 rounded"
+              />
+              Propulsé par MangeQR
+            </span>
           </div>
-        ))}
+        </div>
       </div>
     </div>
   );

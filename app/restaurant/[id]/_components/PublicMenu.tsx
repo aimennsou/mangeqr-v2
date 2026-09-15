@@ -238,6 +238,56 @@ export function PublicMenu({
     return () => observer.disconnect();
   }, [restaurantId, previewMode, track, activeMenu?.id]);
 
+  // Sticky-header tracking: keep `activeCategoryId` set to whichever category
+  // section currently occupies the top of the viewport, so the sticky bar shows
+  // the right title as the diner scrolls. Independent of impression tracking.
+  useEffect(() => {
+    const container = categoriesRef.current;
+    if (!container || typeof IntersectionObserver === "undefined") return;
+
+    const visible = new Map<string, number>(); // categoryId -> top offset
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          const el = entry.target as HTMLElement;
+          const id = el.dataset.categoryAnchor;
+          if (!id) continue;
+          if (entry.isIntersecting) {
+            visible.set(id, entry.boundingClientRect.top);
+          } else {
+            visible.delete(id);
+          }
+        }
+        if (visible.size === 0) return;
+        // The active category is the visible one closest to the top.
+        let topId: string | null = null;
+        let topY = Infinity;
+        visible.forEach((y, id) => {
+          if (y < topY) {
+            topY = y;
+            topId = id;
+          }
+        });
+        setActiveCategoryId(topId);
+      },
+      // A section counts as "at the top" once its body is near the sticky bars.
+      { rootMargin: "-120px 0px -60% 0px", threshold: 0 }
+    );
+
+    const sections = container.querySelectorAll<HTMLElement>(
+      "[data-category-anchor]"
+    );
+    sections.forEach((s) => observer.observe(s));
+
+    // Seed with the first category so the bar shows immediately.
+    if (activeMenu?.categories?.length) {
+      setActiveCategoryId(activeMenu.categories[0].id);
+    }
+
+    return () => observer.disconnect();
+  }, [activeMenu?.id, activeMenu?.categories?.length]);
+
   const openDishDetail = useCallback(
     (dish: Dish) => {
       setOpenDish(dish);
@@ -252,20 +302,60 @@ export function PublicMenu({
   const [favorited, setFavorited] = useState<Set<string>>(new Set());
   const toggleFavorite = useCallback(
     (dishId: string) => {
+      // Decide the change from current state, fire the tracking side-effect
+      // exactly once, THEN update state. Never call side-effects inside a state
+      // updater — React (Strict Mode) may invoke the updater twice, which was
+      // double-counting each favorite.
       setFavorited((prev) => {
+        const isAdding = !prev.has(dishId);
         const next = new Set(prev);
-        if (next.has(dishId)) {
-          next.delete(dishId);
-        } else {
-          next.add(dishId);
-          // Only count adding to favorites (not un-favoriting).
-          track({ type: "favorite", restaurantId, dishId });
-        }
+        if (isAdding) next.add(dishId);
+        else next.delete(dishId);
         return next;
       });
     },
-    [restaurantId, track]
+    []
   );
+
+  // Track a NEW favorite as a side-effect in the click handler (not the state
+  // updater). Guarded so re-favoriting an already-favorited dish doesn't fire.
+  const handleToggleFavorite = useCallback(
+    (dishId: string) => {
+      if (!favorited.has(dishId)) {
+        track({ type: "favorite", restaurantId, dishId });
+      }
+      toggleFavorite(dishId);
+    },
+    [favorited, restaurantId, track, toggleFavorite]
+  );
+
+  // Sticky category nav: `activeCategoryId` is whichever category is currently
+  // at the top of the viewport. The sticky bar shows ALL categories as chips so
+  // the diner can jump to any of them (forward or back); the active one is
+  // highlighted and auto-scrolled into view within the chip strip.
+  const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
+  const chipNavRef = useRef<HTMLDivElement | null>(null);
+
+  // Scroll the given category's heading to just below the sticky bars.
+  const scrollToCategory = useCallback((categoryId: string) => {
+    const el = document.querySelector<HTMLElement>(
+      `[data-category-anchor="${categoryId}"]`
+    );
+    if (!el) return;
+    // Offset for the sticky top bar + the sticky category bar (~112px).
+    const y = el.getBoundingClientRect().top + window.scrollY - 104;
+    window.scrollTo({ top: y, behavior: "smooth" });
+  }, []);
+
+  // Keep the active chip visible within the horizontal chip strip.
+  useEffect(() => {
+    if (!activeCategoryId) return;
+    const nav = chipNavRef.current;
+    const chip = nav?.querySelector<HTMLElement>(
+      `[data-chip="${activeCategoryId}"]`
+    );
+    chip?.scrollIntoView({ block: "nearest", inline: "center", behavior: "smooth" });
+  }, [activeCategoryId]);
 
   // Effective appearance: stored settings merged over the shared defaults, so
   // the diner menu applies the SAME field→style mapping the editor preview uses
@@ -290,13 +380,6 @@ export function PublicMenu({
         className="sticky top-0 z-20 flex items-center gap-2 px-4 py-3 backdrop-blur"
         style={{ backgroundColor: theme.background, borderColor: theme.border }}
       >
-        <Image
-          src="/android-chrome-192x192.png"
-          alt="MangeQR"
-          width={36}
-          height={36}
-          className="h-9 w-9 shrink-0 rounded-xl"
-        />
         <h1
           className="flex-1 truncate text-center text-lg font-bold"
           style={{ color: theme.text }}
@@ -463,6 +546,46 @@ export function PublicMenu({
         </div>
       ) : null}
 
+      {/* Sticky category nav: shows ALL categories as chips, pinned under the
+          top bar. The category currently in view is highlighted; tap any chip
+          to jump to that category's top (forward or back). */}
+      {activeMenu && activeMenu.categories.length > 0 ? (
+        <nav
+          ref={chipNavRef}
+          className="sticky top-[57px] z-10 flex gap-2 overflow-x-auto px-4 py-2.5 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          style={{
+            backgroundColor: theme.background,
+            borderBottom: `1px solid ${theme.border}`,
+          }}
+          aria-label={t("diner.categories")}
+        >
+          {activeMenu.categories.map((category) => {
+            const isActive = category.id === activeCategoryId;
+            return (
+              <button
+                key={category.id}
+                type="button"
+                data-chip={category.id}
+                onClick={() => scrollToCategory(category.id)}
+                className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-xs font-semibold transition-colors"
+                style={
+                  isActive
+                    ? { backgroundColor: theme.accent, color: theme.onAccent }
+                    : { backgroundColor: theme.surface, color: theme.muted }
+                }
+              >
+                {category.logo ? (
+                  <span aria-hidden className="text-sm leading-none">
+                    {category.logo}
+                  </span>
+                ) : null}
+                {category.name}
+              </button>
+            );
+          })}
+        </nav>
+      ) : null}
+
       {/* Menu content */}
       <main className="px-4">
         {menus.length === 0 ? (
@@ -476,7 +599,11 @@ export function PublicMenu({
         ) : (
           <div ref={categoriesRef}>
             {activeMenu.categories.map((category) => (
-              <section key={category.id} className="mt-8 first:mt-6">
+              <section
+                key={category.id}
+                data-category-anchor={category.id}
+                className="mt-8 scroll-mt-28 first:mt-6"
+              >
                 <div className="mb-3 flex items-center gap-2.5">
                   {category.logo ? (
                     <span
@@ -513,7 +640,7 @@ export function PublicMenu({
                         theme={theme}
                         onOpen={() => openDishDetail(dish)}
                         isFavorite={favorited.has(dish.id)}
-                        onToggleFavorite={() => toggleFavorite(dish.id)}
+                        onToggleFavorite={() => handleToggleFavorite(dish.id)}
                         favoriteLabel={t("diner.favorite")}
                         orderingEnabled={orderingEnabled}
                         onAddToCart={() => openAddToCart(dish)}
@@ -533,6 +660,27 @@ export function PublicMenu({
         <section className="mt-8">
           <ReviewWidget restaurantId={restaurantId} googleLink={google} theme={theme} />
         </section>
+
+        {/* Powered by MangeQR — subtle attribution footer at the bottom of the
+            diner menu (replaces the top logo). */}
+        <footer className="mt-10 pb-6 pt-4 text-center">
+          <a
+            href="https://www.mangeqr.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 text-xs font-medium transition-opacity hover:opacity-80"
+            style={{ color: theme.muted }}
+          >
+            <Image
+              src="/android-chrome-192x192.png"
+              alt="MangeQR"
+              width={16}
+              height={16}
+              className="h-4 w-4 rounded"
+            />
+            {t("diner.poweredBy")}
+          </a>
+        </footer>
       </main>
 
       {/* P2 — Dish detail view. Themed from the owner's appearance (not app
