@@ -1,5 +1,12 @@
 import * as z from 'zod';
-import { Plan, PlanPaymentMethod, DesignOrderStatus } from '@prisma/client';
+import {
+  Plan,
+  PlanPaymentMethod,
+  DesignOrderStatus,
+  UserRole,
+  SupportMessageStatus,
+  Currency
+} from '@prisma/client';
 
 export const SignInSchema = z.object({
   email: z.string().email({
@@ -236,6 +243,82 @@ export const SuperadminSetOrderingEnabledSchema = z.object({
 
 export type SuperadminSetOrderingEnabledValues = z.infer<
   typeof SuperadminSetOrderingEnabledSchema
+>;
+
+/**
+ * SUPERADMIN creates a user account directly (bypassing self-service sign-up
+ * and email verification). Optionally ties the new user to an existing OWNER as
+ * a team MEMBER, bypassing the invitation flow. Role defaults to USER.
+ */
+export const SuperadminCreateUserSchema = z.object({
+  name: z.string().trim().min(1, { message: 'Nom requis.' }).max(120),
+  email: z.string().email({ message: 'Email invalide.' }),
+  password: z.string().min(8, { message: 'Mot de passe : 8 caractères min.' }),
+  role: z.enum([UserRole.USER, UserRole.ADMIN, UserRole.SUPERADMIN]).default(UserRole.USER),
+  /** When set, create a Membership tying this user (MEMBER) to this owner. */
+  ownerUserId: z.string().uuid().nullable().optional()
+});
+
+export type SuperadminCreateUserValues = z.infer<
+  typeof SuperadminCreateUserSchema
+>;
+
+/** SUPERADMIN cancels a user's ONLINE (Stripe) subscription at period end. */
+export const SuperadminCancelSubscriptionSchema = z.object({
+  userId: z.string().uuid({ message: 'A valid user id is required.' })
+});
+
+export type SuperadminCancelSubscriptionValues = z.infer<
+  typeof SuperadminCancelSubscriptionSchema
+>;
+
+/** SUPERADMIN updates a support message's triage status. */
+export const SuperadminSetSupportStatusSchema = z.object({
+  id: z.string().uuid({ message: 'A valid id is required.' }),
+  status: z.enum([
+    SupportMessageStatus.NEW,
+    SupportMessageStatus.READ,
+    SupportMessageStatus.RESOLVED
+  ])
+});
+
+export type SuperadminSetSupportStatusValues = z.infer<
+  typeof SuperadminSetSupportStatusSchema
+>;
+
+/**
+ * SUPERADMIN creates/updates a restaurant on behalf of any user. On create,
+ * `id` is omitted and `ownerUserId` is required; on update, `id` is required
+ * and `ownerUserId` is ignored (ownership is not reassigned). Subdomain is
+ * validated/normalized in the action.
+ */
+export const SuperadminUpsertRestaurantSchema = z.object({
+  id: z.string().uuid().optional(),
+  ownerUserId: z.string().uuid().optional(),
+  name: z.string().trim().min(1, { message: 'Nom requis.' }).max(160),
+  address: z.string().trim().min(1, { message: 'Adresse requise.' }).max(300),
+  phone: z.string().trim().min(1, { message: 'Téléphone requis.' }).max(60),
+  currency: z.nativeEnum(Currency).default(Currency.EURO),
+  subdomain: z.string().trim().optional(),
+  coverPhoto: z.string().trim().optional(),
+  wifi: z.string().trim().optional().nullable(),
+  website: z.string().trim().optional().nullable(),
+  instagram: z.string().trim().optional().nullable(),
+  tiktok: z.string().trim().optional().nullable(),
+  google: z.string().trim().optional().nullable()
+});
+
+export type SuperadminUpsertRestaurantValues = z.infer<
+  typeof SuperadminUpsertRestaurantSchema
+>;
+
+/** SUPERADMIN deletes a restaurant (any owner) by id. */
+export const SuperadminDeleteRestaurantSchema = z.object({
+  id: z.string().uuid({ message: 'A valid id is required.' })
+});
+
+export type SuperadminDeleteRestaurantValues = z.infer<
+  typeof SuperadminDeleteRestaurantSchema
 >;
 
 /**

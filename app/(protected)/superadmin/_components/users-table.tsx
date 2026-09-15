@@ -9,7 +9,8 @@ import {
   Loader2,
   Search,
   Trash2,
-  CreditCard
+  CreditCard,
+  XCircle
 } from 'lucide-react';
 import { Plan, PlanPaymentMethod, UserRole } from '@prisma/client';
 
@@ -56,7 +57,8 @@ import {
   superadminSetUserPlan,
   superadminSetSuspended,
   superadminDeleteUser,
-  superadminSetOrderingEnabled
+  superadminSetOrderingEnabled,
+  superadminCancelSubscription
 } from '@/actions/superadmin';
 
 interface UsersTableProps {
@@ -108,6 +110,11 @@ export function UsersTable({
 
   // Delete confirm state.
   const [deleteTarget, setDeleteTarget] = useState<SuperadminUserRow | null>(
+    null
+  );
+
+  // Cancel-online-subscription confirm state.
+  const [cancelTarget, setCancelTarget] = useState<SuperadminUserRow | null>(
     null
   );
 
@@ -264,6 +271,22 @@ export function UsersTable({
     });
   };
 
+  // ---- Cancel online (Stripe) subscription ----
+  const confirmCancelSubscription = () => {
+    if (!cancelTarget) return;
+    const target = cancelTarget;
+    startTransition(async () => {
+      const result = await superadminCancelSubscription({ userId: target.id });
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+      toast.success(result?.success ?? 'Abonnement annulé.');
+      setCancelTarget(null);
+      refresh();
+    });
+  };
+
   // ---- Delete ----
   const confirmDelete = () => {
     if (!deleteTarget) return;
@@ -346,10 +369,18 @@ export function UsersTable({
                         <span className="text-sm text-foreground">
                           {user.plan}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
                           {user.planPaymentMethod === PlanPaymentMethod.CASH
                             ? 'Espèces'
                             : 'En ligne'}
+                          {user.stripeSubscriptionId ? (
+                            <Badge
+                              variant="outline"
+                              className="ml-1 border-yellow-400/60 text-[10px] font-normal text-yellow-600 dark:text-yellow-500"
+                            >
+                              Stripe
+                            </Badge>
+                          ) : null}
                         </span>
                       </div>
                     </TableCell>
@@ -387,6 +418,17 @@ export function UsersTable({
                           <CreditCard className="mr-1 h-4 w-4" />
                           Abonnement
                         </Button>
+                        {user.stripeSubscriptionId ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => setCancelTarget(user)}
+                          >
+                            <XCircle className="mr-1 h-4 w-4" />
+                            Annuler en ligne
+                          </Button>
+                        ) : null}
                         <Button
                           variant={user.suspended ? 'secondary' : 'outline'}
                           size="sm"
@@ -553,6 +595,41 @@ export function UsersTable({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Cancel online subscription confirm */}
+      <AlertDialog
+        open={cancelTarget !== null}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Annuler l&apos;abonnement en ligne ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              L&apos;abonnement Stripe de{' '}
+              <span className="font-medium text-foreground">
+                {cancelTarget?.email ?? cancelTarget?.name ?? ''}
+              </span>{' '}
+              sera annulé à la fin de la période en cours. Le compte conserve son
+              accès jusqu&apos;à son expiration.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isPending}>Retour</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                confirmCancelSubscription();
+              }}
+              disabled={isPending}
+            >
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmer l&apos;annulation
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Delete confirm */}
       <AlertDialog
