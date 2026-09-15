@@ -317,6 +317,18 @@ export function getMenuList(
       }))
       .filter((group) => group.menus.length > 0);
 
+  // SUPERADMIN accounts are platform operators, not restaurateurs: they only
+  // use the Administration console, so hide all the owner-facing groups
+  // (dashboard, activity, clientele, personnalisations, settings) and show just
+  // the Administration group. UX only — routes stay guarded server-side.
+  if (appRole === "SUPERADMIN") {
+    return applyHidden(
+      groups.filter(
+        (group) => group.groupLabelKey === "nav.group.administration"
+      )
+    );
+  }
+
   // For MEMBERS, drop owner-only entries and any group left empty as a result.
   if (role === "MEMBER") {
     return applyHidden(

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { getPlanLimits } from "@/lib/plan";
 import { isStripeEnabled } from "@/lib/stripe";
+import { MARKETING_ENABLED } from "@/config";
 import BillingActions from "./billing-actions";
 
 // Libellés FR pour les plans.
@@ -199,11 +200,15 @@ export default function PlanCard({
             limit={limits.restaurants}
           />
           <UsageRow label="Menus" count={menuCount} limit={limits.menus} />
-          <UsageRow
-            label="Campagnes"
-            count={campaignCount}
-            limit={limits.campaigns}
-          />
+          {/* Marketing campaigns are not shipped yet (MARKETING_ENABLED). Hide
+              the usage row until the feature is live. */}
+          {MARKETING_ENABLED ? (
+            <UsageRow
+              label="Campagnes"
+              count={campaignCount}
+              limit={limits.campaigns}
+            />
+          ) : null}
         </div>
 
         {/* Online subscription controls (Stripe). Hidden when Stripe isn't
