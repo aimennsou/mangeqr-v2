@@ -18,6 +18,7 @@ import {
   ShieldAlert,
   Package,
   MessageSquare,
+  Sparkles,
   UtensilsCrossed,
   LayoutDashboard,
  
@@ -290,6 +291,14 @@ export function getMenuList(
           labelKey: "nav.superadmin.designOrders",
           active: pathname.includes("/superadmin/design-orders"),
           icon: Package,
+          submenus: [],
+        },
+        {
+          href: "/superadmin/leads",
+          label: "Leads",
+          labelKey: "nav.superadmin.leads",
+          active: pathname.includes("/superadmin/leads"),
+          icon: Sparkles,
           submenus: [],
         },
         {

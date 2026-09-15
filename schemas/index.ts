@@ -351,6 +351,65 @@ export const SupportReplySchema = z.object({
 export type SupportReplyValues = z.infer<typeof SupportReplySchema>;
 
 /**
+ * Lead-gen funnel (public, no auth). A visitor builds a quick menu, then may
+ * order a physical QR design which captures their contact info.
+ */
+const LeadDishSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(300).optional().or(z.literal('')),
+  price: z.coerce.number().min(0).max(100000)
+});
+
+const LeadCategorySchema = z.object({
+  name: z.string().trim().min(1, { message: 'Nom de catégorie requis.' }).max(120),
+  dishes: z.array(LeadDishSchema).max(50)
+});
+
+export const CreateLeadMenuSchema = z.object({
+  restaurantName: z
+    .string()
+    .trim()
+    .min(1, { message: 'Le nom du restaurant est requis.' })
+    .max(160),
+  currency: z.enum(['EURO', 'DOLLAR', 'DINAR']).default('EURO'),
+  locale: z.enum(['fr', 'ar']).default('fr'),
+  categories: z
+    .array(LeadCategorySchema)
+    .min(1, { message: 'Ajoutez au moins une catégorie avec un plat.' })
+    .max(20)
+});
+
+export type CreateLeadMenuValues = z.infer<typeof CreateLeadMenuSchema>;
+
+export const LeadOrderSchema = z.object({
+  id: z.string().uuid(),
+  designId: z.string().min(1, { message: 'Choisissez un design.' }),
+  quantity: z.coerce.number().int().min(1).max(1000).default(1),
+  contactName: z.string().trim().min(1, { message: 'Votre nom est requis.' }).max(120),
+  contactPhone: z.string().trim().min(1, { message: 'Votre téléphone est requis.' }).max(40),
+  contactEmail: z
+    .string()
+    .trim()
+    .email({ message: 'Email invalide.' })
+    .optional()
+    .or(z.literal('')),
+  deliveryMethod: z.string().trim().max(60).optional().or(z.literal('')),
+  notes: z.string().trim().max(1000).optional().or(z.literal(''))
+});
+
+export type LeadOrderValues = z.infer<typeof LeadOrderSchema>;
+
+/** SUPERADMIN updates a lead's follow-up status. */
+export const SuperadminSetLeadStatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(['NEW', 'ORDERED', 'CONTACTED', 'CONVERTED', 'CLOSED'])
+});
+
+export type SuperadminSetLeadStatusValues = z.infer<
+  typeof SuperadminSetLeadStatusSchema
+>;
+
+/**
  * Update a design order's fulfillment status (FEAT-6). SUPERADMIN-only; the
  * status must be one of the DesignOrderStatus enum values.
  */

@@ -26,7 +26,8 @@ import {
   SuperadminSetSupportStatusSchema,
   SuperadminUpsertRestaurantSchema,
   SuperadminDeleteRestaurantSchema,
-  SupportReplySchema
+  SupportReplySchema,
+  SuperadminSetLeadStatusSchema
 } from '@/schemas';
 
 /**
@@ -596,6 +597,32 @@ export async function superadminReplyToTicket(
   }
 
   return { success: 'Réponse envoyée.' };
+}
+
+
+/** Update a funnel lead's follow-up status. Superadmin-only. */
+export async function superadminSetLeadStatus(
+  values: z.infer<typeof SuperadminSetLeadStatusSchema>
+): Promise<ActionResult> {
+  if (!(await requireSuperadmin())) {
+    return FORBIDDEN;
+  }
+
+  const parsed = SuperadminSetLeadStatusSchema.safeParse(values);
+  if (!parsed.success) {
+    return INVALID;
+  }
+
+  try {
+    await db.leadMenu.update({
+      where: { id: parsed.data.id },
+      data: { status: parsed.data.status }
+    });
+  } catch {
+    return { error: 'Impossible de mettre à jour le lead.' };
+  }
+
+  return { success: 'Lead mis à jour.' };
 }
 
 

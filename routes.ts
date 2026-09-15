@@ -14,6 +14,10 @@ export const publicRoutes: string[] = ['/', '/v2', '/pricing', '/auth/email-veri
 export const publicRoutePrefixes: string[] = [
   '/restaurant',
   '/embed',
+  // Lead-gen funnel (paid ads): the funnel pages (/go/fr, /go/ar) and the
+  // anonymous lead-menu preview (/m/[id]) must be reachable without auth.
+  '/go',
+  '/m',
   '/api/track',
   '/api/review',
   // FEAT-1 diner ordering: the order-submit API and the diner live status page

@@ -627,3 +627,113 @@ export async function countRestaurantsForSuperadmin({
     return 0;
   }
 }
+
+
+// -----------------------------------------------------------------------------
+// Lead-gen funnel leads (paid ads)
+// -----------------------------------------------------------------------------
+
+import type { LeadStatus } from '@prisma/client';
+
+export interface SuperadminLeadRow {
+  id: string;
+  restaurantName: string;
+  locale: string;
+  designName: string | null;
+  quantity: number | null;
+  contactName: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+  notes: string | null;
+  status: LeadStatus;
+  createdAt: Date;
+  /** Number of categories in the built menu (from the JSON), for a quick sense. */
+  categoryCount: number;
+}
+
+interface ListLeadsArgs {
+  search?: string;
+  status?: LeadStatus;
+  skip?: number;
+  take?: number;
+}
+
+function buildLeadWhere(
+  search?: string,
+  status?: LeadStatus
+): Prisma.LeadMenuWhereInput {
+  const where: Prisma.LeadMenuWhereInput = {};
+  if (status) where.status = status;
+  const term = search?.trim();
+  if (term) {
+    where.OR = [
+      { restaurantName: { contains: term, mode: Prisma.QueryMode.insensitive } },
+      { contactName: { contains: term, mode: Prisma.QueryMode.insensitive } },
+      { contactPhone: { contains: term, mode: Prisma.QueryMode.insensitive } },
+      { contactEmail: { contains: term, mode: Prisma.QueryMode.insensitive } }
+    ];
+  }
+  return where;
+}
+
+/** List funnel leads for the SUPERADMIN, newest first. */
+export async function listLeads({
+  search,
+  status,
+  skip = 0,
+  take = 20
+}: ListLeadsArgs = {}): Promise<SuperadminLeadRow[]> {
+  try {
+    const rows = await db.leadMenu.findMany({
+      where: buildLeadWhere(search, status),
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+      select: {
+        id: true,
+        restaurantName: true,
+        locale: true,
+        data: true,
+        designName: true,
+        quantity: true,
+        contactName: true,
+        contactPhone: true,
+        contactEmail: true,
+        notes: true,
+        status: true,
+        createdAt: true
+      }
+    });
+    return rows.map((r) => {
+      const cats = (r.data as { categories?: unknown[] })?.categories;
+      return {
+        id: r.id,
+        restaurantName: r.restaurantName,
+        locale: r.locale,
+        designName: r.designName,
+        quantity: r.quantity,
+        contactName: r.contactName,
+        contactPhone: r.contactPhone,
+        contactEmail: r.contactEmail,
+        notes: r.notes,
+        status: r.status,
+        createdAt: r.createdAt,
+        categoryCount: Array.isArray(cats) ? cats.length : 0
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** Count funnel leads matching the (optional) filter — for pagination. */
+export async function countLeads({
+  search,
+  status
+}: { search?: string; status?: LeadStatus } = {}): Promise<number> {
+  try {
+    return await db.leadMenu.count({ where: buildLeadWhere(search, status) });
+  } catch {
+    return 0;
+  }
+}
