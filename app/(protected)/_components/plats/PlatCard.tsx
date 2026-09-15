@@ -75,11 +75,27 @@ const DishCard: React.FC<DishCardProps> = ({
   // placeholder fallback).
   const [editPhotoKey, setEditPhotoKey] = useState<string | null>(photoValue ?? null);
 
+  // Local placeholder shown when a dish has no real photo.
+  const PLACEHOLDER = "/images/plat-placeholder.svg";
+  // The legacy server-side default S3 key used when no photo was picked; it
+  // doesn't resolve to a real image, so treat it as "no photo".
+  const DEFAULT_PHOTO_KEY = "uploads/1735415131028bg-food.jpg";
+
   // Resolve a display URL for a dish image source: real S3 keys (`uploads/...`)
-  // go through getS3Url, while a local placeholder path is used as-is.
-  const resolveImageSrc = (src: string) =>
-    src.startsWith("uploads/") ? getS3Url(src) : src;
-  const editPhotoUrl = editPhotoKey ? resolveImageSrc(editPhotoKey) : "";
+  // go through getS3Url; empty/missing/default-key values fall back to the local
+  // placeholder so a dish without a photo never renders a broken image.
+  const resolveImageSrc = (src?: string | null) => {
+    if (!src || src === DEFAULT_PHOTO_KEY) return PLACEHOLDER;
+    if (src.startsWith("uploads/")) {
+      const url = getS3Url(src);
+      return url || PLACEHOLDER;
+    }
+    return src;
+  };
+  const editPhotoUrl =
+    editPhotoKey && editPhotoKey !== DEFAULT_PHOTO_KEY
+      ? resolveImageSrc(editPhotoKey)
+      : "";
 
   const handleDelete = async () => {
     try {
@@ -277,7 +293,16 @@ const DishCard: React.FC<DishCardProps> = ({
         <div className="flex-shrink-0">
 
         <div className="w-24 h-24 justify-center">
-        <img src={resolveImageSrc(imageUrl)} alt={name} className="w-full h-full rounded-xl border border-border object-cover" />
+        <img
+          src={resolveImageSrc(imageUrl)}
+          alt={name}
+          className="w-full h-full rounded-xl border border-border object-cover"
+          onError={(e) => {
+            const img = e.currentTarget;
+            if (img.src.endsWith(PLACEHOLDER)) return;
+            img.src = PLACEHOLDER;
+          }}
+        />
       </div> </div>
         {/* Dish Info */}
         <div className="mt-4 border-t border-border pt-4">
