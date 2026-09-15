@@ -37,6 +37,8 @@ import {
   getDeliveryOptions,
   isAlgerianCurrency,
 } from '@/config';
+import type { PhysicalMenuData } from '../_templates/types';
+import TemplateThumbnail from './TemplateThumbnail';
 import {
   Select,
   SelectContent,
@@ -58,12 +60,20 @@ export default function PhysicalMenuOrderDialog({
   menuName,
   currency,
   disabled,
+  templateId,
+  templateLabel,
+  menuData,
 }: {
   restaurantId: string;
   menuName?: string;
   /** Restaurant currency; drives the available delivery options (DINAR => Algeria). */
   currency?: string | null;
   disabled?: boolean;
+  /** The visual template selected on the design tab (what gets printed). */
+  templateId?: string;
+  templateLabel?: string;
+  /** Menu data used to render the design preview inside the dialog. */
+  menuData?: PhysicalMenuData | null;
 }) {
   const [open, setOpen] = useState(false);
   const [productId, setProductId] = useState(PHYSICAL_MENU_PRODUCTS[0]?.id ?? '');
@@ -100,8 +110,11 @@ export default function PhysicalMenuOrderDialog({
       return;
     }
 
-    // Prefix the notes with the menu context so the team knows which menu to print.
-    const contextNote = menuName ? `Menu à imprimer : « ${menuName} ». ` : '';
+    // Prefix the notes with the menu + design context so the team knows exactly
+    // which menu and which visual template to print.
+    const menuNote = menuName ? `Menu à imprimer : « ${menuName} ». ` : '';
+    const designNote = templateLabel ? `Design : « ${templateLabel} ». ` : '';
+    const contextNote = `${menuNote}${designNote}`;
 
     startTransition(() => {
       createDesignOrder({
@@ -153,6 +166,32 @@ export default function PhysicalMenuOrderDialog({
 
         <form onSubmit={handleSubmit} className="flex max-h-[calc(90vh-8rem)] flex-col">
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+          {/* Selected design preview — shows exactly which visual template will
+              be printed (chosen on the "Concevoir & télécharger" tab). */}
+          {templateId && menuData ? (
+            <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/40 p-3">
+              <div className="shrink-0 overflow-hidden rounded-md border border-border shadow-sm">
+                <TemplateThumbnail
+                  templateId={templateId}
+                  data={menuData}
+                  width={96}
+                  heightRatio={0.7}
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+                  Design sélectionné
+                </p>
+                <p className="mt-0.5 truncate font-semibold text-foreground">
+                  {templateLabel ?? '—'}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Modifiable dans l&apos;onglet « Concevoir &amp; télécharger ».
+                </p>
+              </div>
+            </div>
+          ) : null}
+
           {/* Format picker */}
           <div className="grid gap-2">
             <Label>Format d&apos;impression</Label>

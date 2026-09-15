@@ -40,6 +40,7 @@ import Logo from "@/components/Logo";
 import { Restaurant } from "@/types";
 import AppearanceSection from "./_components/AppearanceSection";
 import DesignOrderSection from "./_components/DesignOrderSection";
+import MyDesignOrders from "./_components/MyDesignOrders";
 import { useI18n } from "@/lib/i18n";
 
 export default function NumeriquePage() {
@@ -128,6 +129,7 @@ export default function NumeriquePage() {
               <TabsTrigger value="qr">{t("numerique.tab.qr")}</TabsTrigger>
               <TabsTrigger value="appearance">{t("numerique.tab.appearance")}</TabsTrigger>
               <TabsTrigger value="design">{t("numerique.tab.design")}</TabsTrigger>
+              <TabsTrigger value="orders">{t("numerique.tab.orders")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="qr">
@@ -225,6 +227,16 @@ export default function NumeriquePage() {
             <TabsContent value="design">
               <div className="mt-6">
                 <DesignOrderSection />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="orders">
+              <div className="mt-6">
+                <MyDesignOrders
+                  kind="qr"
+                  description="Suivez le statut de fabrication et de livraison de vos commandes de QR codes."
+                  emptySubtitle="Commandez un design de QR code pour suivre son statut ici."
+                />
               </div>
             </TabsContent>
           </Tabs>

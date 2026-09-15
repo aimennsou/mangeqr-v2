@@ -16,7 +16,10 @@ export interface DesignOrderSummary {
   designName: string;
   quantity: number;
   status: string;
+  deliveryMethod: string | null;
+  notes: string | null;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 /**
@@ -41,7 +44,10 @@ export async function listDesignOrders(
       designName: o.designName,
       quantity: o.quantity,
       status: o.status,
+      deliveryMethod: o.deliveryMethod ?? null,
+      notes: o.notes ?? null,
       createdAt: o.createdAt,
+      updatedAt: o.updatedAt,
     }));
   } catch {
     return [];
