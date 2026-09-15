@@ -4,6 +4,7 @@ import V2Nav from './v2/_components/V2Nav';
 import V2Hero from './v2/_components/V2Hero';
 import V2Values from './v2/_components/V2Values';
 import V2Editor from './v2/_components/V2Editor';
+import V2Demo from './v2/_components/V2Demo';
 import V2Proof from './v2/_components/V2Proof';
 import V2Features from './v2/_components/V2Features';
 import V2GoogleMaps from './v2/_components/V2GoogleMaps';
@@ -47,6 +48,7 @@ export default function HomePage() {
         <V2Hero />
         <V2Values />
         <V2Editor />
+        <V2Demo />
         <V2Proof />
         <V2Features />
         <V2GoogleMaps />

@@ -85,20 +85,31 @@ export function WelcomeTour() {
       return true;
     };
 
+    // Build a popover description that optionally shows an animated demo (a mock
+    // app view with a moving/clicking cursor) above the text. driver.js renders
+    // the description as HTML, so we return an HTML string. The SVGs use SMIL so
+    // they animate inside <img>. `media` is a path under /public.
+    const desc = (text: string, media?: string): string => {
+      const img = media
+        ? `<img src="${media}" alt="" class="mangeqr-tour-media" style="display:block;width:100%;height:auto;border-radius:10px;border:1px solid rgba(0,0,0,0.08);margin-bottom:10px;background:#faf7f2" />`
+        : "";
+      return `${img}<span>${text}</span>`;
+    };
+
     const buildSteps = (): DriveStep[] => {
       const steps: DriveStep[] = [
         {
           // Centered welcome popover (no element).
           popover: {
             title: tr("tour.welcome.title"),
-            description: tr("tour.welcome.desc"),
+            description: desc(tr("tour.welcome.desc")),
           },
         },
         {
           element: () => resolveEl('[data-tour="nav"]') as Element,
           popover: {
             title: tr("tour.nav.title"),
-            description: tr("tour.nav.desc"),
+            description: desc(tr("tour.nav.desc")),
             side: "right",
             align: "start",
           },
@@ -107,7 +118,7 @@ export function WelcomeTour() {
           element: () => resolveEl('[data-tour="nav-restaurants"]') as Element,
           popover: {
             title: tr("tour.restaurants.title"),
-            description: tr("tour.restaurants.desc"),
+            description: desc(tr("tour.restaurants.desc"), "/images/demos/restaurant.svg"),
             side: "right",
             align: "start",
           },
@@ -116,7 +127,7 @@ export function WelcomeTour() {
           element: () => resolveEl('[data-tour="nav-menus"]') as Element,
           popover: {
             title: tr("tour.menus.title"),
-            description: tr("tour.menus.desc"),
+            description: desc(tr("tour.menus.desc"), "/images/demos/menu.svg"),
             side: "right",
             align: "start",
           },
@@ -125,7 +136,7 @@ export function WelcomeTour() {
           element: () => resolveEl('[data-tour="nav-categories"]') as Element,
           popover: {
             title: tr("tour.categories.title"),
-            description: tr("tour.categories.desc"),
+            description: desc(tr("tour.categories.desc"), "/images/demos/categories.svg"),
             side: "right",
             align: "start",
           },
@@ -134,7 +145,7 @@ export function WelcomeTour() {
           element: () => resolveEl('[data-tour="nav-numerique"]') as Element,
           popover: {
             title: tr("tour.numerique.title"),
-            description: tr("tour.numerique.desc"),
+            description: desc(tr("tour.numerique.desc"), "/images/demos/numerique.svg"),
             side: "right",
             align: "start",
           },
@@ -143,7 +154,7 @@ export function WelcomeTour() {
           element: () => resolveEl('[data-tour="lang"]') as Element,
           popover: {
             title: tr("tour.lang.title"),
-            description: tr("tour.lang.desc"),
+            description: desc(tr("tour.lang.desc")),
             side: "bottom",
             align: "end",
           },
@@ -152,7 +163,7 @@ export function WelcomeTour() {
           element: () => resolveEl('[data-tour="theme"]') as Element,
           popover: {
             title: tr("tour.theme.title"),
-            description: tr("tour.theme.desc"),
+            description: desc(tr("tour.theme.desc")),
             side: "bottom",
             align: "end",
           },
@@ -163,7 +174,7 @@ export function WelcomeTour() {
           element: () => resolveEl('[data-tour="help"]') as Element,
           popover: {
             title: tr("tour.final.title"),
-            description: tr("tour.final.desc"),
+            description: desc(tr("tour.final.desc")),
             side: "bottom",
             align: "end",
           },

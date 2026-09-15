@@ -178,3 +178,16 @@
   text-shadow: none;
   border: 1px solid hsl(var(--border));
 }
+
+/* Welcome tour: widen the popover when a step shows an animated demo, and keep
+   the demo image tidy inside the description. */
+.driver-popover {
+  max-width: 340px;
+}
+.driver-popover-description .mangeqr-tour-media {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
