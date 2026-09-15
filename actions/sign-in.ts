@@ -10,6 +10,7 @@ import {
 import { db } from '@/lib/db';
 import { SignInSchema } from '@/schemas';
 import { getUserByEmail } from '@/data/user';
+import { isWorkspaceMember } from '@/data/workspace';
 import { signIn as authSignIn } from '@/auth';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
 import { getTwoFactorTokenByEmail } from '@/data/two-factor-token';
@@ -111,11 +112,25 @@ export async function signIn(
   // so NextAuth only sets the session cookie and does NOT throw NEXT_REDIRECT.
   // The client form (useTransition) then reads `redirectTo` from the returned
   // object and calls router.push — a single, consistent navigation strategy.
-  const redirectTo =
-    callbackUrl ||
-    (existingUser.role === 'SUPERADMIN'
-      ? '/superadmin'
-      : DEFAULT_SIGNIN_REDIRECT);
+  //
+  // A brand-new OWNER (role USER, never onboarded, not a workspace member) is
+  // routed into the first-login onboarding wizard instead of /performances.
+  // Superadmins and team members skip onboarding (members can't create
+  // restaurants; superadmins go to their console). An explicit callbackUrl
+  // (deep link) always wins.
+  let defaultDestination: string;
+  if (existingUser.role === 'SUPERADMIN') {
+    defaultDestination = '/superadmin';
+  } else if (
+    existingUser.role === 'USER' &&
+    !existingUser.onboardedAt &&
+    !(await isWorkspaceMember(existingUser.id))
+  ) {
+    defaultDestination = '/onboarding';
+  } else {
+    defaultDestination = DEFAULT_SIGNIN_REDIRECT;
+  }
+  const redirectTo = callbackUrl || defaultDestination;
 
   try {
     await authSignIn('credentials', {

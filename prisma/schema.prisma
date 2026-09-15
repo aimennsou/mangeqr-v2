@@ -47,6 +47,10 @@ model User {
   suspended               Boolean                 @default(false)
   suspendedAt             DateTime?
   suspendedReason         String?
+  // First-login onboarding: null until the owner completes the onboarding
+  // wizard (create restaurant → menu → categories/dishes → QR). Set once; used
+  // to route new owners into /onboarding before /performances.
+  onboardedAt             DateTime?
   // FEAT-1/D16: ordering is enabled per ACCOUNT by the SUPERADMIN. Owners can
   // then toggle it per restaurant (Restaurant.orderingEnabled). Defaults off so
   // ordering is opt-in and centrally gated.

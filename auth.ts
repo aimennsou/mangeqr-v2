@@ -95,6 +95,7 @@ export const {
         session.user.email = token.email;
         session.user.tempEmail = token.tempEmail as string | null;
         session.user.isOAuth = token.isOAuth as boolean;
+        session.user.onboarded = token.onboarded as boolean;
       }
 
       return session;
@@ -126,6 +127,9 @@ export const {
       token.tempEmail = existingUser.tempEmail;
       token.role = existingUser.role;
       token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
+      // Onboarding: expose whether the owner has completed the first-login
+      // wizard so the app can gate the /onboarding redirect.
+      token.onboarded = !!existingUser.onboardedAt;
 
       return token;
     }

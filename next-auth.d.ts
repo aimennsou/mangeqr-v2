@@ -6,6 +6,8 @@ export type ExtendedUser = DefaultSession['user'] & {
   role: UserRole;
   isTwoFactorEnabled: boolean;
   isOAuth: boolean;
+  /** True once the owner has completed the first-login onboarding wizard. */
+  onboarded: boolean;
 };
 
 declare module 'next-auth' {
