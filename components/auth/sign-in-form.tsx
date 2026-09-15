@@ -40,6 +40,9 @@ export function SignInForm() {
 
   const form = useForm<z.infer<typeof SignInSchema>>({
     resolver: zodResolver(SignInSchema),
+    // Validate as the user leaves each field (and on change once touched), so
+    // errors appear responsively instead of only after a submit attempt.
+    mode: 'onTouched',
     defaultValues: {
       email: '',
       password: ''

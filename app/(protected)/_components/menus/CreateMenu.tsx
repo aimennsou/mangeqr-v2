@@ -36,6 +36,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu, defa
   const [restaurantId, setShopId] = useState(defaultRestaurantId ?? "");
   const [availability, setAvailability] = useState<string[]>([]);
   const [shops, setShops] = useState<{ id: string; name: string }[]>([]);
+  const [errors, setErrors] = useState<{ name?: string; restaurant?: string; availability?: string }>({});
 
   // Keep the internal restaurant id in sync when the page-level selection
   // changes (the dialog may be mounted before the user switches restaurants).
@@ -46,12 +47,14 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu, defa
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!name || !restaurantId || availability.length === 0) {
-          toast.error(t("menus.requiredFields")); 
-      
-
-      return;
-    }
+    // Inline validation: name, a restaurant (when the selector is shown), and
+    // at least one availability day.
+    const nextErrors: { name?: string; restaurant?: string; availability?: string } = {};
+    if (!name.trim()) nextErrors.name = t("validation.required");
+    if (!restaurantId) nextErrors.restaurant = t("validation.required");
+    if (availability.length === 0) nextErrors.availability = t("validation.selectOne");
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     const data = {
       name,
@@ -133,22 +136,33 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu, defa
 
       <div className="max-h-[400px] max-w-full overflow-y-auto p-4">
         <form className={cn("grid items-start gap-4")} onSubmit={handleSubmit}>
-          <div className="grid gap-2">
-            <Label htmlFor="name">{t("menus.field.name")}</Label>
+          <div className="grid gap-1.5">
+            <Label htmlFor="name">{t("menus.field.name")} <span className="text-red-500">*</span></Label>
             <Input
               type="text"
               id="name"
               placeholder="e.g. Menu du jour"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (errors.name) setErrors((er) => ({ ...er, name: undefined }));
+              }}
+              aria-invalid={!!errors.name}
+              className={errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
             />
+            {errors.name ? <p className="text-xs text-red-500">{errors.name}</p> : null}
           </div>
 
           {defaultRestaurantId ? null : (
-            <>
-              <Label htmlFor="restaurant">{t("common.restaurant")}</Label>
-              <Select onValueChange={(value) => setShopId(value)}>
-                <SelectTrigger>
+            <div className="grid gap-1.5">
+              <Label htmlFor="restaurant">{t("common.restaurant")} <span className="text-red-500">*</span></Label>
+              <Select
+                onValueChange={(value) => {
+                  setShopId(value);
+                  if (errors.restaurant) setErrors((er) => ({ ...er, restaurant: undefined }));
+                }}
+              >
+                <SelectTrigger className={errors.restaurant ? "border-red-500 focus:ring-red-500" : ""}>
                   <SelectValue
                     className="text-foreground"
                     placeholder={t("common.chooseRestaurant")}
@@ -164,16 +178,21 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu, defa
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </>
+              {errors.restaurant ? <p className="text-xs text-red-500">{errors.restaurant}</p> : null}
+            </div>
           )}
 
-          <Label htmlFor="availability">{t("menus.field.availability")}</Label>
+          <Label htmlFor="availability">{t("menus.field.availability")} <span className="text-red-500">*</span></Label>
           <ToggleGroup
             size="lg"
             type="multiple"
             className="grid grid-cols-3 gap-2"
             value={availability}
-            onValueChange={(values) => setAvailability(values)}
+            onValueChange={(values) => {
+              setAvailability(values);
+              if (errors.availability && values.length > 0)
+                setErrors((er) => ({ ...er, availability: undefined }));
+            }}
           >
             {/* Value stays the French weekday (stored in DB); only the label is
                 translated so availability data remains consistent. */}
@@ -190,6 +209,9 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu, defa
               )
             )}
           </ToggleGroup>
+          {errors.availability ? (
+            <p className="text-xs text-red-500">{errors.availability}</p>
+          ) : null}
 
           <Button
             className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"

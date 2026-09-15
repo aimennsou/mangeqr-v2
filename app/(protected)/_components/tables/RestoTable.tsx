@@ -238,6 +238,7 @@ import { useI18n } from "@/lib/i18n";
             const [dialogOpen, setDialogOpen] = useState(false);
             const [editData, setEditData] = useState(row.original);
             const [isSubmitting, setIsSubmitting] = useState(false);
+            const [editErrors, setEditErrors] = useState<{ name?: string; address?: string; phone?: string }>({});
         
 
 
@@ -261,10 +262,28 @@ import { useI18n } from "@/lib/i18n";
             const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
               const { name, value } = e.target;
               setEditData((prevState) => ({ ...prevState, [name]: value }));
+              if (editErrors[name as keyof typeof editErrors]) {
+                setEditErrors((prev) => ({ ...prev, [name]: undefined }));
+              }
             };
         
             const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
               e.preventDefault();
+
+              // Inline required-field validation.
+              const nextErrors: { name?: string; address?: string; phone?: string } = {};
+              if (!String(editData.name ?? "").trim()) nextErrors.name = t("validation.required");
+              if (!String(editData.address ?? "").trim()) nextErrors.address = t("validation.required");
+              if (!String(editData.phone ?? "").trim()) nextErrors.phone = t("validation.required");
+              setEditErrors(nextErrors);
+              if (Object.keys(nextErrors).length > 0) {
+                const sel = nextErrors.name ? "#name" : nextErrors.address ? "#address" : "#phone";
+                const el = (e.currentTarget as HTMLFormElement).querySelector<HTMLElement>(sel);
+                el?.focus();
+                el?.scrollIntoView({ block: "center", behavior: "smooth" });
+                return;
+              }
+
               setIsSubmitting(true);
               try {
                 const response = await fetch('/api/magasin', {
@@ -343,8 +362,9 @@ import { useI18n } from "@/lib/i18n";
                 </Label>
                 <div className="relative">
                   <Store className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="name" name="name" value={editData.name} onChange={handleInputChange} className="pl-9" required />
+                  <Input id="name" name="name" value={editData.name} onChange={handleInputChange} aria-invalid={!!editErrors.name} className={`pl-9 ${editErrors.name ? "border-red-500 focus-visible:ring-red-500" : ""}`} />
                 </div>
+                {editErrors.name ? <p className="text-xs text-red-500">{editErrors.name}</p> : null}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="address">
@@ -352,8 +372,9 @@ import { useI18n } from "@/lib/i18n";
                 </Label>
                 <div className="relative">
                   <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="address" name="address" value={editData.address} onChange={handleInputChange} className="pl-9" required />
+                  <Input id="address" name="address" value={editData.address} onChange={handleInputChange} aria-invalid={!!editErrors.address} className={`pl-9 ${editErrors.address ? "border-red-500 focus-visible:ring-red-500" : ""}`} />
                 </div>
+                {editErrors.address ? <p className="text-xs text-red-500">{editErrors.address}</p> : null}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="phone">
@@ -361,8 +382,9 @@ import { useI18n } from "@/lib/i18n";
                 </Label>
                 <div className="relative">
                   <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input id="phone" name="phone" value={editData.phone} onChange={handleInputChange} className="pl-9" required />
+                  <Input id="phone" name="phone" value={editData.phone} onChange={handleInputChange} aria-invalid={!!editErrors.phone} className={`pl-9 ${editErrors.phone ? "border-red-500 focus-visible:ring-red-500" : ""}`} />
                 </div>
+                {editErrors.phone ? <p className="text-xs text-red-500">{editErrors.phone}</p> : null}
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="wifi">{t("restaurants.field.wifi")}</Label>

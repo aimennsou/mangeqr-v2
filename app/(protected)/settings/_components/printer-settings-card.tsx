@@ -120,6 +120,10 @@ export default function PrinterSettingsCard() {
     [restaurants, selectedId]
   );
 
+  // The ticket printer is only meaningful when the ordering module is enabled
+  // for the selected restaurant. When it's off, the settings are grayed out.
+  const orderingOff = !!selected && !selected.orderingEnabled;
+
   // Seed the draft from the selected restaurant's saved config (merged onto
   // defaults) whenever the selection changes.
   useEffect(() => {
@@ -197,6 +201,23 @@ export default function PrinterSettingsCard() {
               </div>
             ) : null}
 
+            {/* Ordering-module gate: when ordering is off for this restaurant,
+                the ticket printer has nothing to print, so the settings are
+                grayed out with an explanatory note. */}
+            {orderingOff ? (
+              <div className="rounded-md border border-dashed border-border bg-muted/40 p-3 text-sm text-muted-foreground">
+                {t('printer.orderingRequired')}
+              </div>
+            ) : null}
+
+            <div
+              className={
+                orderingOff
+                  ? 'pointer-events-none select-none space-y-5 opacity-50'
+                  : 'space-y-5'
+              }
+              aria-disabled={orderingOff}
+            >
             {/* Paper width + copies */}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
@@ -307,13 +328,14 @@ export default function PrinterSettingsCard() {
                 />
               </label>
             </div>
+            </div>
 
             {/* Actions */}
             <div className="flex flex-wrap gap-2">
-              <Button onClick={save} disabled={isPending}>
+              <Button onClick={save} disabled={isPending || orderingOff}>
                 {isPending ? t('common.saving') : t('common.save')}
               </Button>
-              <Button variant="outline" onClick={testPrint} type="button">
+              <Button variant="outline" onClick={testPrint} type="button" disabled={orderingOff}>
                 <Printer className="mr-1 h-4 w-4" />
                 {t('printer.testPrint')}
               </Button>

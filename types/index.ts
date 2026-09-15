@@ -26,6 +26,9 @@ export type Restaurant = {
     // Per-restaurant ticket-printer configuration (FEAT-1 follow-up). Null/undefined
     // means the owner has not customized it and the default config applies.
     printerConfig?: PrinterConfig | null;
+    // FEAT-1/D16: whether the ordering module (floor plan, kitchen, POS) is
+    // enabled for this restaurant. Gates the ticket-printer settings.
+    orderingEnabled?: boolean;
     menus: Menu[];
     campaigns: MarketingCampaign[];
     reviews: Review[];

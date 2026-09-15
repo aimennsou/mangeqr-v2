@@ -48,14 +48,18 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
   const [allergenes, setAllergenes] = useState<string[]>([]);
   const [fileKey, setFileKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{ category?: string; name?: string; price?: string }>({});
 
   const handleDishSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!dishName || !selectedCategory) {
-      toast.error(t("menus.requiredFields"));
-      return;
-    }
+    // Inline validation: category (unless fixed), name, and a positive price.
+    const nextErrors: { category?: string; name?: string; price?: string } = {};
+    if (!fixedCategoryId && !selectedCategory) nextErrors.category = t("validation.selectCategory");
+    if (!dishName.trim()) nextErrors.name = t("validation.required");
+    if (!(dishPrice > 0)) nextErrors.price = t("validation.pricePositive");
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
 
     setIsSubmitting(true);
 
@@ -102,10 +106,16 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
         <form onSubmit={handleDishSubmit} className="flex max-h-[calc(90vh-8rem)] flex-col">
           <div className="flex-1 space-y-4 overflow-y-auto px-6 py-5">
             {!fixedCategoryId && (
-              <div className="grid gap-2">
-                <Label>{t("plats.field.category")}</Label>
-                <Select value={selectedCategory} onValueChange={(value) => setSelectedCategory(value)}>
-                  <SelectTrigger className="w-full">
+              <div className="grid gap-1.5">
+                <Label>{t("plats.field.category")} <span className="text-red-500">*</span></Label>
+                <Select
+                  value={selectedCategory}
+                  onValueChange={(value) => {
+                    setSelectedCategory(value);
+                    if (errors.category) setErrors((e) => ({ ...e, category: undefined }));
+                  }}
+                >
+                  <SelectTrigger className={`w-full ${errors.category ? "border-red-500 focus:ring-red-500" : ""}`}>
                     <SelectValue placeholder={t("plats.field.categoryPlaceholder")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -119,17 +129,24 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
                     </SelectGroup>
                   </SelectContent>
                 </Select>
+                {errors.category ? <p className="text-xs text-red-500">{errors.category}</p> : null}
               </div>
             )}
 
-            <div className="flex gap-2 flex-col">
-              <Label>{t("plats.field.name")}</Label>
+            <div className="flex flex-col gap-1.5">
+              <Label>{t("plats.field.name")} <span className="text-red-500">*</span></Label>
               <Input
                 type="text"
                 value={dishName}
-                onChange={(e) => setDishName(e.target.value)}
+                onChange={(e) => {
+                  setDishName(e.target.value);
+                  if (errors.name) setErrors((er) => ({ ...er, name: undefined }));
+                }}
+                aria-invalid={!!errors.name}
+                className={errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
                 placeholder={t("plats.field.namePlaceholder")}
               />
+              {errors.name ? <p className="text-xs text-red-500">{errors.name}</p> : null}
             </div>
 
             <div className="flex gap-2 flex-col">
@@ -141,23 +158,30 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
               />
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="input-16">{t("plats.field.price")}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="input-16">{t("plats.field.price")} <span className="text-red-500">*</span></Label>
               <div className="relative flex">
                 <span className="pointer-events-none absolute inset-y-0 start-0 flex items-center justify-center ps-3 text-sm text-muted-foreground">
                   {currencySymbol(currency)}
                 </span>
                 <Input
                   type="number"
+                  min={0}
+                  step="0.01"
                   value={dishPrice}
-                  onChange={(e) => setDishPrice(parseFloat(e.target.value) || 0)}
-                  className="-me-px rounded-e-none ps-8 shadow-none"
+                  onChange={(e) => {
+                    setDishPrice(parseFloat(e.target.value) || 0);
+                    if (errors.price) setErrors((er) => ({ ...er, price: undefined }));
+                  }}
+                  aria-invalid={!!errors.price}
+                  className={`-me-px rounded-e-none ps-8 shadow-none ${errors.price ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                   placeholder="0.00"
                 />
                 <span className="inline-flex items-center rounded-e-lg border border-input bg-background px-3 text-sm text-muted-foreground">
                   {currencyCode(currency)}
                 </span>
               </div>
+              {errors.price ? <p className="text-xs text-red-500">{errors.price}</p> : null}
             </div>
 
             <div className="flex gap-2 flex-col">

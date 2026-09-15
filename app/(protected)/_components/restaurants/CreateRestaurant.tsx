@@ -34,16 +34,38 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currency, setCurrency] = useState<string>("EURO");
   const [phoneNumber, setPhoneNumber] = useState("");
+  const [errors, setErrors] = useState<{ name?: string; adresse?: string; phone?: string }>({});
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setIsSubmitting(true);
 
     const formData = new FormData(event.currentTarget);
+    const name = String(formData.get("name") ?? "").trim();
+    const address = String(formData.get("adresse") ?? "").trim();
+    const phone = phoneNumber.trim();
+
+    // Inline required-field validation: highlight each missing field and show a
+    // message under it, then focus the first invalid one.
+    const nextErrors: { name?: string; adresse?: string; phone?: string } = {};
+    if (!name) nextErrors.name = t("validation.required");
+    if (!address) nextErrors.adresse = t("validation.required");
+    if (!phone) nextErrors.phone = t("validation.required");
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      const firstInvalid = event.currentTarget.querySelector<HTMLElement>(
+        nextErrors.name ? "#name" : nextErrors.adresse ? "#adresse" : "[name=phone]"
+      );
+      firstInvalid?.focus();
+      firstInvalid?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
+
+    setIsSubmitting(true);
+
     const data = {
-      name: formData.get("name"),
-      address: formData.get("adresse"),
-      phone: phoneNumber,
+      name,
+      address,
+      phone,
       coverPhoto: fileKey,
       subdomain: formData.get("subdomain"),
       wifi: formData.get("wifi"),
@@ -96,33 +118,55 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
           <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
             {t("restaurants.section.info")}
           </p>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <Label htmlFor="name">
               {t("restaurants.field.nameEstab")} <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
               <Store className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input name="name" id="name" placeholder="e.g. Artisto food" className="pl-9" required />
+              <Input
+                name="name"
+                id="name"
+                placeholder="e.g. Artisto food"
+                className={`pl-9 ${errors.name ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                aria-invalid={!!errors.name}
+                onChange={() => errors.name && setErrors((e) => ({ ...e, name: undefined }))}
+              />
             </div>
+            {errors.name ? <p className="text-xs text-red-500">{errors.name}</p> : null}
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <Label htmlFor="adresse">
               {t("restaurants.field.addressReq")} <span className="text-red-500">*</span>
             </Label>
             <div className="relative">
               <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input name="adresse" id="adresse" placeholder="e.g. Rue de Paris, France" className="pl-9" required />
+              <Input
+                name="adresse"
+                id="adresse"
+                placeholder="e.g. Rue de Paris, France"
+                className={`pl-9 ${errors.adresse ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                aria-invalid={!!errors.adresse}
+                onChange={() => errors.adresse && setErrors((e) => ({ ...e, adresse: undefined }))}
+              />
             </div>
+            {errors.adresse ? <p className="text-xs text-red-500">{errors.adresse}</p> : null}
           </div>
-          <div className="grid gap-2">
+          <div className="grid gap-1.5">
             <Label htmlFor="tel">
               {t("restaurants.field.phoneReq")} <span className="text-red-500">*</span>
             </Label>
-            <PhoneInput
-              value={phoneNumber}
-              onChange={setPhoneNumber}
-              placeholder={t("restaurants.field.phonePlaceholder")}
-            />
+            <div className={errors.phone ? "rounded-lg ring-1 ring-red-500" : ""}>
+              <PhoneInput
+                value={phoneNumber}
+                onChange={(v) => {
+                  setPhoneNumber(v);
+                  if (errors.phone) setErrors((e) => ({ ...e, phone: undefined }));
+                }}
+                placeholder={t("restaurants.field.phonePlaceholder")}
+              />
+            </div>
+            {errors.phone ? <p className="text-xs text-red-500">{errors.phone}</p> : null}
           </div>
           <div className="grid gap-2">
             <Label htmlFor="subdomain">{t("restaurants.field.subdomain")}</Label>

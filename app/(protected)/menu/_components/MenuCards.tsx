@@ -146,6 +146,7 @@ export default function MenuCards({
   // Edit dialog state
   const [editTarget, setEditTarget] = useState<MenuItem | null>(null);
   const [editName, setEditName] = useState('');
+  const [editError, setEditError] = useState<string | undefined>();
   const [editAvailability, setEditAvailability] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -155,6 +156,7 @@ export default function MenuCards({
 
   const openEdit = (menu: MenuItem) => {
     setEditTarget(menu);
+    setEditError(undefined);
     setEditName(menu.name);
     setEditAvailability(menu.availability ?? []);
   };
@@ -236,6 +238,10 @@ export default function MenuCards({
   const submitEdit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!editTarget) return;
+    if (!editName.trim()) {
+      setEditError(t('validation.required'));
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch('/api/menu', {
@@ -422,14 +428,20 @@ export default function MenuCards({
             <DialogDescription>{t('menus.create.desc')}</DialogDescription>
           </DialogHeader>
           <form className="grid items-start gap-4" onSubmit={submitEdit}>
-            <div className="grid gap-2">
-              <Label htmlFor="edit-menu-name">{t('menus.field.name')}</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor="edit-menu-name">{t('menus.field.name')} <span className="text-red-500">*</span></Label>
               <Input
                 id="edit-menu-name"
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={(e) => {
+                  setEditName(e.target.value);
+                  if (editError) setEditError(undefined);
+                }}
+                aria-invalid={!!editError}
+                className={editError ? 'border-red-500 focus-visible:ring-red-500' : ''}
                 placeholder="e.g. Menu du jour"
               />
+              {editError ? <p className="text-xs text-red-500">{editError}</p> : null}
             </div>
             <Label>{t('menus.field.availability')}</Label>
             <ToggleGroup

@@ -28,11 +28,17 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
   const [categoryName, setCategoryName] = useState("");
   const [selectedIcon, setSelectedIcon] = useState("🍽️");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [nameError, setNameError] = useState<string | undefined>();
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!categoryName || !selectedIcon || !menuId) {
+    // Inline validation: the category name is required (icon defaults to 🍽️).
+    if (!categoryName.trim()) {
+      setNameError(t("validation.required"));
+      return;
+    }
+    if (!menuId) {
       toast.error(t("menus.requiredFields"));
       return;
     }
@@ -99,7 +105,7 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
           </div>
         </div>
 
-        <div className="grid gap-2">
+        <div className="grid gap-1.5">
           <Label htmlFor="categoryName">
             {t("categories.field.name")} <span className="text-red-500">*</span>
           </Label>
@@ -108,8 +114,14 @@ const CreateCategorie: React.FC<CreateCategorieProps> = ({ menuId, onAddCategory
             id="categoryName"
             placeholder={t("categories.namePlaceholder")}
             value={categoryName}
-            onChange={(e) => setCategoryName(e.target.value)}
+            onChange={(e) => {
+              setCategoryName(e.target.value);
+              if (nameError) setNameError(undefined);
+            }}
+            aria-invalid={!!nameError}
+            className={nameError ? "border-red-500 focus-visible:ring-red-500" : ""}
           />
+          {nameError ? <p className="text-xs text-red-500">{nameError}</p> : null}
         </div>
       </div>
 

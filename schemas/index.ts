@@ -9,32 +9,32 @@ import {
 } from '@prisma/client';
 
 export const SignInSchema = z.object({
-  email: z.string().email({
-    message: 'A valid email is required.'
+  email: z.string().min(1, { message: 'L’e-mail est requis.' }).email({
+    message: 'Adresse e-mail invalide.'
   }),
   password: z.string().min(1, {
-    message: 'Password is required.'
+    message: 'Le mot de passe est requis.'
   }),
   code: z.optional(z.string())
 });
 
 export const SignUpSchema = z
   .object({
-    email: z.string().email({
-      message: 'A valid email is required.'
+    email: z.string().min(1, { message: 'L’e-mail est requis.' }).email({
+      message: 'Adresse e-mail invalide.'
     }),
     password: z.string().min(8, {
-      message: 'At least 8 characters are required.'
+      message: '8 caractères minimum.'
     }),
-    confirm: z.string().min(8, {
-      message: 'At least 8 characters are required.'
+    confirm: z.string().min(1, {
+      message: 'Confirmez votre mot de passe.'
     }),
     name: z.string().min(1, {
-      message: 'Name is required.'
+      message: 'Le nom est requis.'
     })
   })
   .refine((data) => data.password === data.confirm, {
-    message: 'Passwords do not match.',
+    message: 'Les mots de passe ne correspondent pas.',
     path: ['confirm']
   });
 

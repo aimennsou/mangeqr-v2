@@ -68,6 +68,7 @@ const DishCard: React.FC<DishCardProps> = ({
   const [editName, setEditName] = useState(name);
   const [editDescription, setEditDescription] = useState(description);
   const [editPrice, setEditPrice] = useState<number>(priceValue ?? 0);
+  const [editErrors, setEditErrors] = useState<{ name?: string; price?: string }>({});
   const [saving, setSaving] = useState(false);
   // Photo editing (BUG-6): keep the current S3 key so the edit modal shows the
   // existing image, and only send `photo` in the PUT when the owner picks a new
@@ -161,15 +162,17 @@ const DishCard: React.FC<DishCardProps> = ({
     setEditDescription(description);
     setEditPrice(priceValue ?? 0);
     setEditPhotoKey(photoValue ?? null);
+    setEditErrors({});
     setEditOpen(true);
     onEdit?.(id);
   };
 
   const handleSaveEdit = async () => {
-    if (!editName.trim()) {
-      toast.error(t("plats.nameRequired"));
-      return;
-    }
+    const nextErrors: { name?: string; price?: string } = {};
+    if (!editName.trim()) nextErrors.name = t("plats.nameRequired");
+    if (!(editPrice > 0)) nextErrors.price = t("validation.pricePositive");
+    setEditErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     setSaving(true);
     try {
       const response = await fetch("/api/plat", {
@@ -339,14 +342,20 @@ const DishCard: React.FC<DishCardProps> = ({
                 emptyLabel={t("upload.hint")}
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`dish-name-${id}`}>{t("plats.field.name")}</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor={`dish-name-${id}`}>{t("plats.field.name")} <span className="text-red-500">*</span></Label>
               <Input
                 id={`dish-name-${id}`}
                 value={editName}
-                onChange={(e) => setEditName(e.target.value)}
+                onChange={(e) => {
+                  setEditName(e.target.value);
+                  if (editErrors.name) setEditErrors((er) => ({ ...er, name: undefined }));
+                }}
+                aria-invalid={!!editErrors.name}
+                className={editErrors.name ? "border-red-500 focus-visible:ring-red-500" : ""}
                 placeholder="Plat du jour"
               />
+              {editErrors.name ? <p className="text-xs text-red-500">{editErrors.name}</p> : null}
             </div>
             <div className="grid gap-2">
               <Label htmlFor={`dish-desc-${id}`}>{t("plats.field.description")}</Label>
@@ -357,16 +366,23 @@ const DishCard: React.FC<DishCardProps> = ({
                 placeholder="Un plat oriental"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor={`dish-price-${id}`}>{t("plats.field.price")}</Label>
+            <div className="grid gap-1.5">
+              <Label htmlFor={`dish-price-${id}`}>{t("plats.field.price")} <span className="text-red-500">*</span></Label>
               <Input
                 id={`dish-price-${id}`}
                 type="number"
+                min={0}
                 step="0.01"
                 value={editPrice}
-                onChange={(e) => setEditPrice(parseFloat(e.target.value) || 0)}
+                onChange={(e) => {
+                  setEditPrice(parseFloat(e.target.value) || 0);
+                  if (editErrors.price) setEditErrors((er) => ({ ...er, price: undefined }));
+                }}
+                aria-invalid={!!editErrors.price}
+                className={editErrors.price ? "border-red-500 focus-visible:ring-red-500" : ""}
                 placeholder="0.00"
               />
+              {editErrors.price ? <p className="text-xs text-red-500">{editErrors.price}</p> : null}
             </div>
           </div>
           <div className="border-t border-border px-6 py-4">
