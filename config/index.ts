@@ -223,10 +223,10 @@ interface ProductPricing {
 
 /** Placeholder base prices per product id and currency. */
 const DESIGN_PRICING: Record<string, ProductPricing> = {
-  // QR-code supports (per piece).
-  'elegant-poster': { amount: { EURO: 24, DOLLAR: 26, DINAR: 3500 }, unit: 'piece' },
-  'wood-disc': { amount: { EURO: 34, DOLLAR: 37, DINAR: 4900 }, unit: 'piece' },
-  'table-sticker': { amount: { EURO: 12, DOLLAR: 13, DINAR: 1700 }, unit: 'piece' },
+  // QR-code supports (per piece). DZD floor is 150 DZD (cheapest support).
+  'elegant-poster': { amount: { EURO: 24, DOLLAR: 26, DINAR: 300 }, unit: 'piece' },
+  'wood-disc': { amount: { EURO: 34, DOLLAR: 37, DINAR: 450 }, unit: 'piece' },
+  'table-sticker': { amount: { EURO: 12, DOLLAR: 13, DINAR: 150 }, unit: 'piece' },
   // Printed physical menus (per copy).
   'printed-menu-a4': { amount: { EURO: 1.5, DOLLAR: 1.7, DINAR: 220 }, unit: 'copy' },
   'laminated-menu': { amount: { EURO: 3, DOLLAR: 3.3, DINAR: 450 }, unit: 'copy' },
@@ -328,10 +328,18 @@ export interface RegionPricing {
   symbol: string;
   /** Per-tier displayed price by frequency, e.g. { starter: { mensuel, annuel } }. */
   tiers: Record<string, Record<string, string>>;
+  /**
+   * Optional per-tier ANNUAL price when the ordering module is bundled in
+   * (Algeria packages a discounted annual + module bundle). Shown as a small
+   * secondary line under the annual price. Keyed by tier id.
+   */
+  tiersAnnualWithModule?: Record<string, string>;
   /** Delivery surcharge per table for personalized QR menus (Starter/Pro line). */
   perTableDelivery: string;
   /** Ordering add-on monthly price shown on every card. */
   orderingAddon: string;
+  /** QR-design ordering floor price shown as a note (e.g. "à partir de 150 DZD"). */
+  qrDesignFrom?: string;
 }
 
 export const REGION_LABELS: Record<PricingRegion, string> = {
@@ -351,15 +359,21 @@ export const REGION_PRICING: Record<PricingRegion, RegionPricing> = {
     orderingAddon: "+5€/mois",
   },
   algerie: {
-    // Placeholder DZD amounts — replace with finals when provided.
     symbol: "DZD",
     tiers: {
-      starter: { mensuel: "1700 DZD", annuel: "17000 DZD" },
-      pro: { mensuel: "3400 DZD", annuel: "34000 DZD" },
-      premium: { mensuel: "5200 DZD", annuel: "52000 DZD" },
+      starter: { mensuel: "2500 DZD", annuel: "30000 DZD" },
+      pro: { mensuel: "3500 DZD", annuel: "40000 DZD" },
+      premium: { mensuel: "5200 DZD", annuel: "60000 DZD" },
+    },
+    // Annual price when the ordering module is bundled in.
+    tiersAnnualWithModule: {
+      starter: "35000 DZD",
+      pro: "50000 DZD",
+      premium: "70000 DZD",
     },
     perTableDelivery: "+300 DZD",
     orderingAddon: "+700 DZD/mois",
+    qrDesignFrom: "à partir de 150 DZD par design",
   },
 };
 

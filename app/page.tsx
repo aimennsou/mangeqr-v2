@@ -10,6 +10,7 @@ import V2Features from './v2/_components/V2Features';
 import V2GoogleMaps from './v2/_components/V2GoogleMaps';
 import V2Reach from './v2/_components/V2Reach';
 import V2Pricing from './v2/_components/V2Pricing';
+import V2Kit from './v2/_components/V2Kit';
 import V2Faq from './v2/_components/V2Faq';
 import V2Cta from './v2/_components/V2Cta';
 import V2Footer from './v2/_components/V2Footer';
@@ -54,6 +55,7 @@ export default function HomePage() {
         <V2GoogleMaps />
         <V2Reach />
         <V2Pricing />
+        <V2Kit />
         <V2Faq />
         <V2Cta />
       </main>

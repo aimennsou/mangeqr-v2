@@ -127,6 +127,15 @@ export default function V2Pricing() {
                     </span>
                   </div>
 
+                  {/* Annual + ordering-module bundle price (region-specific). */}
+                  {freq === 'annuel' &&
+                  pricing.tiersAnnualWithModule?.[tier.id] ? (
+                    <p className="mt-1.5 text-xs text-muted-foreground">
+                      {pricing.tiersAnnualWithModule[tier.id]} / an avec le
+                      module de commande
+                    </p>
+                  ) : null}
+
                   <p className="mt-4 min-h-[3.5rem] text-sm leading-relaxed text-muted-foreground">
                     {tier.description}
                   </p>
@@ -186,6 +195,12 @@ export default function V2Pricing() {
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Tous les plans incluent les scans illimités, la synchronisation
             automatique et l&apos;assistance.
+            {pricing.qrDesignFrom ? (
+              <>
+                {' '}
+                Commande de designs QR {pricing.qrDesignFrom}.
+              </>
+            ) : null}
           </p>
         </Reveal>
       </div>
