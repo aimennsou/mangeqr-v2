@@ -5,6 +5,7 @@ import { type z } from 'zod';
 import { db } from '@/lib/db';
 import { CreateLeadMenuSchema, LeadOrderSchema } from '@/schemas';
 import { getDesignProduct } from '@/config';
+import { createNotification } from '@/lib/notifications';
 
 /**
  * PUBLIC lead-gen funnel actions — NO authentication. Anonymous visitors from
@@ -98,6 +99,35 @@ export async function submitLeadOrder(
     if (res.count === 0) {
       return { error: 'Menu introuvable.' };
     }
+
+    // #3: alert the back-office. A funnel order is placed by an anonymous
+    // visitor (no account yet), so we notify every SUPERADMIN so they can
+    // follow up on the new lead from the leads console.
+    try {
+      const lead = await db.leadMenu.findUnique({
+        where: { id },
+        select: { restaurantName: true },
+      });
+      const admins = await db.user.findMany({
+        where: { role: 'SUPERADMIN' },
+        select: { id: true },
+      });
+      await Promise.all(
+        admins.map((a) =>
+          createNotification({
+            userId: a.id,
+            type: 'ORDER_STATUS',
+            title: 'Nouveau lead avec commande',
+            body: `${contactName} — ${lead?.restaurantName ?? 'Restaurant'} a commandé « ${product.name} ».`,
+            link: '/superadmin/leads',
+            entityId: id,
+          })
+        )
+      );
+    } catch {
+      // Best-effort: never block the lead order on a notification failure.
+    }
+
     return { success: true };
   } catch {
     return { error: 'Une erreur est survenue. Réessayez.' };

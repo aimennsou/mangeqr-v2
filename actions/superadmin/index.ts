@@ -1014,6 +1014,28 @@ export async function superadminConvertLead(
         }
       }
 
+      // #1: if the lead already placed a design order via the funnel, carry it
+      // over as a real DesignOrder for the new account so it shows up in the
+      // user's "Mes commandes" tracking. Preserve the original status when it's
+      // a valid design-order status, otherwise default to PENDING.
+      if (lead.designId) {
+        await tx.designOrder.create({
+          data: {
+            userId: user.id,
+            restaurantId,
+            designId: lead.designId,
+            designName: lead.designName ?? lead.designId,
+            quantity: lead.quantity ?? 1,
+            contactName: lead.contactName ?? name,
+            contactEmail: lead.contactEmail ?? email,
+            contactPhone: lead.contactPhone ?? null,
+            deliveryMethod: lead.deliveryMethod ?? null,
+            notes: lead.notes ?? null,
+            status: 'PENDING',
+          },
+        });
+      }
+
       await tx.leadMenu.update({
         where: { id },
         data: {
@@ -1030,7 +1052,9 @@ export async function superadminConvertLead(
           authorId: staff.id,
           authorName: staff.name,
           kind: 'convert',
-          body: `Converti en compte (${email}).`,
+          body: lead.designId
+            ? `Converti en compte (${email}) avec sa commande de design.`
+            : `Converti en compte (${email}).`,
         },
       });
 
