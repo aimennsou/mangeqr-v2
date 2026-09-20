@@ -28,7 +28,7 @@ const KIT: KitItem[] = [
     title: 'Écrans & TV',
     description:
       "Affichez vos menus et vos promotions sur des écrans en salle. Nous fournissons et installons les TV, votre carte reste synchronisée en temps réel.",
-    image: '/images/ecran-tv-menu.jpg',
+    image: '/images/ecran-tv-menu.png',
     imageAlt: 'Écran TV affichant le menu du restaurant en salle',
     imageWidth: 1024,
     imageHeight: 1024,
