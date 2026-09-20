@@ -313,6 +313,25 @@ export function getMenuList(
     });
   }
 
+  // STAFF (#11): back-office follow-up team. They only get the leads CRM — a
+  // single Administration entry. Routes stay guarded server-side.
+  if (appRole === "STAFF") {
+    groups.push({
+      groupLabel: "Administration",
+      groupLabelKey: "nav.group.administration",
+      menus: [
+        {
+          href: "/superadmin/leads",
+          label: "Leads",
+          labelKey: "nav.superadmin.leads",
+          active: pathname.includes("/superadmin/leads"),
+          icon: Sparkles,
+          submenus: [],
+        },
+      ],
+    });
+  }
+
   // Hide feature-flagged entries not yet shipped (e.g. marketing campaigns).
   // UX hiding only — the pages are also guarded server-side.
   const hiddenHrefs = new Set<string>();
@@ -330,7 +349,7 @@ export function getMenuList(
   // use the Administration console, so hide all the owner-facing groups
   // (dashboard, activity, clientele, personnalisations, settings) and show just
   // the Administration group. UX only — routes stay guarded server-side.
-  if (appRole === "SUPERADMIN") {
+  if (appRole === "SUPERADMIN" || appRole === "STAFF") {
     return applyHidden(
       groups.filter(
         (group) => group.groupLabelKey === "nav.group.administration"

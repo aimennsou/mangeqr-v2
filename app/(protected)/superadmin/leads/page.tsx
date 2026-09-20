@@ -13,7 +13,7 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { currentRole } from '@/lib/authentication';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
-import { listLeads } from '@/data/superadmin';
+import { listLeads, listStaff } from '@/data/superadmin';
 import Logo from '@/components/Logo';
 
 import { ContentLayout } from '../../_admin-panel/content-layout';
@@ -26,11 +26,15 @@ import { LeadsTable } from '../_components/leads-table';
  */
 export default async function SuperadminLeadsPage() {
   const role = await currentRole();
-  if (role !== UserRole.SUPERADMIN) {
+  // #11: leads console is open to SUPERADMIN and STAFF (back-office follow-up).
+  if (role !== UserRole.SUPERADMIN && role !== UserRole.STAFF) {
     redirect(DEFAULT_SIGNIN_REDIRECT);
   }
 
-  const leads = await listLeads({ skip: 0, take: 100 });
+  const [leads, staff] = await Promise.all([
+    listLeads({ skip: 0, take: 100 }),
+    listStaff(),
+  ]);
   const ordered = leads.filter((l) => l.status === 'ORDERED').length;
 
   return (
@@ -68,7 +72,7 @@ export default async function SuperadminLeadsPage() {
               {ordered > 0 ? `${ordered} avec commande de design.` : ''}
             </p>
           </div>
-          <LeadsTable leads={leads} />
+          <LeadsTable leads={leads} staff={staff} />
         </CardContent>
       </Card>
     </ContentLayout>

@@ -121,6 +121,9 @@ export async function signIn(
   let defaultDestination: string;
   if (existingUser.role === 'SUPERADMIN') {
     defaultDestination = '/superadmin';
+  } else if (existingUser.role === 'STAFF') {
+    // #11: back-office follow-up staff land directly in the leads CRM.
+    defaultDestination = '/superadmin/leads';
   } else if (
     existingUser.role === 'USER' &&
     !existingUser.onboardedAt &&

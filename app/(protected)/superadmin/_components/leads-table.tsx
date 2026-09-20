@@ -1,47 +1,23 @@
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
-import { toast } from 'sonner';
-import { ExternalLink, Phone } from 'lucide-react';
+import { useState } from 'react';
+import { ExternalLink, Phone, Search } from 'lucide-react';
 import type { LeadStatus } from '@prisma/client';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
+  TableRow,
 } from '@/components/ui/table';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import type { SuperadminLeadRow } from '@/data/superadmin';
-import { superadminSetLeadStatus } from '@/actions/superadmin';
+import type { SuperadminLeadRow, StaffOption } from '@/data/superadmin';
 import { cn } from '@/lib/utils';
-
-const STATUS_LABEL: Record<LeadStatus, string> = {
-  NEW: 'Nouveau',
-  ORDERED: 'A commandé',
-  CONTACTED: 'Contacté',
-  CONVERTED: 'Converti',
-  CLOSED: 'Fermé'
-};
-
-const STATUS_ORDER: LeadStatus[] = [
-  'NEW',
-  'ORDERED',
-  'CONTACTED',
-  'CONVERTED',
-  'CLOSED'
-];
+import { LeadCrmDialog, STATUS_LABEL } from './lead-crm-dialog';
 
 function statusClass(s: LeadStatus): string {
   switch (s) {
@@ -66,148 +42,204 @@ function formatDate(value: Date | string): string {
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   });
 }
 
-export function LeadsTable({ leads }: { leads: SuperadminLeadRow[] }) {
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const [rows, setRows] = useState(leads);
+export function LeadsTable({
+  leads,
+  staff,
+}: {
+  leads: SuperadminLeadRow[];
+  staff: StaffOption[];
+}) {
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState<LeadStatus | 'ALL'>('ALL');
 
-  const setStatus = (id: string, status: LeadStatus) => {
-    setRows((prev) => prev.map((l) => (l.id === id ? { ...l, status } : l)));
-    startTransition(async () => {
-      const res = await superadminSetLeadStatus({ id, status });
-      if (res.error) {
-        toast.error(res.error);
-        return;
-      }
-      toast.success(res.success ?? 'Mis à jour.');
-      router.refresh();
-    });
-  };
+  const term = query.trim().toLowerCase();
+  const rows = leads.filter((l) => {
+    if (statusFilter !== 'ALL' && l.status !== statusFilter) return false;
+    if (!term) return true;
+    return (
+      l.restaurantName.toLowerCase().includes(term) ||
+      (l.contactName ?? '').toLowerCase().includes(term) ||
+      (l.contactPhone ?? '').toLowerCase().includes(term) ||
+      (l.contactEmail ?? '').toLowerCase().includes(term)
+    );
+  });
+
+  const STATUS_TABS: (LeadStatus | 'ALL')[] = [
+    'ALL',
+    'NEW',
+    'ORDERED',
+    'CONTACTED',
+    'CONVERTED',
+    'CLOSED',
+  ];
 
   return (
-    <div className="rounded-md border">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Restaurant</TableHead>
-            <TableHead>Contact</TableHead>
-            <TableHead>Design</TableHead>
-            <TableHead>Langue</TableHead>
-            <TableHead>Date</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead className="text-right">Menu</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.length === 0 ? (
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher (nom, téléphone, email)…"
+            className="pl-9"
+          />
+        </div>
+        <div className="flex flex-wrap gap-1">
+          {STATUS_TABS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setStatusFilter(s)}
+              className={cn(
+                'rounded-full border px-3 py-1 text-xs transition-colors',
+                statusFilter === s
+                  ? 'border-yellow-400 bg-yellow-400/10 text-foreground'
+                  : 'border-border text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {s === 'ALL' ? 'Tous' : STATUS_LABEL[s]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
-                Aucun lead pour le moment.
-              </TableCell>
+              <TableHead>Restaurant</TableHead>
+              <TableHead>Contact</TableHead>
+              <TableHead>Design</TableHead>
+              <TableHead>Appels</TableHead>
+              <TableHead>Assigné</TableHead>
+              <TableHead>Date</TableHead>
+              <TableHead>Statut</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
             </TableRow>
-          ) : (
-            rows.map((lead) => (
-              <TableRow key={lead.id}>
-                <TableCell>
-                  <div className="flex flex-col">
-                    <span className="font-medium text-foreground">
-                      {lead.restaurantName}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {lead.categoryCount} catégorie
-                      {lead.categoryCount > 1 ? 's' : ''}
-                    </span>
-                  </div>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={8}
+                  className="h-24 text-center text-muted-foreground"
+                >
+                  Aucun lead.
                 </TableCell>
-                <TableCell>
-                  {lead.contactName || lead.contactPhone ? (
+              </TableRow>
+            ) : (
+              rows.map((lead) => (
+                <TableRow key={lead.id}>
+                  <TableCell>
                     <div className="flex flex-col">
-                      <span className="text-sm text-foreground">
-                        {lead.contactName ?? '—'}
+                      <span className="font-medium text-foreground">
+                        {lead.restaurantName}
                       </span>
-                      {lead.contactPhone ? (
-                        <a
-                          href={`tel:${lead.contactPhone}`}
-                          className="flex items-center gap-1 text-xs text-yellow-600 hover:underline dark:text-yellow-500"
-                        >
-                          <Phone className="h-3 w-3" /> {lead.contactPhone}
-                        </a>
-                      ) : null}
-                      {lead.contactEmail ? (
-                        <span className="text-xs text-muted-foreground">
-                          {lead.contactEmail}
-                        </span>
-                      ) : null}
+                      <span className="text-xs text-muted-foreground">
+                        {lead.categoryCount} catégorie
+                        {lead.categoryCount > 1 ? 's' : ''}
+                      </span>
                     </div>
-                  ) : (
-                    <span className="text-xs text-muted-foreground">
-                      Menu seul
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {lead.designName ? (
-                    <span>
-                      {lead.designName}
-                      {lead.quantity ? ` ×${lead.quantity}` : ''}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">—</span>
-                  )}
-                </TableCell>
-                <TableCell className="text-xs uppercase text-muted-foreground">
-                  {lead.locale}
-                </TableCell>
-                <TableCell className="text-sm">
-                  {formatDate(lead.createdAt)}
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
+                  </TableCell>
+                  <TableCell>
+                    {lead.contactName || lead.contactPhone ? (
+                      <div className="flex flex-col">
+                        <span className="text-sm text-foreground">
+                          {lead.contactName ?? '—'}
+                        </span>
+                        {lead.contactPhone ? (
+                          <a
+                            href={`tel:${lead.contactPhone}`}
+                            className="flex items-center gap-1 text-xs text-yellow-600 hover:underline dark:text-yellow-500"
+                          >
+                            <Phone className="h-3 w-3" /> {lead.contactPhone}
+                          </a>
+                        ) : null}
+                        {lead.contactEmail ? (
+                          <span className="text-xs text-muted-foreground">
+                            {lead.contactEmail}
+                          </span>
+                        ) : null}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">
+                        Menu seul
+                      </span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {lead.designName ? (
+                      <span>
+                        {lead.designName}
+                        {lead.quantity ? ` ×${lead.quantity}` : ''}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {lead.callAttempts > 0 ? (
+                      <span className="font-medium">{lead.callAttempts}</span>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-xs text-muted-foreground">
+                    {lead.assignedToName ?? '—'}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {formatDate(lead.createdAt)}
+                  </TableCell>
+                  <TableCell>
                     <Badge
                       variant="outline"
-                      className={cn('text-[10px] font-normal', statusClass(lead.status))}
+                      className={cn(
+                        'text-[10px] font-normal',
+                        statusClass(lead.status)
+                      )}
                     >
                       {STATUS_LABEL[lead.status]}
                     </Badge>
-                    <Select
-                      value={lead.status}
-                      onValueChange={(v) => setStatus(lead.id, v as LeadStatus)}
-                      disabled={isPending}
-                    >
-                      <SelectTrigger className="h-8 w-[130px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {STATUS_ORDER.map((s) => (
-                          <SelectItem key={s} value={s}>
-                            {STATUS_LABEL[s]}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button asChild variant="outline" size="icon" className="h-8 w-8">
-                    <a
-                      href={`/m/${lead.id}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label="Voir le menu"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <LeadCrmDialog
+                        lead={lead}
+                        staff={staff}
+                        trigger={
+                          <Button variant="outline" size="sm" className="h-8">
+                            Suivi
+                          </Button>
+                        }
+                      />
+                      <Button
+                        asChild
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                      >
+                        <a
+                          href={`/m/${lead.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="Voir le menu"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }

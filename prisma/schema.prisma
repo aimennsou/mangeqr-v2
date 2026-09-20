@@ -11,6 +11,9 @@ enum UserRole {
   ADMIN
   USER
   SUPERADMIN
+  // Back-office staff: can access the admin leads CRM (follow up / call leads)
+  // but not the full SUPERADMIN console.
+  STAFF
 }
 
 enum Plan {
@@ -64,6 +67,9 @@ model User {
   invitationsCreated Invitation[] @relation("InvitationOwner")
   designOrders       DesignOrder[]
   supportMessages    SupportMessage[]
+  notifications      Notification[]
+  assignedLeads      LeadMenu[]       @relation("LeadAssignee")
+  leadActivities     LeadActivity[]   @relation("LeadActivityAuthor")
 }
 
 model Membership {
@@ -83,6 +89,15 @@ model Invitation {
   ownerUserId  String        @db.Uuid
   code         String        @unique
   role         WorkspaceRole @default(MEMBER)
+  // Invite-without-account (#13): the owner pre-fills the invitee's contact so
+  // the person is uniquely attached to the workspace even before signing up.
+  // The invitee opens the link + code, confirms their phone/email, then creates
+  // an account which is immediately linked to this invitation.
+  inviteeName  String?
+  inviteeEmail String?
+  inviteePhone String?
+  // Human label for the invitee's spot (e.g. "Serveur", "Responsable salle").
+  label        String?
   expiresAt    DateTime?
   usedByUserId String?       @db.Uuid
   usedAt       DateTime?
@@ -90,6 +105,8 @@ model Invitation {
   owner        User          @relation("InvitationOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
 
   @@index([ownerUserId])
+  @@index([inviteeEmail])
+  @@index([inviteePhone])
 }
 
 
@@ -340,6 +357,34 @@ enum LeadStatus {
   CLOSED     // not pursued
 }
 
+// CRM follow-up sub-states for a lead. These are orthogonal to LeadStatus
+// (the overall pipeline stage) and let staff track call attempts, delivery and
+// order progress independently.
+enum LeadCallStatus {
+  NOT_CALLED     // no attempt yet
+  CALLED         // reached / spoke once
+  CALLED_TWICE   // second attempt
+  NO_ANSWER      // tried, no answer
+  CALLBACK       // asked to be called back
+  WRONG_NUMBER   // bad contact info
+}
+
+enum LeadDeliveryStatus {
+  NONE           // nothing to deliver yet
+  PENDING        // to be prepared
+  PREPARING      // in production
+  SHIPPED        // handed to carrier
+  DELIVERED      // received by the lead
+}
+
+enum LeadOrderStatus {
+  NONE           // no order placed
+  PLACED         // design/menu ordered
+  CONFIRMED      // confirmed with the lead
+  PAID           // paid
+  CANCELLED      // order cancelled
+}
+
 model LeadMenu {
   id             String     @id @default(uuid()) @db.Uuid
   restaurantName String
@@ -360,10 +405,49 @@ model LeadMenu {
   notes          String?
 
   status         LeadStatus @default(NEW)
+
+  // -- CRM follow-up fields (#10) -------------------------------------------
+  callStatus     LeadCallStatus     @default(NOT_CALLED)
+  callAttempts   Int                @default(0)
+  deliveryStatus LeadDeliveryStatus @default(NONE)
+  orderStatus    LeadOrderStatus    @default(NONE)
+  // Staff member (User with role STAFF/SUPERADMIN) responsible for this lead.
+  assignedToId   String?            @db.Uuid
+  assignedTo     User?              @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  followUpNotes  String?            // free-form running notes
+  nextFollowUpAt DateTime?          // scheduled callback / reminder
+  lastContactedAt DateTime?         // when the lead was last reached
+
+  // -- Conversion linkage (#12) ---------------------------------------------
+  // Set once a lead is materialized into a real account + restaurant.
+  convertedUserId       String?      @db.Uuid
+  convertedRestaurantId String?      @db.Uuid
+  convertedAt           DateTime?
+
+  activities     LeadActivity[]
+
   createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
   @@index([status, createdAt])
+  @@index([assignedToId])
+}
+
+// Timeline of actions taken on a lead (calls logged, status changes, notes).
+// Gives the CRM a per-lead history so multiple staff can follow up coherently.
+model LeadActivity {
+  id         String   @id @default(uuid()) @db.Uuid
+  leadId     String   @db.Uuid
+  lead       LeadMenu @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  // Author (staff) — nullable so system-generated entries survive user deletion.
+  authorId   String?  @db.Uuid
+  author     User?    @relation("LeadActivityAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  authorName String?  // denormalized label at write time
+  kind       String   // "call" | "note" | "status" | "assign" | "convert"
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([leadId, createdAt])
 }
 
 // Contact / support messages submitted from the landing contact form (and the
@@ -438,6 +522,34 @@ model DesignOrder {
 
   @@index([userId, createdAt])
   @@index([restaurantId])
+}
+
+// In-app notifications shown in the navbar bell (#14). Sources:
+//  - SUPPORT_REPLY : staff replied to one of the user's support tickets
+//  - ORDER_STATUS  : a design / printed-menu order changed status (NOT kitchen)
+//  - BROADCAST     : a message sent from the admin console to users
+enum NotificationType {
+  SUPPORT_REPLY
+  ORDER_STATUS
+  BROADCAST
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String?
+  // Optional deep-link within the app (e.g. "/support", "/numerique").
+  link      String?
+  // Optional reference to the source row (ticket id, order id, …).
+  entityId  String?          @db.Uuid
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
 }
 
 enum UserType {

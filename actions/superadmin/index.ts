@@ -27,8 +27,14 @@ import {
   SuperadminUpsertRestaurantSchema,
   SuperadminDeleteRestaurantSchema,
   SupportReplySchema,
-  SuperadminSetLeadStatusSchema
+  SuperadminSetLeadStatusSchema,
+  SuperadminUpdateLeadSchema,
+  SuperadminLogLeadCallSchema,
+  SuperadminLeadNoteSchema,
+  SuperadminConvertLeadSchema
 } from '@/schemas';
+import { revalidatePath } from 'next/cache';
+import { createNotification } from '@/lib/notifications';
 
 /**
  * SUPERADMIN-only server actions for the cash-subscription console
@@ -54,6 +60,31 @@ const INVALID: ActionResult = { error: 'Données invalides.' };
 async function requireSuperadmin(): Promise<boolean> {
   const role = await currentRole();
   return role === UserRole.SUPERADMIN;
+}
+
+/**
+ * Leads-console access (#11): SUPERADMIN or STAFF. STAFF can follow up on leads
+ * (call, log activity, update CRM fields, convert) but cannot touch the rest of
+ * the superadmin console.
+ */
+async function requireLeadsAccess(): Promise<boolean> {
+  const role = await currentRole();
+  return role === UserRole.SUPERADMIN || role === UserRole.STAFF;
+}
+
+/** Label of the current staff member, for activity attribution. */
+async function currentStaffLabel(): Promise<{ id: string | null; name: string }> {
+  try {
+    const id = (await currentUserId()) ?? null;
+    if (!id) return { id: null, name: 'Staff' };
+    const u = await db.user.findUnique({
+      where: { id },
+      select: { name: true, email: true },
+    });
+    return { id, name: u?.name ?? u?.email ?? 'Staff' };
+  } catch {
+    return { id: null, name: 'Staff' };
+  }
 }
 
 /**
@@ -221,17 +252,40 @@ export async function superadminSetDesignOrderStatus(
 
   const { orderId, status } = parsed.data;
 
+  let order: { userId: string; designName: string } | null = null;
   try {
-    await db.designOrder.update({
+    order = await db.designOrder.update({
       where: { id: orderId },
-      data: { status }
+      data: { status },
+      select: { userId: true, designName: true }
     });
   } catch {
     return { error: 'Impossible de mettre à jour la commande.' };
   }
 
+  // Notify the account owner that their design/printed-menu order advanced.
+  if (order) {
+    await createNotification({
+      userId: order.userId,
+      type: 'ORDER_STATUS',
+      title: 'Mise à jour de votre commande',
+      body: `« ${order.designName} » : ${DESIGN_ORDER_STATUS_LABELS[status] ?? status}.`,
+      link: '/numerique',
+      entityId: orderId,
+    });
+  }
+
   return { success: 'Statut de la commande mis à jour.' };
 }
+
+/** French labels for design-order statuses (used in notifications). */
+const DESIGN_ORDER_STATUS_LABELS: Record<string, string> = {
+  PENDING: 'En attente',
+  IN_PROGRESS: 'En cours de production',
+  SHIPPED: 'Expédiée',
+  DELIVERED: 'Livrée',
+  CANCELLED: 'Annulée',
+};
 
 
 /**
@@ -571,7 +625,7 @@ export async function superadminReplyToTicket(
 
   const ticket = await db.supportMessage.findUnique({
     where: { id: ticketId },
-    select: { id: true }
+    select: { id: true, userId: true }
   });
   if (!ticket) {
     return { error: 'Message introuvable.' };
@@ -594,6 +648,19 @@ export async function superadminReplyToTicket(
     ]);
   } catch {
     return { error: 'Impossible d’envoyer la réponse.' };
+  }
+
+  // Notify the ticket owner (in-app messages carry a userId; anonymous landing
+  // contact messages don't and are skipped).
+  if (ticket.userId) {
+    await createNotification({
+      userId: ticket.userId,
+      type: 'SUPPORT_REPLY',
+      title: 'Réponse du support',
+      body: 'Notre équipe a répondu à votre demande.',
+      link: '/support',
+      entityId: ticketId,
+    });
   }
 
   return { success: 'Réponse envoyée.' };
@@ -646,4 +713,333 @@ export async function superadminDeleteRestaurant(
   }
 
   return { success: 'Restaurant supprimé.' };
+}
+
+
+// =============================================================================
+// Leads CRM (#10 / #11 / #12) — SUPERADMIN or STAFF.
+// =============================================================================
+
+const LEADS_PATH = '/superadmin/leads';
+
+/**
+ * Update a lead's CRM follow-up fields (status, call/delivery/order sub-status,
+ * assignee, follow-up notes, next follow-up date). Only the provided fields are
+ * changed. Records a compact activity entry describing the change.
+ */
+export async function superadminUpdateLead(
+  values: z.infer<typeof SuperadminUpdateLeadSchema>
+): Promise<ActionResult> {
+  if (!(await requireLeadsAccess())) return FORBIDDEN;
+
+  const parsed = SuperadminUpdateLeadSchema.safeParse(values);
+  if (!parsed.success) return INVALID;
+
+  const {
+    id,
+    status,
+    callStatus,
+    deliveryStatus,
+    orderStatus,
+    assignedToId,
+    followUpNotes,
+    nextFollowUpAt,
+  } = parsed.data;
+
+  const data: Record<string, unknown> = {};
+  const changes: string[] = [];
+  if (status !== undefined) {
+    data.status = status;
+    changes.push(`statut → ${status}`);
+  }
+  if (callStatus !== undefined) {
+    data.callStatus = callStatus;
+    changes.push(`appel → ${callStatus}`);
+  }
+  if (deliveryStatus !== undefined) {
+    data.deliveryStatus = deliveryStatus;
+    changes.push(`livraison → ${deliveryStatus}`);
+  }
+  if (orderStatus !== undefined) {
+    data.orderStatus = orderStatus;
+    changes.push(`commande → ${orderStatus}`);
+  }
+  if (assignedToId !== undefined) {
+    data.assignedToId = assignedToId;
+    changes.push(assignedToId ? 'réassigné' : 'assignation retirée');
+  }
+  if (followUpNotes !== undefined) {
+    data.followUpNotes = followUpNotes || null;
+  }
+  if (nextFollowUpAt !== undefined) {
+    const d = nextFollowUpAt ? new Date(nextFollowUpAt) : null;
+    if (d && Number.isNaN(d.getTime())) return INVALID;
+    data.nextFollowUpAt = d;
+    if (d) changes.push('relance planifiée');
+  }
+
+  if (Object.keys(data).length === 0) {
+    return { success: 'Aucun changement.' };
+  }
+
+  const staff = await currentStaffLabel();
+
+  try {
+    await db.$transaction(async (tx) => {
+      await tx.leadMenu.update({ where: { id }, data });
+      if (changes.length > 0) {
+        await tx.leadActivity.create({
+          data: {
+            leadId: id,
+            authorId: staff.id,
+            authorName: staff.name,
+            kind: 'status',
+            body: changes.join(', '),
+          },
+        });
+      }
+    });
+  } catch {
+    return { error: 'Impossible de mettre à jour le lead.' };
+  }
+
+  revalidatePath(LEADS_PATH);
+  return { success: 'Lead mis à jour.' };
+}
+
+/**
+ * Log a call attempt: increments callAttempts, sets the callStatus and
+ * lastContactedAt, and records a "call" activity. When the second attempt is
+ * logged, callStatus CALLED becomes CALLED_TWICE automatically.
+ */
+export async function superadminLogLeadCall(
+  values: z.infer<typeof SuperadminLogLeadCallSchema>
+): Promise<ActionResult> {
+  if (!(await requireLeadsAccess())) return FORBIDDEN;
+
+  const parsed = SuperadminLogLeadCallSchema.safeParse(values);
+  if (!parsed.success) return INVALID;
+
+  const { id, callStatus, note } = parsed.data;
+  const staff = await currentStaffLabel();
+
+  try {
+    const lead = await db.leadMenu.findUnique({
+      where: { id },
+      select: { callAttempts: true },
+    });
+    if (!lead) return { error: 'Lead introuvable.' };
+
+    const attempts = lead.callAttempts + 1;
+    // Auto-promote to CALLED_TWICE on a second successful call.
+    const resolvedStatus =
+      callStatus === 'CALLED' && attempts >= 2 ? 'CALLED_TWICE' : callStatus;
+
+    await db.$transaction(async (tx) => {
+      await tx.leadMenu.update({
+        where: { id },
+        data: {
+          callAttempts: attempts,
+          callStatus: resolvedStatus,
+          lastContactedAt: new Date(),
+          // Moving a NEW lead into the pipeline once contacted.
+          status: 'CONTACTED',
+        },
+      });
+      await tx.leadActivity.create({
+        data: {
+          leadId: id,
+          authorId: staff.id,
+          authorName: staff.name,
+          kind: 'call',
+          body: `Appel #${attempts} — ${resolvedStatus}${note ? ` : ${note}` : ''}`,
+        },
+      });
+    });
+  } catch {
+    return { error: "Impossible d'enregistrer l'appel." };
+  }
+
+  revalidatePath(LEADS_PATH);
+  return { success: 'Appel enregistré.' };
+}
+
+/** Add a free-form note to a lead's timeline. */
+export async function superadminAddLeadNote(
+  values: z.infer<typeof SuperadminLeadNoteSchema>
+): Promise<ActionResult> {
+  if (!(await requireLeadsAccess())) return FORBIDDEN;
+
+  const parsed = SuperadminLeadNoteSchema.safeParse(values);
+  if (!parsed.success) return INVALID;
+
+  const staff = await currentStaffLabel();
+  try {
+    await db.leadActivity.create({
+      data: {
+        leadId: parsed.data.id,
+        authorId: staff.id,
+        authorName: staff.name,
+        kind: 'note',
+        body: parsed.data.body,
+      },
+    });
+  } catch {
+    return { error: "Impossible d'ajouter la note." };
+  }
+
+  revalidatePath(LEADS_PATH);
+  return { success: 'Note ajoutée.' };
+}
+
+/**
+ * Convert a funnel lead into a real account (#12): creates the user
+ * (email-verified, onboarded) and materializes the stored menu JSON into a
+ * restaurant → menu → categories → dishes, then links the lead to the new
+ * account. Idempotent guard: refuses if the lead was already converted or the
+ * email is taken.
+ */
+export async function superadminConvertLead(
+  values: z.infer<typeof SuperadminConvertLeadSchema>
+): Promise<ActionResult & { userId?: string; restaurantId?: string }> {
+  if (!(await requireLeadsAccess())) return FORBIDDEN;
+
+  const parsed = SuperadminConvertLeadSchema.safeParse(values);
+  if (!parsed.success) return INVALID;
+
+  const { id, name, email, password, plan } = parsed.data;
+
+  const lead = await db.leadMenu.findUnique({ where: { id } });
+  if (!lead) return { error: 'Lead introuvable.' };
+  if (lead.convertedUserId) {
+    return { error: 'Ce lead a déjà été converti en compte.' };
+  }
+
+  const existing = await getUserByEmail(email);
+  if (existing) {
+    return { error: 'Un compte existe déjà avec cet e-mail.' };
+  }
+
+  // Parse the stored menu JSON.
+  const menuJson = lead.data as {
+    categories?: {
+      name?: string;
+      dishes?: { name?: string; description?: string; price?: number | string }[];
+    }[];
+  };
+  const categories = Array.isArray(menuJson?.categories)
+    ? menuJson.categories
+    : [];
+
+  // Map the funnel currency string onto the Currency enum.
+  const currency =
+    lead.currency === 'DOLLAR' || lead.currency === 'DINAR'
+      ? lead.currency
+      : 'EURO';
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const staff = await currentStaffLabel();
+
+  try {
+    const result = await db.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+          role: 'USER',
+          plan: plan ?? 'STARTER',
+          emailVerified: new Date(),
+          onboardedAt: new Date(),
+        },
+        select: { id: true },
+      });
+
+      const restaurantId = uuidv4();
+      await tx.restaurant.create({
+        data: {
+          id: restaurantId,
+          userId: user.id,
+          name: lead.restaurantName,
+          address: lead.notes?.slice(0, 200) || 'À compléter',
+          phone: lead.contactPhone || 'À compléter',
+          currency: currency as 'EURO' | 'DOLLAR' | 'DINAR',
+          coverPhoto: 'uploads/1735415131028bg-food.jpg',
+          qrUrl: buildPathMenuUrl(restaurantId),
+        },
+      });
+
+      const menu = await tx.menu.create({
+        data: {
+          restaurantId,
+          name: lead.restaurantName,
+          position: 0,
+          availability: [],
+        },
+        select: { id: true },
+      });
+
+      // Materialize categories + dishes preserving order.
+      for (let ci = 0; ci < categories.length; ci++) {
+        const cat = categories[ci];
+        const category = await tx.menuCategory.create({
+          data: {
+            menuId: menu.id,
+            name: cat?.name?.trim() || `Catégorie ${ci + 1}`,
+            position: ci,
+          },
+          select: { id: true },
+        });
+        const dishes = Array.isArray(cat?.dishes) ? cat!.dishes : [];
+        for (let di = 0; di < dishes.length; di++) {
+          const d = dishes[di];
+          const price =
+            typeof d?.price === 'number'
+              ? d.price
+              : parseFloat(String(d?.price ?? '0')) || 0;
+          await tx.dish.create({
+            data: {
+              categoryId: category.id,
+              name: d?.name?.trim() || `Plat ${di + 1}`,
+              description: d?.description?.trim() || null,
+              price,
+              position: di,
+              allergenes: [],
+            },
+          });
+        }
+      }
+
+      await tx.leadMenu.update({
+        where: { id },
+        data: {
+          status: 'CONVERTED',
+          convertedUserId: user.id,
+          convertedRestaurantId: restaurantId,
+          convertedAt: new Date(),
+        },
+      });
+
+      await tx.leadActivity.create({
+        data: {
+          leadId: id,
+          authorId: staff.id,
+          authorName: staff.name,
+          kind: 'convert',
+          body: `Converti en compte (${email}).`,
+        },
+      });
+
+      return { userId: user.id, restaurantId };
+    });
+
+    revalidatePath(LEADS_PATH);
+    return {
+      success: 'Lead converti en compte avec son menu.',
+      userId: result.userId,
+      restaurantId: result.restaurantId,
+    };
+  } catch {
+    return { error: 'Impossible de convertir le lead.' };
+  }
 }

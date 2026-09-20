@@ -409,6 +409,75 @@ export type SuperadminSetLeadStatusValues = z.infer<
   typeof SuperadminSetLeadStatusSchema
 >;
 
+/** CRM: update a lead's follow-up fields (all optional; only sent ones apply). */
+export const SuperadminUpdateLeadSchema = z.object({
+  id: z.string().uuid(),
+  status: z
+    .enum(['NEW', 'ORDERED', 'CONTACTED', 'CONVERTED', 'CLOSED'])
+    .optional(),
+  callStatus: z
+    .enum([
+      'NOT_CALLED',
+      'CALLED',
+      'CALLED_TWICE',
+      'NO_ANSWER',
+      'CALLBACK',
+      'WRONG_NUMBER'
+    ])
+    .optional(),
+  deliveryStatus: z
+    .enum(['NONE', 'PENDING', 'PREPARING', 'SHIPPED', 'DELIVERED'])
+    .optional(),
+  orderStatus: z
+    .enum(['NONE', 'PLACED', 'CONFIRMED', 'PAID', 'CANCELLED'])
+    .optional(),
+  assignedToId: z.string().uuid().nullable().optional(),
+  followUpNotes: z.string().trim().max(2000).optional().or(z.literal('')),
+  nextFollowUpAt: z.string().optional().or(z.literal('')),
+});
+export type SuperadminUpdateLeadValues = z.infer<
+  typeof SuperadminUpdateLeadSchema
+>;
+
+/** CRM: log a call attempt on a lead (increments callAttempts, sets callStatus). */
+export const SuperadminLogLeadCallSchema = z.object({
+  id: z.string().uuid(),
+  callStatus: z.enum([
+    'CALLED',
+    'CALLED_TWICE',
+    'NO_ANSWER',
+    'CALLBACK',
+    'WRONG_NUMBER'
+  ]),
+  note: z.string().trim().max(1000).optional().or(z.literal('')),
+});
+export type SuperadminLogLeadCallValues = z.infer<
+  typeof SuperadminLogLeadCallSchema
+>;
+
+/** CRM: add a free-form note to a lead's timeline. */
+export const SuperadminLeadNoteSchema = z.object({
+  id: z.string().uuid(),
+  body: z.string().trim().min(1).max(2000),
+});
+export type SuperadminLeadNoteValues = z.infer<typeof SuperadminLeadNoteSchema>;
+
+/**
+ * Convert a funnel lead into a real account: creates the user (with the given
+ * credentials) and materializes the stored menu JSON into a restaurant + menu +
+ * categories + dishes, linking everything to the new account.
+ */
+export const SuperadminConvertLeadSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().trim().min(1).max(120),
+  email: z.string().trim().email(),
+  password: z.string().min(6).max(100),
+  plan: z.enum(['STARTER', 'PRO', 'PREMIUM']).optional(),
+});
+export type SuperadminConvertLeadValues = z.infer<
+  typeof SuperadminConvertLeadSchema
+>;
+
 /**
  * Update a design order's fulfillment status (FEAT-6). SUPERADMIN-only; the
  * status must be one of the DesignOrderStatus enum values.

@@ -4,6 +4,7 @@ import { UserButton } from "@/components/auth/user-button";
 import { ModeToggle } from "@/components/mode-toggle";
 import { LanguageSwitcher } from "@/components/language-switcher";
 import { TourHelpButton } from "@/components/tour-help-button";
+import { NotificationBell } from "@/components/protected/notification-bell";
 import {
   Tooltip,
   TooltipContent,
@@ -44,6 +45,8 @@ export function NavbarActions() {
           </TooltipTrigger>
           <TooltipContent>{t("tooltip.theme")}</TooltipContent>
         </Tooltip>
+
+        <NotificationBell />
 
         <Tooltip delayDuration={100}>
           <TooltipTrigger asChild>

@@ -633,12 +633,26 @@ export async function countRestaurantsForSuperadmin({
 // Lead-gen funnel leads (paid ads)
 // -----------------------------------------------------------------------------
 
-import type { LeadStatus } from '@prisma/client';
+import type {
+  LeadStatus,
+  LeadCallStatus,
+  LeadDeliveryStatus,
+  LeadOrderStatus,
+} from '@prisma/client';
+
+export interface LeadActivityRow {
+  id: string;
+  kind: string;
+  body: string;
+  authorName: string | null;
+  createdAt: Date;
+}
 
 export interface SuperadminLeadRow {
   id: string;
   restaurantName: string;
   locale: string;
+  currency: string;
   designName: string | null;
   quantity: number | null;
   contactName: string | null;
@@ -646,9 +660,25 @@ export interface SuperadminLeadRow {
   contactEmail: string | null;
   notes: string | null;
   status: LeadStatus;
+  // CRM follow-up (#10)
+  callStatus: LeadCallStatus;
+  callAttempts: number;
+  deliveryStatus: LeadDeliveryStatus;
+  orderStatus: LeadOrderStatus;
+  assignedToId: string | null;
+  assignedToName: string | null;
+  followUpNotes: string | null;
+  nextFollowUpAt: Date | null;
+  lastContactedAt: Date | null;
+  // Conversion (#12)
+  convertedUserId: string | null;
+  convertedRestaurantId: string | null;
+  convertedAt: Date | null;
   createdAt: Date;
   /** Number of categories in the built menu (from the JSON), for a quick sense. */
   categoryCount: number;
+  /** Recent activity timeline (newest last). */
+  activities: LeadActivityRow[];
 }
 
 interface ListLeadsArgs {
@@ -689,37 +719,119 @@ export async function listLeads({
       orderBy: { createdAt: 'desc' },
       skip,
       take,
-      select: {
-        id: true,
-        restaurantName: true,
-        locale: true,
-        data: true,
-        designName: true,
-        quantity: true,
-        contactName: true,
-        contactPhone: true,
-        contactEmail: true,
-        notes: true,
-        status: true,
-        createdAt: true
-      }
+      select: LEAD_SELECT,
     });
-    return rows.map((r) => {
-      const cats = (r.data as { categories?: unknown[] })?.categories;
-      return {
-        id: r.id,
-        restaurantName: r.restaurantName,
-        locale: r.locale,
-        designName: r.designName,
-        quantity: r.quantity,
-        contactName: r.contactName,
-        contactPhone: r.contactPhone,
-        contactEmail: r.contactEmail,
-        notes: r.notes,
-        status: r.status,
-        createdAt: r.createdAt,
-        categoryCount: Array.isArray(cats) ? cats.length : 0
-      };
+    return rows.map(mapLeadRow);
+  } catch {
+    return [];
+  }
+}
+
+/** Shared select for lead rows (list + detail). */
+const LEAD_SELECT = {
+  id: true,
+  restaurantName: true,
+  locale: true,
+  currency: true,
+  data: true,
+  designName: true,
+  quantity: true,
+  contactName: true,
+  contactPhone: true,
+  contactEmail: true,
+  notes: true,
+  status: true,
+  callStatus: true,
+  callAttempts: true,
+  deliveryStatus: true,
+  orderStatus: true,
+  assignedToId: true,
+  assignedTo: { select: { name: true, email: true } },
+  followUpNotes: true,
+  nextFollowUpAt: true,
+  lastContactedAt: true,
+  convertedUserId: true,
+  convertedRestaurantId: true,
+  convertedAt: true,
+  createdAt: true,
+  activities: {
+    orderBy: { createdAt: 'asc' as const },
+    select: {
+      id: true,
+      kind: true,
+      body: true,
+      authorName: true,
+      createdAt: true,
+    },
+  },
+} satisfies Prisma.LeadMenuSelect;
+
+type LeadWithSelect = Prisma.LeadMenuGetPayload<{ select: typeof LEAD_SELECT }>;
+
+function mapLeadRow(r: LeadWithSelect): SuperadminLeadRow {
+  const cats = (r.data as { categories?: unknown[] })?.categories;
+  return {
+    id: r.id,
+    restaurantName: r.restaurantName,
+    locale: r.locale,
+    currency: r.currency,
+    designName: r.designName,
+    quantity: r.quantity,
+    contactName: r.contactName,
+    contactPhone: r.contactPhone,
+    contactEmail: r.contactEmail,
+    notes: r.notes,
+    status: r.status,
+    callStatus: r.callStatus,
+    callAttempts: r.callAttempts,
+    deliveryStatus: r.deliveryStatus,
+    orderStatus: r.orderStatus,
+    assignedToId: r.assignedToId,
+    assignedToName: r.assignedTo?.name ?? r.assignedTo?.email ?? null,
+    followUpNotes: r.followUpNotes,
+    nextFollowUpAt: r.nextFollowUpAt,
+    lastContactedAt: r.lastContactedAt,
+    convertedUserId: r.convertedUserId,
+    convertedRestaurantId: r.convertedRestaurantId,
+    convertedAt: r.convertedAt,
+    createdAt: r.createdAt,
+    categoryCount: Array.isArray(cats) ? cats.length : 0,
+    activities: r.activities.map((a) => ({
+      id: a.id,
+      kind: a.kind,
+      body: a.body,
+      authorName: a.authorName,
+      createdAt: a.createdAt,
+    })),
+  };
+}
+
+/** Fetch a single lead with full CRM detail. */
+export async function getLead(id: string): Promise<SuperadminLeadRow | null> {
+  try {
+    const row = await db.leadMenu.findUnique({
+      where: { id },
+      select: LEAD_SELECT,
+    });
+    return row ? mapLeadRow(row) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** List STAFF/SUPERADMIN users that a lead can be assigned to. */
+export interface StaffOption {
+  id: string;
+  name: string | null;
+  email: string | null;
+}
+
+export async function listStaff(): Promise<StaffOption[]> {
+  try {
+    return await db.user.findMany({
+      where: { role: { in: ['STAFF', 'SUPERADMIN'] } },
+      orderBy: { email: 'asc' },
+      select: { id: true, name: true, email: true },
     });
   } catch {
     return [];
