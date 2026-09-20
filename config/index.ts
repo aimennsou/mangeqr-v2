@@ -316,6 +316,67 @@ export function getDeliveryOption(id: string): DeliveryOption | undefined {
 
 
 // -----------------------------------------------------------------------------
+// Landing pricing by region (France = EUR, Algérie = DZD).
+// The public pricing section lets the visitor pick their region; prices switch
+// between euros and Algerian dinars. PLACEHOLDER DZD amounts until finals are
+// given — keep them here as the single source of truth.
+// -----------------------------------------------------------------------------
+export type PricingRegion = "france" | "algerie";
+
+export interface RegionPricing {
+  /** Currency symbol/placement handled per region in the labels below. */
+  symbol: string;
+  /** Per-tier displayed price by frequency, e.g. { starter: { mensuel, annuel } }. */
+  tiers: Record<string, Record<string, string>>;
+  /** Delivery surcharge per table for personalized QR menus (Starter/Pro line). */
+  perTableDelivery: string;
+  /** Ordering add-on monthly price shown on every card. */
+  orderingAddon: string;
+}
+
+export const REGION_LABELS: Record<PricingRegion, string> = {
+  france: "France",
+  algerie: "Algérie",
+};
+
+export const REGION_PRICING: Record<PricingRegion, RegionPricing> = {
+  france: {
+    symbol: "€",
+    tiers: {
+      starter: { mensuel: "12€", annuel: "120€" },
+      pro: { mensuel: "24€", annuel: "240€" },
+      premium: { mensuel: "37€", annuel: "370€" },
+    },
+    perTableDelivery: "+2€",
+    orderingAddon: "+5€/mois",
+  },
+  algerie: {
+    // Placeholder DZD amounts — replace with finals when provided.
+    symbol: "DZD",
+    tiers: {
+      starter: { mensuel: "1700 DZD", annuel: "17000 DZD" },
+      pro: { mensuel: "3400 DZD", annuel: "34000 DZD" },
+      premium: { mensuel: "5200 DZD", annuel: "52000 DZD" },
+    },
+    perTableDelivery: "+300 DZD",
+    orderingAddon: "+700 DZD/mois",
+  },
+};
+
+/** Displayed tier price for a region + frequency (falls back to config TIERS). */
+export function getRegionTierPrice(
+  region: PricingRegion,
+  tierId: string,
+  frequency: string,
+): string {
+  return (
+    REGION_PRICING[region]?.tiers[tierId]?.[frequency] ??
+    (TIERS.find((t) => t.id === tierId)?.price[frequency] as string) ??
+    ""
+  );
+}
+
+// -----------------------------------------------------------------------------
 // Plan pricing per currency (#2). EUR is the online (Stripe) price; DZD is the
 // cash/offline price shown to Algerian accounts, who request an upgrade the
 // back-office fulfills manually. PLACEHOLDER DZD amounts until finals are given.

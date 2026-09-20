@@ -4,8 +4,22 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { Check } from 'lucide-react';
 
-import { TIERS, PAYMENT_FREQUENCIES } from '@/config';
+import {
+  TIERS,
+  PAYMENT_FREQUENCIES,
+  REGION_PRICING,
+  REGION_LABELS,
+  getRegionTierPrice,
+  type PricingRegion,
+} from '@/config';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import Reveal from './Reveal';
 
@@ -16,6 +30,14 @@ import Reveal from './Reveal';
  */
 export default function V2Pricing() {
   const [freq, setFreq] = useState<string>(PAYMENT_FREQUENCIES[0]);
+  const [region, setRegion] = useState<PricingRegion>('france');
+  const pricing = REGION_PRICING[region];
+
+  // Region-aware rewrite of the per-table delivery feature line (Starter/Pro).
+  const localizeFeature = (feat: string): string =>
+    feat.startsWith('+2€ par table')
+      ? feat.replace('+2€', pricing.perTableDelivery)
+      : feat;
 
   return (
     <section id="tarifs" className="border-t border-border bg-card">
@@ -31,23 +53,43 @@ export default function V2Pricing() {
               </h2>
             </div>
 
-            {/* Frequency toggle */}
-            <div className="inline-flex rounded-lg border border-border bg-background p-1">
-              {PAYMENT_FREQUENCIES.map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  onClick={() => setFreq(f)}
-                  className={cn(
-                    'rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors',
-                    freq === f
-                      ? 'bg-yellow-400 text-black'
-                      : 'text-muted-foreground hover:text-foreground'
-                  )}
-                >
-                  {f}
-                </button>
-              ))}
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Region selector — switches prices between France (€) and
+                  Algérie (DZD). */}
+              <Select
+                value={region}
+                onValueChange={(v) => setRegion(v as PricingRegion)}
+              >
+                <SelectTrigger className="w-[130px]" aria-label="Région">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(REGION_LABELS) as PricingRegion[]).map((r) => (
+                    <SelectItem key={r} value={r}>
+                      {REGION_LABELS[r]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {/* Frequency toggle */}
+              <div className="inline-flex rounded-lg border border-border bg-background p-1">
+                {PAYMENT_FREQUENCIES.map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setFreq(f)}
+                    className={cn(
+                      'rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors',
+                      freq === f
+                        ? 'bg-yellow-400 text-black'
+                        : 'text-muted-foreground hover:text-foreground'
+                    )}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </Reveal>
@@ -78,7 +120,7 @@ export default function V2Pricing() {
 
                   <div className="mt-5 flex items-baseline gap-1">
                     <span className="font-serif-display text-5xl font-light text-foreground">
-                      {tier.price[freq]}
+                      {getRegionTierPrice(region, tier.id, freq)}
                     </span>
                     <span className="text-sm text-muted-foreground">
                       /{freq === 'annuel' ? 'an' : 'mois'}
@@ -113,7 +155,9 @@ export default function V2Pricing() {
                             className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500"
                             strokeWidth={2.25}
                           />
-                          <span className="text-foreground/90">{feat}</span>
+                          <span className="text-foreground/90">
+                            {localizeFeature(feat)}
+                          </span>
                         </li>
                       ))}
                   </ul>
@@ -124,7 +168,7 @@ export default function V2Pricing() {
                     <p className="text-xs font-semibold text-foreground">
                       + Module gestion de commande sur place + livraison{' '}
                       <span className="text-yellow-600 dark:text-yellow-500">
-                        +5€/mois
+                        {pricing.orderingAddon}
                       </span>
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
