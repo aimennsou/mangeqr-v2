@@ -1,4 +1,5 @@
-import { Tv, MonitorSmartphone } from 'lucide-react';
+import Image from 'next/image';
+import { Tv, MonitorSmartphone, type LucideIcon } from 'lucide-react';
 
 import Reveal from './Reveal';
 import V2Button from './V2Button';
@@ -8,7 +9,16 @@ import V2Button from './V2Button';
  * software: screens (TVs) to showcase menus in the dining room, and self-order
  * kiosks (bornes de commande). Sits right after the pricing section.
  */
-const KIT = [
+interface KitItem {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  /** Optional showcase image rendered in a container under the description. */
+  image?: string;
+  imageAlt?: string;
+}
+
+const KIT: KitItem[] = [
   {
     icon: Tv,
     title: 'Écrans & TV',
@@ -20,6 +30,8 @@ const KIT = [
     title: 'Bornes de commande',
     description:
       "Laissez vos clients commander en autonomie sur des bornes tactiles. Moins d'attente, un ticket moyen plus élevé, et vos commandes directement en cuisine.",
+    image: '/images/bornes-commande.png',
+    imageAlt: 'Bornes de commande tactiles et caisse (POS) pour restaurant',
   },
 ];
 
@@ -43,7 +55,7 @@ export default function V2Kit() {
           </p>
         </Reveal>
 
-        <div className="mt-12 grid gap-4 sm:grid-cols-2">
+        <div className="mt-12 grid items-start gap-4 sm:grid-cols-2">
           {KIT.map((item, i) => {
             const Icon = item.icon;
             return (
@@ -58,6 +70,19 @@ export default function V2Kit() {
                   <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
                     {item.description}
                   </p>
+
+                  {/* Showcase image container (e.g. the self-order kiosks) */}
+                  {item.image ? (
+                    <div className="mt-6 flex items-center justify-center overflow-hidden rounded-xl border border-border bg-gradient-to-b from-muted/40 to-background p-6">
+                      <Image
+                        src={item.image}
+                        alt={item.imageAlt ?? item.title}
+                        width={576}
+                        height={820}
+                        className="h-auto w-full max-w-[380px] object-contain"
+                      />
+                    </div>
+                  ) : null}
                 </article>
               </Reveal>
             );
