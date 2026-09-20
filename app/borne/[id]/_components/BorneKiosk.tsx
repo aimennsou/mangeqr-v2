@@ -257,6 +257,22 @@ export function BorneKiosk({
   const cartCount = lines.reduce((s, l) => s + l.quantity, 0);
   const cartTotal = lines.reduce((s, l) => s + lineTotal(l), 0);
 
+  // Upsell suggestions for the cart: dishes not already in the cart, cheapest
+  // first (typical add-ons: sides, drinks, desserts), capped at a small set.
+  const suggestions = useMemo(() => {
+    const inCart = new Set(lines.map((l) => l.dishId));
+    const all: Dish[] = [];
+    const seen = new Set<string>();
+    for (const c of allCategories) {
+      for (const d of c.dishes) {
+        if (inCart.has(d.id) || seen.has(d.id)) continue;
+        seen.add(d.id);
+        all.push(d);
+      }
+    }
+    return all.sort((a, b) => a.price - b.price).slice(0, 6);
+  }, [allCategories, lines]);
+
   const addLine = (line: CartLine) => setLines((prev) => [...prev, line]);
   const changeQty = (lineId: string, qty: number) =>
     setLines((prev) =>
@@ -574,18 +590,54 @@ export function BorneKiosk({
   // ---- Cart review --------------------------------------------------------
   if (screen === 'cart') {
     return (
-      <CartReview
-        lines={lines}
-        currency={currency}
-        accent={accent}
-        note={note}
-        setNote={setNote}
-        onChangeQty={changeQty}
-        onRemove={removeLine}
-        onBack={() => setScreen('menu')}
-        onProceed={() => setScreen('type')}
-        fmt={fmt}
-      />
+      <>
+        <CartReview
+          lines={lines}
+          currency={currency}
+          accent={accent}
+          note={note}
+          setNote={setNote}
+          suggestions={suggestions}
+          showPhoto={cfg.showPhotos}
+          onPickSuggestion={(dish) => {
+            // Dishes with add-on groups open the detail overlay (so required
+            // options can be chosen); simple items add straight to the cart.
+            if ((dish.addonGroups ?? []).length > 0) {
+              setDetailDish(dish);
+            } else {
+              addLine({
+                lineId: uuidv4(),
+                dishId: dish.id,
+                dishName: dish.name,
+                unitPrice: dish.price,
+                quantity: 1,
+                options: [],
+                specialRequest: '',
+              });
+            }
+          }}
+          onChangeQty={changeQty}
+          onRemove={removeLine}
+          onBack={() => setScreen('menu')}
+          onProceed={() => setScreen('type')}
+          fmt={fmt}
+        />
+        {/* Add-on picker overlay for suggestions with options. */}
+        {detailDish ? (
+          <ItemDetail
+            dish={detailDish}
+            currency={currency}
+            accent={accent}
+            showPhoto={cfg.showPhotos}
+            onClose={() => setDetailDish(null)}
+            onAdd={(line) => {
+              addLine(line);
+              setDetailDish(null);
+            }}
+            fmt={fmt}
+          />
+        ) : null}
+      </>
     );
   }
 
@@ -1110,6 +1162,9 @@ function CartReview({
   accent,
   note,
   setNote,
+  suggestions,
+  showPhoto,
+  onPickSuggestion,
   onChangeQty,
   onRemove,
   onBack,
@@ -1121,6 +1176,10 @@ function CartReview({
   accent: string;
   note: string;
   setNote: (v: string) => void;
+  /** Upsell dishes shown under the cart ("Recommandé avec votre commande"). */
+  suggestions: Dish[];
+  showPhoto: boolean;
+  onPickSuggestion: (dish: Dish) => void;
   onChangeQty: (lineId: string, qty: number) => void;
   onRemove: (lineId: string) => void;
   onBack: () => void;
@@ -1230,6 +1289,64 @@ function CartReview({
                 className="w-full rounded-xl border-2 border-black/10 p-4 text-lg outline-none"
               />
             </div>
+
+            {/* Upsell — "Recommandé avec votre commande". */}
+            {suggestions.length > 0 ? (
+              <div
+                className="rounded-2xl border-2 border-dashed p-4"
+                style={{ borderColor: `${accent}66`, background: `${accent}0d` }}
+              >
+                <p className="mb-3 flex items-center gap-2 text-lg font-bold">
+                  <span className="text-xl">✨</span>
+                  Recommandé avec votre commande
+                </p>
+                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {suggestions.map((dish) => (
+                    <button
+                      key={dish.id}
+                      type="button"
+                      onClick={() => onPickSuggestion(dish)}
+                      className="flex w-40 shrink-0 flex-col overflow-hidden rounded-2xl border border-black/10 bg-white text-left text-neutral-900 shadow-sm transition-transform active:scale-[0.97]"
+                    >
+                      {showPhoto && dish.photo ? (
+                        <div className="relative aspect-[4/3] w-full">
+                          <Image
+                            src={dish.photo}
+                            alt={dish.name}
+                            fill
+                            className="object-cover"
+                            sizes="160px"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex aspect-[4/3] w-full items-center justify-center bg-neutral-100 text-neutral-300">
+                          <UtensilsCrossed className="h-8 w-8" />
+                        </div>
+                      )}
+                      <div className="flex flex-1 flex-col p-2.5">
+                        <p className="line-clamp-2 text-sm font-semibold leading-tight">
+                          {dish.name}
+                        </p>
+                        <div className="mt-auto flex items-center justify-between pt-2">
+                          <span
+                            className="text-sm font-bold"
+                            style={{ color: accent }}
+                          >
+                            {fmt(dish.price)}
+                          </span>
+                          <span
+                            className="flex h-8 w-8 items-center justify-center rounded-full"
+                            style={{ backgroundColor: accent, color: '#000' }}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         )}
       </div>
