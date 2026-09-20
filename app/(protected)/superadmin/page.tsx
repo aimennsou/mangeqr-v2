@@ -11,7 +11,8 @@ import {
   TrendingUp,
   UserCheck,
   Users,
-  UtensilsCrossed
+  UtensilsCrossed,
+  ArrowUpCircle
 } from 'lucide-react';
 
 import {
@@ -25,7 +26,10 @@ import {
 import { Card, CardContent } from '@/components/ui/card';
 import { currentRole } from '@/lib/authentication';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
-import { getSuperadminMetrics } from '@/data/superadmin';
+import {
+  getSuperadminMetrics,
+  countPendingUpgradeRequests,
+} from '@/data/superadmin';
 import Logo from '@/components/Logo';
 
 import { ContentLayout } from '../_admin-panel/content-layout';
@@ -42,7 +46,10 @@ export default async function SuperadminPage() {
     redirect(DEFAULT_SIGNIN_REDIRECT);
   }
 
-  const m = await getSuperadminMetrics();
+  const [m, pendingUpgrades] = await Promise.all([
+    getSuperadminMetrics(),
+    countPendingUpgradeRequests(),
+  ]);
   const fmt = new Intl.NumberFormat('fr-FR');
   const eur = (n: number) => `${fmt.format(n)} €`;
 
@@ -165,6 +172,15 @@ export default async function SuperadminPage() {
                   sub={`${m.supportMessages.unresolved} non traités`}
                   icon={<MessageSquare />}
                   accent={m.supportMessages.unresolved > 0}
+                />
+              </Link>
+              <Link href="/superadmin/upgrades" className="contents">
+                <MetricCard
+                  label="Demandes de forfait"
+                  value={fmt.format(pendingUpgrades)}
+                  sub="En attente (espèces)"
+                  icon={<ArrowUpCircle />}
+                  accent={pendingUpgrades > 0}
                 />
               </Link>
             </div>

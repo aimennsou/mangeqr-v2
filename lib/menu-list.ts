@@ -21,6 +21,7 @@ import {
   Sparkles,
   UtensilsCrossed,
   LayoutDashboard,
+  CreditCard,
  
 } from "lucide-react";
 import type { UserRole } from "@prisma/client";
@@ -299,6 +300,14 @@ export function getMenuList(
           labelKey: "nav.superadmin.leads",
           active: pathname.includes("/superadmin/leads"),
           icon: Sparkles,
+          submenus: [],
+        },
+        {
+          href: "/superadmin/upgrades",
+          label: "Demandes de forfait",
+          labelKey: "nav.superadmin.upgrades",
+          active: pathname.includes("/superadmin/upgrades"),
+          icon: CreditCard,
           submenus: [],
         },
         {

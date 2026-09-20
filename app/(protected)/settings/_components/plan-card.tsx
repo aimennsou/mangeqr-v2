@@ -40,6 +40,8 @@ interface PlanCardProps {
   campaignCount: number;
   /** Mode de paiement du plan (espèces/hors ligne ou en ligne). */
   planPaymentMethod: PlanPaymentMethod;
+  /** #2: account is Algerian (DZD) → cash upgrade-request flow instead of Stripe. */
+  isAlgerian?: boolean;
 }
 
 interface UsageRowProps {
@@ -88,7 +90,8 @@ export default function PlanCard({
   restaurantCount,
   menuCount,
   campaignCount,
-  planPaymentMethod
+  planPaymentMethod,
+  isAlgerian = false
 }: PlanCardProps) {
   // Un plan payant est expiré quand sa date d'échéance est passée.
   const expired =
@@ -216,6 +219,8 @@ export default function PlanCard({
         <BillingActions
           stripeEnabled={isStripeEnabled()}
           isPaidOnline={!isFreePlan && planPaymentMethod === "ONLINE"}
+          isAlgerian={isAlgerian}
+          currentPlan={effectivePlan}
         />
       </CardContent>
     </Card>

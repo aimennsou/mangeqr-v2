@@ -70,6 +70,7 @@ model User {
   notifications      Notification[]
   assignedLeads      LeadMenu[]       @relation("LeadAssignee")
   leadActivities     LeadActivity[]   @relation("LeadActivityAuthor")
+  planUpgradeRequests PlanUpgradeRequest[]
 }
 
 model Membership {
@@ -549,6 +550,36 @@ model Notification {
   createdAt DateTime         @default(now())
 
   @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
+}
+
+// Cash (espèce) plan-upgrade requests (#2). Algerian accounts (restaurant
+// currency DINAR) pay offline, so upgrading is a REQUEST the back-office
+// follows up on (call the user, take payment) rather than a Stripe checkout.
+enum PlanUpgradeStatus {
+  PENDING     // awaiting a call / payment
+  CONTACTED   // reached the user
+  APPROVED    // plan granted
+  REJECTED    // declined / abandoned
+}
+
+model PlanUpgradeRequest {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @db.Uuid
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Requested target plan + billing frequency (mensuel | annuel).
+  targetPlan    Plan
+  frequency     String            @default("mensuel")
+  // Denormalized display price at request time (e.g. "5000 DZD / mois").
+  priceLabel    String?
+  currency      String            @default("DINAR")
+  contactPhone  String?
+  note          String?
+  status        PlanUpgradeStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status, createdAt])
   @@index([userId, createdAt])
 }
 

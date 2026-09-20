@@ -32,7 +32,8 @@ import {
   SuperadminLogLeadCallSchema,
   SuperadminLeadNoteSchema,
   SuperadminConvertLeadSchema,
-  SuperadminBroadcastSchema
+  SuperadminBroadcastSchema,
+  SuperadminSetUpgradeStatusSchema
 } from '@/schemas';
 import { revalidatePath } from 'next/cache';
 import {
@@ -1106,4 +1107,62 @@ export async function superadminBroadcast(
   } catch {
     return { error: "Impossible d'envoyer la notification." };
   }
+}
+
+
+/**
+ * Update a cash plan-upgrade request's status (#2). SUPERADMIN-only. When set to
+ * APPROVED, the target plan is granted to the account (cash payment method) with
+ * a 1-year expiry — the back-office marks it approved after taking payment.
+ */
+export async function superadminSetUpgradeStatus(
+  values: z.infer<typeof SuperadminSetUpgradeStatusSchema>
+): Promise<ActionResult> {
+  if (!(await requireSuperadmin())) return FORBIDDEN;
+
+  const parsed = SuperadminSetUpgradeStatusSchema.safeParse(values);
+  if (!parsed.success) return INVALID;
+
+  const { id, status } = parsed.data;
+
+  try {
+    const request = await db.planUpgradeRequest.findUnique({
+      where: { id },
+      select: { userId: true, targetPlan: true, frequency: true },
+    });
+    if (!request) return { error: 'Demande introuvable.' };
+
+    if (status === 'APPROVED') {
+      // Grant the requested plan (cash) with a 1-year expiry from now.
+      const renewsAt = new Date();
+      renewsAt.setFullYear(renewsAt.getFullYear() + 1);
+      await db.$transaction([
+        db.planUpgradeRequest.update({ where: { id }, data: { status } }),
+        db.user.update({
+          where: { id: request.userId },
+          data: {
+            plan: request.targetPlan,
+            planPaymentMethod: 'CASH',
+            planRenewsAt: renewsAt,
+          },
+        }),
+      ]);
+      // Let the user know their upgrade is live.
+      await createNotification({
+        userId: request.userId,
+        type: 'BROADCAST',
+        title: 'Forfait mis à niveau',
+        body: `Votre forfait ${request.targetPlan} est actif.`,
+        link: '/settings',
+        entityId: id,
+      });
+    } else {
+      await db.planUpgradeRequest.update({ where: { id }, data: { status } });
+    }
+  } catch {
+    return { error: 'Impossible de mettre à jour la demande.' };
+  }
+
+  revalidatePath('/superadmin/upgrades');
+  return { success: 'Demande mise à jour.' };
 }

@@ -849,3 +849,73 @@ export async function countLeads({
     return 0;
   }
 }
+
+
+// -----------------------------------------------------------------------------
+// Plan-upgrade requests (cash / Algeria) — #2
+// -----------------------------------------------------------------------------
+
+import type { PlanUpgradeStatus } from '@prisma/client';
+
+export interface SuperadminUpgradeRequestRow {
+  id: string;
+  userId: string;
+  userName: string | null;
+  userEmail: string | null;
+  currentPlan: Plan;
+  targetPlan: Plan;
+  frequency: string;
+  priceLabel: string | null;
+  currency: string;
+  contactPhone: string | null;
+  note: string | null;
+  status: PlanUpgradeStatus;
+  createdAt: Date;
+}
+
+/** List cash plan-upgrade requests for the SUPERADMIN, newest first. */
+export async function listUpgradeRequests({
+  status,
+  skip = 0,
+  take = 100,
+}: { status?: PlanUpgradeStatus; skip?: number; take?: number } = {}): Promise<
+  SuperadminUpgradeRequestRow[]
+> {
+  try {
+    const rows = await db.planUpgradeRequest.findMany({
+      where: status ? { status } : {},
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+      include: {
+        user: { select: { name: true, email: true, plan: true } },
+      },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      userId: r.userId,
+      userName: r.user?.name ?? null,
+      userEmail: r.user?.email ?? null,
+      currentPlan: r.user?.plan ?? 'STARTER',
+      targetPlan: r.targetPlan,
+      frequency: r.frequency,
+      priceLabel: r.priceLabel,
+      currency: r.currency,
+      contactPhone: r.contactPhone,
+      note: r.note,
+      status: r.status,
+      createdAt: r.createdAt,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Count pending upgrade requests — for the dashboard/nav badge. */
+export async function countPendingUpgradeRequests(): Promise<number> {
+  try {
+    return await db.planUpgradeRequest.count({ where: { status: 'PENDING' } });
+  } catch {
+    return 0;
+  }
+}

@@ -80,13 +80,17 @@ export default async function SettingsPage() {
 
   // Compteurs d'usage (parallélisés), portés à l'utilisateur courant.
   const userId = user?.id ?? sessionUser?.id ?? "";
-  const [restaurantCount, menuCount, campaignCount] = userId
+  const [restaurantCount, menuCount, campaignCount, dinarCount] = userId
     ? await Promise.all([
         db.restaurant.count({ where: { userId } }),
         db.menu.count({ where: { restaurant: { userId } } }),
-        db.marketingCampaign.count({ where: { restaurant: { userId } } })
+        db.marketingCampaign.count({ where: { restaurant: { userId } } }),
+        // #2: an account with a DINAR restaurant is treated as Algerian → cash
+        // upgrade flow (DZD prices + upgrade request instead of Stripe).
+        db.restaurant.count({ where: { userId, currency: "DINAR" } })
       ])
-    : [0, 0, 0];
+    : [0, 0, 0, 0];
+  const isAlgerian = dinarCount > 0;
 
   // The signed-in user's own support tickets (history + conversation).
   const supportTickets = userId
@@ -234,6 +238,7 @@ export default async function SettingsPage() {
           menuCount={menuCount}
           campaignCount={campaignCount}
           planPaymentMethod={planPaymentMethod}
+          isAlgerian={isAlgerian}
         />
 
         {/* Section de mise à jour du profil */}

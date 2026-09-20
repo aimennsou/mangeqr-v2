@@ -477,6 +477,24 @@ export type SuperadminUpdateLeadValues = z.infer<
   typeof SuperadminUpdateLeadSchema
 >;
 
+/** Cash (espèce) plan-upgrade request from an Algerian (DZD) account (#2). */
+export const RequestPlanUpgradeSchema = z.object({
+  targetPlan: z.enum(['PRO', 'PREMIUM']),
+  frequency: z.enum(['mensuel', 'annuel']).default('mensuel'),
+  contactPhone: z.string().trim().max(40).optional().or(z.literal('')),
+  note: z.string().trim().max(1000).optional().or(z.literal('')),
+});
+export type RequestPlanUpgradeValues = z.infer<typeof RequestPlanUpgradeSchema>;
+
+/** SUPERADMIN updates a plan-upgrade request's status (#2). */
+export const SuperadminSetUpgradeStatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(['PENDING', 'CONTACTED', 'APPROVED', 'REJECTED']),
+});
+export type SuperadminSetUpgradeStatusValues = z.infer<
+  typeof SuperadminSetUpgradeStatusSchema
+>;
+
 /** Admin broadcast notification to users (#14). */
 export const SuperadminBroadcastSchema = z.object({
   title: z.string().trim().min(1).max(120),

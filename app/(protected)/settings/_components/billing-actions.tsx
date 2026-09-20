@@ -24,17 +24,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import StripeElementsDialog from '@/components/billing/StripeElementsDialog';
 import { cancelSubscription } from '@/actions/stripe';
+import { requestPlanUpgrade } from '@/actions/plan-upgrade';
+import { getPlanPriceLabel } from '@/config';
 import type { BillingFrequency } from '@/lib/stripe';
+import type { Plan } from '@prisma/client';
 
 type PaidPlan = 'PRO' | 'PREMIUM';
 
 const PLAN_LABEL: Record<PaidPlan, string> = { PRO: 'Pro', PREMIUM: 'Premium' };
-const PRICE: Record<PaidPlan, Record<BillingFrequency, string>> = {
-  PRO: { mensuel: '35 € / mois', annuel: '350 € / an' },
-  PREMIUM: { mensuel: '49 € / mois', annuel: '490 € / an' },
-};
 
 /**
  * Client billing controls for the account PlanCard. When Stripe is configured,
@@ -45,10 +46,16 @@ const PRICE: Record<PaidPlan, Record<BillingFrequency, string>> = {
 export default function BillingActions({
   stripeEnabled,
   isPaidOnline,
+  isAlgerian = false,
+  currentPlan = 'STARTER',
 }: {
   stripeEnabled: boolean;
   /** True when the current plan is a paid ONLINE (Stripe) subscription. */
   isPaidOnline: boolean;
+  /** #2: Algerian (DZD) account → cash upgrade-request flow. */
+  isAlgerian?: boolean;
+  /** Current effective plan (to hide upgrades that aren't upgrades). */
+  currentPlan?: Plan;
 }) {
   const router = useRouter();
   const [plan, setPlan] = useState<PaidPlan>('PRO');
@@ -56,7 +63,37 @@ export default function BillingActions({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isCancelling, startCancel] = useTransition();
 
+  // Currency-aware price label. EUR is the Stripe price; DZD for Algerian.
+  const priceLabel = (p: PaidPlan, f: BillingFrequency) =>
+    getPlanPriceLabel(p, f, isAlgerian ? 'DINAR' : 'EURO');
+
+  // #2: Algerian accounts pay in cash — show a DZD upgrade REQUEST flow instead
+  // of the Stripe checkout, whatever Stripe's config is.
+  if (isAlgerian) {
+    return (
+      <AlgerianUpgradeRequest
+        plan={plan}
+        setPlan={setPlan}
+        frequency={frequency}
+        setFrequency={setFrequency}
+        priceLabel={priceLabel}
+        currentPlan={currentPlan}
+      />
+    );
+  }
+
   if (!stripeEnabled) return null;
+
+  const PRICE: Record<PaidPlan, Record<BillingFrequency, string>> = {
+    PRO: {
+      mensuel: priceLabel('PRO', 'mensuel'),
+      annuel: priceLabel('PRO', 'annuel'),
+    },
+    PREMIUM: {
+      mensuel: priceLabel('PREMIUM', 'mensuel'),
+      annuel: priceLabel('PREMIUM', 'annuel'),
+    },
+  };
 
   const handleCancel = () => {
     startCancel(async () => {
@@ -158,6 +195,123 @@ export default function BillingActions({
         priceLabel={PRICE[plan][frequency]}
         onSuccess={() => router.refresh()}
       />
+    </div>
+  );
+}
+
+
+/**
+ * #2 — Algerian (DZD) cash upgrade request. Instead of Stripe, the owner picks a
+ * plan/frequency (DZD prices), optionally leaves a phone + note, and submits a
+ * REQUEST the back-office follows up on (call + take payment).
+ */
+function AlgerianUpgradeRequest({
+  plan,
+  setPlan,
+  frequency,
+  setFrequency,
+  priceLabel,
+  currentPlan,
+}: {
+  plan: PaidPlan;
+  setPlan: (p: PaidPlan) => void;
+  frequency: BillingFrequency;
+  setFrequency: (f: BillingFrequency) => void;
+  priceLabel: (p: PaidPlan, f: BillingFrequency) => string;
+  currentPlan: Plan;
+}) {
+  const router = useRouter();
+  const [phone, setPhone] = useState('');
+  const [note, setNote] = useState('');
+  const [isPending, startTransition] = useTransition();
+
+  const onSubmit = () => {
+    startTransition(async () => {
+      const res = await requestPlanUpgrade({
+        targetPlan: plan,
+        frequency,
+        contactPhone: phone,
+        note,
+      });
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(res.success ?? 'Demande envoyée.');
+      setPhone('');
+      setNote('');
+      router.refresh();
+    });
+  };
+
+  return (
+    <div className="space-y-3 border-t border-border pt-4">
+      <p className="text-sm font-semibold">Passer à un forfait supérieur</p>
+      <p className="text-xs text-muted-foreground">
+        Paiement en espèces (Algérie). Envoyez une demande : notre équipe vous
+        appelle pour finaliser votre forfait.
+      </p>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Select value={plan} onValueChange={(v) => setPlan(v as PaidPlan)}>
+          <SelectTrigger className="sm:w-[130px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="PRO">Pro</SelectItem>
+            <SelectItem value="PREMIUM">Premium</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={frequency}
+          onValueChange={(v) => setFrequency(v as BillingFrequency)}
+        >
+          <SelectTrigger className="sm:w-[130px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="mensuel">Mensuel</SelectItem>
+            <SelectItem value="annuel">Annuel</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        {PLAN_LABEL[plan]} · {priceLabel(plan, frequency)}
+      </p>
+
+      <div className="grid gap-2 sm:grid-cols-2">
+        <Input
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder="Téléphone (pour vous rappeler)"
+        />
+        <Input
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          placeholder="Note (optionnel)"
+        />
+      </div>
+
+      <Button
+        onClick={onSubmit}
+        disabled={isPending}
+        className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90 sm:w-auto"
+      >
+        {isPending ? (
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        ) : (
+          <ArrowUpRight className="mr-2 h-4 w-4" />
+        )}
+        Demander la mise à niveau
+      </Button>
+
+      {currentPlan === 'PREMIUM' ? (
+        <p className="text-xs text-muted-foreground">
+          Vous êtes déjà sur le forfait le plus élevé.
+        </p>
+      ) : null}
     </div>
   );
 }

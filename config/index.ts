@@ -316,6 +316,48 @@ export function getDeliveryOption(id: string): DeliveryOption | undefined {
 
 
 // -----------------------------------------------------------------------------
+// Plan pricing per currency (#2). EUR is the online (Stripe) price; DZD is the
+// cash/offline price shown to Algerian accounts, who request an upgrade the
+// back-office fulfills manually. PLACEHOLDER DZD amounts until finals are given.
+// -----------------------------------------------------------------------------
+export type PaidPlanId = 'PRO' | 'PREMIUM';
+export type PlanBillingFrequency = 'mensuel' | 'annuel';
+
+interface PlanAmount {
+  EUR: number;
+  DZD: number;
+}
+
+const PLAN_PRICING: Record<PaidPlanId, Record<PlanBillingFrequency, PlanAmount>> = {
+  PRO: {
+    mensuel: { EUR: 35, DZD: 5000 },
+    annuel: { EUR: 350, DZD: 50000 },
+  },
+  PREMIUM: {
+    mensuel: { EUR: 49, DZD: 7000 },
+    annuel: { EUR: 490, DZD: 70000 },
+  },
+};
+
+/**
+ * Localized plan price label following the account currency.
+ * - DINAR  → "5000 DZD / mois"
+ * - others → "35 € / mois"
+ */
+export function getPlanPriceLabel(
+  plan: PaidPlanId,
+  frequency: PlanBillingFrequency,
+  currency?: string | null,
+): string {
+  const amounts = PLAN_PRICING[plan][frequency];
+  const period = frequency === 'annuel' ? '/ an' : '/ mois';
+  if (currency === 'DINAR') {
+    return `${amounts.DZD} DZD ${period}`;
+  }
+  return `${amounts.EUR} € ${period}`;
+}
+
+// -----------------------------------------------------------------------------
 // Feature flags.
 // -----------------------------------------------------------------------------
 /**
