@@ -188,6 +188,8 @@ export function BorneKiosk({
 
   const [screen, setScreen] = useState<Screen>('welcome');
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN');
+  // On the service step, whether a mode was picked (reveals the table picker).
+  const [typeChosen, setTypeChosen] = useState(false);
   const [tableId, setTableId] = useState('');
   const [lines, setLines] = useState<CartLine[]>([]);
   // The category currently in view (scrollspy), used to highlight the rail.
@@ -265,6 +267,7 @@ export function BorneKiosk({
 
   const reset = () => {
     setLines([]);
+    setTypeChosen(false);
     setTableId('');
     setContactName('');
     setContactPhone('');
@@ -340,7 +343,7 @@ export function BorneKiosk({
     return (
       <button
         type="button"
-        onClick={() => setScreen('type')}
+        onClick={() => setScreen('menu')}
         className="relative flex h-screen w-screen flex-col items-center justify-center gap-10 overflow-hidden bg-neutral-950 text-center text-neutral-50"
       >
         <CoverBackdrop coverUrl={coverUrl} />
@@ -366,35 +369,85 @@ export function BorneKiosk({
     );
   }
 
-  // ---- Order type ---------------------------------------------------------
+  // ---- Order type (between cart and payment) ------------------------------
   if (screen === 'type') {
+    // Pick a service mode. Dine-in with a table list requires choosing a table
+    // (revealed inline); take-away can proceed immediately.
     const pick = (t: OrderType) => {
       setOrderType(t);
-      setScreen('menu');
+      setTableId('');
+      if (t === 'DINE_IN' && tables.length > 0) {
+        setTypeChosen(true); // reveal the table picker
+      } else {
+        setScreen('payment');
+      }
     };
     return (
       <KioskShell
         title="Comment souhaitez-vous être servi ?"
         subtitle="Choisissez ce qui vous arrange — la commande est la même."
-        onHome={reset}
+        onHome={() => (typeChosen ? setTypeChosen(false) : setScreen('cart'))}
+        homeLabel="Retour"
         coverUrl={coverUrl}
       >
-        <div className="mx-auto grid max-w-3xl gap-6 p-8 sm:grid-cols-2">
-          <TypeCard
-            emoji="🪧"
-            label="Service à table"
-            subtitle="On vous apporte votre commande"
-            accent={accent}
-            onClick={() => pick('DINE_IN')}
-          />
-          <TypeCard
-            emoji="🔔"
-            label="Retrait au comptoir"
-            subtitle="On appelle votre numéro"
-            accent={accent}
-            onClick={() => pick('DELIVERY')}
-          />
-        </div>
+        {!typeChosen ? (
+          <div className="mx-auto grid max-w-3xl gap-6 p-8 sm:grid-cols-2">
+            <TypeCard
+              emoji="🪧"
+              label="Service à table"
+              subtitle="On vous apporte votre commande"
+              accent={accent}
+              onClick={() => pick('DINE_IN')}
+            />
+            <TypeCard
+              emoji="🔔"
+              label="Retrait au comptoir"
+              subtitle="On appelle votre numéro"
+              accent={accent}
+              onClick={() => pick('DELIVERY')}
+            />
+          </div>
+        ) : (
+          /* Dine-in: choose a table, then continue to payment. */
+          <div className="mx-auto w-full max-w-2xl rounded-3xl border border-black/10 bg-white p-8 text-neutral-900">
+            <p className="mb-4 text-center text-2xl font-bold">
+              Choisissez votre table
+            </p>
+            <div className="flex flex-wrap justify-center gap-3">
+              {tables.map((tb) => (
+                <button
+                  key={tb.id}
+                  type="button"
+                  onClick={() => setTableId(tb.id)}
+                  className="min-w-[64px] rounded-2xl border-2 px-6 py-4 text-xl font-semibold transition-transform active:scale-95"
+                  style={
+                    tableId === tb.id
+                      ? {
+                          backgroundColor: accent,
+                          color: '#000',
+                          borderColor: accent,
+                        }
+                      : { borderColor: 'rgba(0,0,0,0.12)' }
+                  }
+                >
+                  {tb.label}
+                </button>
+              ))}
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setTypeChosen(false);
+                setScreen('payment');
+              }}
+              disabled={!tableId}
+              className="mt-8 w-full rounded-full px-8 py-5 text-2xl font-bold disabled:opacity-40"
+              style={{ backgroundColor: accent, color: '#000' }}
+            >
+              Continuer
+            </button>
+          </div>
+        )}
       </KioskShell>
     );
   }
@@ -512,7 +565,7 @@ export function BorneKiosk({
         fmt={fmt}
         submitting={submitting}
         error={submitError}
-        onBack={() => setScreen('cart')}
+        onBack={() => setScreen('type')}
         onPay={submitOrder}
       />
     );
@@ -525,21 +578,12 @@ export function BorneKiosk({
         lines={lines}
         currency={currency}
         accent={accent}
-        orderType={orderType}
-        tables={tables}
-        tableId={tableId}
-        setTableId={setTableId}
-        setOrderType={setOrderType}
-        name={contactName}
-        setName={setContactName}
-        phone={contactPhone}
-        setPhone={setContactPhone}
         note={note}
         setNote={setNote}
         onChangeQty={changeQty}
         onRemove={removeLine}
         onBack={() => setScreen('menu')}
-        onProceed={() => setScreen('payment')}
+        onProceed={() => setScreen('type')}
         fmt={fmt}
       />
     );
@@ -678,12 +722,14 @@ function KioskShell({
   title,
   subtitle,
   onHome,
+  homeLabel = 'Accueil',
   coverUrl,
   children,
 }: {
   title: string;
   subtitle?: string;
   onHome: () => void;
+  homeLabel?: string;
   coverUrl?: string | null;
   children: React.ReactNode;
 }) {
@@ -712,7 +758,7 @@ function KioskShell({
             hasCover ? 'text-white/70' : 'text-neutral-500'
           )}
         >
-          <ArrowLeft className="h-5 w-5" /> Accueil
+          <ArrowLeft className="h-5 w-5" /> {homeLabel}
         </button>
       </header>
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
@@ -1062,15 +1108,6 @@ function CartReview({
   lines,
   currency,
   accent,
-  orderType,
-  tables,
-  tableId,
-  setTableId,
-  setOrderType,
-  name,
-  setName,
-  phone,
-  setPhone,
   note,
   setNote,
   onChangeQty,
@@ -1082,15 +1119,6 @@ function CartReview({
   lines: CartLine[];
   currency: string;
   accent: string;
-  orderType: OrderType;
-  tables: DinerTable[];
-  tableId: string;
-  setTableId: (v: string) => void;
-  setOrderType: (t: OrderType) => void;
-  name: string;
-  setName: (v: string) => void;
-  phone: string;
-  setPhone: (v: string) => void;
   note: string;
   setNote: (v: string) => void;
   onChangeQty: (lineId: string, qty: number) => void;
@@ -1099,17 +1127,10 @@ function CartReview({
   onProceed: () => void;
   fmt: (n: number) => string;
 }) {
-  const [error, setError] = useState<string | null>(null);
-
   const total = lines.reduce((s, l) => s + lineTotal(l), 0);
 
   const proceed = () => {
-    setError(null);
     if (lines.length === 0) return;
-    if (orderType === 'DINE_IN' && tables.length > 0 && !tableId) {
-      setError('Sélectionnez votre table.');
-      return;
-    }
     onProceed();
   };
 
@@ -1127,7 +1148,7 @@ function CartReview({
 
       {/* Step progress */}
       <KioskSteps
-        current={3}
+        current={2}
         title="Vérifiez votre commande"
         subtitle="Modifiez les quantités puis validez"
         accent={accent}
@@ -1200,82 +1221,15 @@ function CartReview({
               </div>
             ))}
 
-            {/* Order type + table */}
+            {/* Optional kitchen note (service mode is chosen on the next step). */}
             <div className="rounded-2xl border border-black/10 bg-white p-4">
-              <div className="flex rounded-full border-2 border-black/10 p-1">
-                {(['DINE_IN', 'DELIVERY'] as const).map((t) => (
-                  <button
-                    key={t}
-                    type="button"
-                    onClick={() => setOrderType(t)}
-                    className="flex-1 rounded-full px-3 py-2 text-lg font-medium"
-                    style={
-                      orderType === t
-                        ? { backgroundColor: accent, color: '#000' }
-                        : { color: '#737373' }
-                    }
-                  >
-                    {t === 'DINE_IN' ? 'Sur place' : 'À emporter'}
-                  </button>
-                ))}
-              </div>
-
-              {orderType === 'DINE_IN' && tables.length > 0 ? (
-                <div className="mt-4">
-                  <p className="mb-2 text-lg font-semibold">Votre table</p>
-                  <div className="flex flex-wrap gap-2">
-                    {tables.map((tb) => (
-                      <button
-                        key={tb.id}
-                        type="button"
-                        onClick={() => setTableId(tb.id)}
-                        className="min-w-[52px] rounded-xl border-2 px-4 py-3 text-lg font-medium"
-                        style={
-                          tableId === tb.id
-                            ? {
-                                backgroundColor: accent,
-                                color: '#000',
-                                borderColor: accent,
-                              }
-                            : { borderColor: 'rgba(0,0,0,0.1)' }
-                        }
-                      >
-                        {tb.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              {orderType === 'DELIVERY' ? (
-                <div className="mt-4 space-y-2">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Votre nom (optionnel)"
-                    className="w-full rounded-xl border-2 border-black/10 p-4 text-lg outline-none"
-                  />
-                  <input
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Téléphone (optionnel)"
-                    inputMode="tel"
-                    className="w-full rounded-xl border-2 border-black/10 p-4 text-lg outline-none"
-                  />
-                </div>
-              ) : null}
-
               <input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Remarque pour la cuisine (optionnel)"
-                className="mt-2 w-full rounded-xl border-2 border-black/10 p-4 text-lg outline-none"
+                className="w-full rounded-xl border-2 border-black/10 p-4 text-lg outline-none"
               />
             </div>
-
-            {error ? (
-              <p className="text-center text-lg text-red-500">{error}</p>
-            ) : null}
           </div>
         )}
       </div>
