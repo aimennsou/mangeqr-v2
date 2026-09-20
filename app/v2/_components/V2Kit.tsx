@@ -16,6 +16,10 @@ interface KitItem {
   /** Optional showcase image rendered in a container under the description. */
   image?: string;
   imageAlt?: string;
+  /** Intrinsic size hint for next/image + max rendered width (px). */
+  imageWidth?: number;
+  imageHeight?: number;
+  imageMaxWidth?: number;
 }
 
 const KIT: KitItem[] = [
@@ -24,6 +28,11 @@ const KIT: KitItem[] = [
     title: 'Écrans & TV',
     description:
       "Affichez vos menus et vos promotions sur des écrans en salle. Nous fournissons et installons les TV, votre carte reste synchronisée en temps réel.",
+    image: '/images/ecran-tv-menu.png',
+    imageAlt: 'Écran TV affichant le menu du restaurant en salle',
+    imageWidth: 1024,
+    imageHeight: 1024,
+    imageMaxWidth: 460,
   },
   {
     icon: MonitorSmartphone,
@@ -32,6 +41,9 @@ const KIT: KitItem[] = [
       "Laissez vos clients commander en autonomie sur des bornes tactiles. Moins d'attente, un ticket moyen plus élevé, et vos commandes directement en cuisine.",
     image: '/images/bornes-commande.png',
     imageAlt: 'Bornes de commande tactiles et caisse (POS) pour restaurant',
+    imageWidth: 576,
+    imageHeight: 820,
+    imageMaxWidth: 380,
   },
 ];
 
@@ -55,7 +67,7 @@ export default function V2Kit() {
           </p>
         </Reveal>
 
-        <div className="mt-12 grid items-start gap-4 sm:grid-cols-2">
+        <div className="mt-12 grid items-stretch gap-4 sm:grid-cols-2">
           {KIT.map((item, i) => {
             const Icon = item.icon;
             return (
@@ -71,15 +83,16 @@ export default function V2Kit() {
                     {item.description}
                   </p>
 
-                  {/* Showcase image container (e.g. the self-order kiosks) */}
+                  {/* Showcase image container (TV menu board / self-order kiosks) */}
                   {item.image ? (
-                    <div className="mt-6 flex items-center justify-center overflow-hidden rounded-xl border border-border bg-gradient-to-b from-muted/40 to-background p-6">
+                    <div className="mt-6 flex min-h-[280px] flex-1 items-center justify-center overflow-hidden rounded-xl border border-border bg-gradient-to-b from-muted/40 to-background p-6">
                       <Image
                         src={item.image}
                         alt={item.imageAlt ?? item.title}
-                        width={576}
-                        height={820}
-                        className="h-auto w-full max-w-[380px] object-contain"
+                        width={item.imageWidth ?? 576}
+                        height={item.imageHeight ?? 820}
+                        className="h-auto w-full object-contain"
+                        style={{ maxWidth: item.imageMaxWidth ?? 380 }}
                       />
                     </div>
                   ) : null}
