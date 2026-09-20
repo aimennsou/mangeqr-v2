@@ -477,6 +477,18 @@ export type SuperadminUpdateLeadValues = z.infer<
   typeof SuperadminUpdateLeadSchema
 >;
 
+/** Admin broadcast notification to users (#14). */
+export const SuperadminBroadcastSchema = z.object({
+  title: z.string().trim().min(1).max(120),
+  body: z.string().trim().max(1000).optional().or(z.literal('')),
+  link: z.string().trim().max(200).optional().or(z.literal('')),
+  // Audience: all users, or only paid plans.
+  audience: z.enum(['ALL', 'PAID']).default('ALL'),
+});
+export type SuperadminBroadcastValues = z.infer<
+  typeof SuperadminBroadcastSchema
+>;
+
 /** CRM: log a call attempt on a lead (increments callAttempts, sets callStatus). */
 export const SuperadminLogLeadCallSchema = z.object({
   id: z.string().uuid(),

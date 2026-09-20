@@ -31,10 +31,14 @@ import {
   SuperadminUpdateLeadSchema,
   SuperadminLogLeadCallSchema,
   SuperadminLeadNoteSchema,
-  SuperadminConvertLeadSchema
+  SuperadminConvertLeadSchema,
+  SuperadminBroadcastSchema
 } from '@/schemas';
 import { revalidatePath } from 'next/cache';
-import { createNotification } from '@/lib/notifications';
+import {
+  createNotification,
+  createBroadcastNotifications,
+} from '@/lib/notifications';
 
 /**
  * SUPERADMIN-only server actions for the cash-subscription console
@@ -1041,5 +1045,41 @@ export async function superadminConvertLead(
     };
   } catch {
     return { error: 'Impossible de convertir le lead.' };
+  }
+}
+
+
+/**
+ * Broadcast an in-app notification to users (#14). SUPERADMIN-only. Audience is
+ * either every user or only paid-plan (PRO/PREMIUM) accounts. Returns how many
+ * notifications were created.
+ */
+export async function superadminBroadcast(
+  values: z.infer<typeof SuperadminBroadcastSchema>
+): Promise<ActionResult & { count?: number }> {
+  if (!(await requireSuperadmin())) return FORBIDDEN;
+
+  const parsed = SuperadminBroadcastSchema.safeParse(values);
+  if (!parsed.success) return INVALID;
+
+  const { title, body, link, audience } = parsed.data;
+
+  try {
+    const users = await db.user.findMany({
+      where:
+        audience === 'PAID'
+          ? { plan: { in: ['PRO', 'PREMIUM'] } }
+          : {},
+      select: { id: true },
+    });
+    const count = await createBroadcastNotifications(
+      users.map((u) => u.id),
+      title,
+      body || null,
+      link || null,
+    );
+    return { success: `Notification envoyée à ${count} compte(s).`, count };
+  } catch {
+    return { error: "Impossible d'envoyer la notification." };
   }
 }

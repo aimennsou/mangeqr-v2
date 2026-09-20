@@ -30,6 +30,7 @@ import Logo from '@/components/Logo';
 
 import { ContentLayout } from '../_admin-panel/content-layout';
 import { MetricCard } from './_components/metric-card';
+import { BroadcastForm } from './_components/broadcast-form';
 
 /**
  * SUPERADMIN dashboard (home) — global platform metrics. Server-guarded: even
@@ -167,6 +168,14 @@ export default async function SuperadminPage() {
                 />
               </Link>
             </div>
+          </section>
+
+          {/* Broadcast (#14) */}
+          <section className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+              Notification aux comptes
+            </p>
+            <BroadcastForm />
           </section>
         </CardContent>
       </Card>
