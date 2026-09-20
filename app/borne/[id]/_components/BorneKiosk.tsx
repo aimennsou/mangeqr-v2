@@ -146,7 +146,7 @@ function CoverBackdrop({ coverUrl }: { coverUrl?: string | null }) {
         className="scale-110 object-cover blur-2xl"
         sizes="100vw"
       />
-      <div className="absolute inset-0 bg-neutral-950/70" />
+      <div className="absolute inset-0 bg-neutral-950/80" />
     </div>
   );
 }
@@ -582,7 +582,7 @@ function TypeCard({
       onClick={onClick}
       style={{ ['--rim' as string]: accent }}
       className={cn(
-        'group flex flex-col items-center gap-6 rounded-3xl border-2 border-black/10 bg-white p-12 shadow-sm',
+        'group flex flex-col items-center gap-6 rounded-3xl border-2 border-black/10 bg-white p-12 text-neutral-900 shadow-sm',
         'transition-all duration-150 active:scale-[0.97]',
         // Highlight rim on hover (accent-colored border + glow ring).
         'hover:-translate-y-1 hover:border-[color:var(--rim)] hover:shadow-xl',
