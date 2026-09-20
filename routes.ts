@@ -30,6 +30,10 @@ export const publicRoutePrefixes: string[] = [
   // Invite-without-account (#13): the public invite landing where a person can
   // sign up + join a workspace from an invite link.
   '/team/invite',
+  // Public display screens: TV menu board and self-order kiosk (borne). Shown
+  // on in-store hardware without a logged-in session.
+  '/tv',
+  '/borne',
 ];
 
 /**

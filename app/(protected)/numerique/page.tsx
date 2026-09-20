@@ -42,6 +42,7 @@ import { downloadDataUrl } from "@/lib/download";
 import AppearanceSection from "./_components/AppearanceSection";
 import DesignOrderSection from "./_components/DesignOrderSection";
 import MyDesignOrders from "./_components/MyDesignOrders";
+import DisplaysSection from "./_components/DisplaysSection";
 import { useI18n } from "@/lib/i18n";
 
 export default function NumeriquePage() {
@@ -128,6 +129,7 @@ export default function NumeriquePage() {
             <TabsList className="flex w-full max-w-full justify-start gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <TabsTrigger value="qr" className="shrink-0">{t("numerique.tab.qr")}</TabsTrigger>
               <TabsTrigger value="appearance" className="shrink-0">{t("numerique.tab.appearance")}</TabsTrigger>
+              <TabsTrigger value="displays" className="shrink-0">{t("numerique.tab.displays")}</TabsTrigger>
               <TabsTrigger value="design" className="shrink-0">{t("numerique.tab.design")}</TabsTrigger>
               <TabsTrigger value="orders" className="shrink-0">{t("numerique.tab.orders")}</TabsTrigger>
             </TabsList>
@@ -221,6 +223,12 @@ export default function NumeriquePage() {
             <TabsContent value="appearance">
               <div className="mt-6">
                 <AppearanceSection />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="displays">
+              <div className="mt-6">
+                <DisplaysSection />
               </div>
             </TabsContent>
 

@@ -228,6 +228,76 @@ export function resolvePrinterConfig(
 }
 
 /**
+ * TV menu-board display config. Drives the public /tv/[id] digital menu board
+ * shown on an in-room screen. All fields optional (partial updates); unset
+ * falls back to DEFAULT_TV_CONFIG.
+ */
+export const TvConfigSchema = z.object({
+  /** Board title (defaults to the restaurant name when empty). */
+  title: z.string().trim().max(80).optional(),
+  /** Light or dark board theme. */
+  theme: z.enum(['light', 'dark']).optional(),
+  /** Accent color (hex) for prices / headers. */
+  accent: HexColor.optional(),
+  /** Number of dish columns on the board. */
+  columns: z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
+  /** Show dish photos on the board. */
+  showPhotos: z.boolean().optional(),
+  /** Show prices on the board. */
+  showPrices: z.boolean().optional(),
+  /** Show dish descriptions on the board. */
+  showDescriptions: z.boolean().optional(),
+  /** Auto-scroll long boards vertically. */
+  autoScroll: z.boolean().optional(),
+});
+export type TvConfig = z.infer<typeof TvConfigSchema>;
+
+export const DEFAULT_TV_CONFIG: Required<TvConfig> = {
+  title: '',
+  theme: 'dark',
+  accent: '#facc15',
+  columns: 2,
+  showPhotos: true,
+  showPrices: true,
+  showDescriptions: true,
+  autoScroll: true,
+};
+
+export function resolveTvConfig(stored?: TvConfig | null): Required<TvConfig> {
+  return { ...DEFAULT_TV_CONFIG, ...(stored ?? {}) };
+}
+
+/**
+ * Self-order kiosk (borne de commande) display config. Drives the public
+ * /borne/[id] kiosk view. Partial updates; unset falls back to
+ * DEFAULT_BORNE_CONFIG.
+ */
+export const BorneConfigSchema = z.object({
+  /** Welcome headline shown on the kiosk idle/landing screen. */
+  welcomeTitle: z.string().trim().max(80).optional(),
+  /** Welcome subtitle / call-to-action. */
+  welcomeSubtitle: z.string().trim().max(160).optional(),
+  /** Accent color (hex) for the kiosk. */
+  accent: HexColor.optional(),
+  /** Show dish photos in the kiosk. */
+  showPhotos: z.boolean().optional(),
+});
+export type BorneConfig = z.infer<typeof BorneConfigSchema>;
+
+export const DEFAULT_BORNE_CONFIG: Required<BorneConfig> = {
+  welcomeTitle: 'Bienvenue',
+  welcomeSubtitle: 'Touchez pour commander',
+  accent: '#facc15',
+  showPhotos: true,
+};
+
+export function resolveBorneConfig(
+  stored?: BorneConfig | null
+): Required<BorneConfig> {
+  return { ...DEFAULT_BORNE_CONFIG, ...(stored ?? {}) };
+}
+
+/**
  * Admin-only payload to set a user's plan, payment method, and expiry
  * (Requirement 3 — cash/offline plans, no Stripe checkout).
  *

@@ -228,6 +228,12 @@ model Restaurant {
   // copies, auto-print, header/footer, toggles). Stored as JSON to avoid a wide
   // column set — see PrinterConfig in schemas/index.ts.
   printerConfig  Json?
+  // TV menu-board display config (theme, columns, show photos/prices,
+  // auto-scroll, header text). See TvConfig in schemas/index.ts.
+  tvConfig       Json?
+  // Self-order kiosk (borne de commande) display config (accent, welcome text,
+  // show photos). See BorneConfig in schemas/index.ts.
+  borneConfig    Json?
   // FEAT-1/D9: per-restaurant ordering on/off toggle (only effective when the
   // account is ordering-enabled by the superadmin — see User.orderingEnabled).
   orderingEnabled Boolean      @default(false)

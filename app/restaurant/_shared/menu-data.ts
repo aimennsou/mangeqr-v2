@@ -1,7 +1,7 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getS3Url } from "@/lib/s3";
-import type { MenuAppearance } from "@/schemas";
+import type { MenuAppearance, TvConfig, BorneConfig } from "@/schemas";
 import { currencySymbol } from "@/lib/currency";
 
 /**
@@ -124,6 +124,8 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
     // Saved per-restaurant appearance (D.1 JSON column). Passed through as-is
     // (null when unset); PublicMenu normalizes it against the shared defaults.
     menuAppearance: (restaurant.menuAppearance as MenuAppearance | null) ?? null,
+    tvConfig: (restaurant.tvConfig as TvConfig | null) ?? null,
+    borneConfig: (restaurant.borneConfig as BorneConfig | null) ?? null,
     currency: currencySymbol(restaurant.currency),
     // FEAT-1: diner ordering context.
     orderingEnabled,
