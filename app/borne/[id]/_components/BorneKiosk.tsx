@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { v4 as uuidv4 } from 'uuid';
 import {
@@ -170,13 +170,30 @@ export function BorneKiosk({
   const cfg = resolveBorneConfig(borneConfig);
   const accent = cfg.accent;
 
+  // Kiosk shows EVERYTHING available today: flatten all categories from every
+  // available menu into one list (no menu switcher). Categories are deduped by
+  // id and kept in menu → position order.
+  const allCategories = useMemo(() => {
+    const seen = new Set<string>();
+    const out: Category[] = [];
+    for (const m of menus) {
+      for (const c of m.categories) {
+        if (c.dishes.length === 0) continue;
+        if (seen.has(c.id)) continue;
+        seen.add(c.id);
+        out.push(c);
+      }
+    }
+    return out;
+  }, [menus]);
+
   const [screen, setScreen] = useState<Screen>('welcome');
   const [orderType, setOrderType] = useState<OrderType>('DINE_IN');
   const [tableId, setTableId] = useState('');
   const [lines, setLines] = useState<CartLine[]>([]);
-  const [activeMenuId, setActiveMenuId] = useState(menus[0]?.id ?? '');
+  // The category currently in view (scrollspy), used to highlight the rail.
   const [activeCatId, setActiveCatId] = useState<string>(
-    menus[0]?.categories[0]?.id ?? ''
+    allCategories[0]?.id ?? ''
   );
   const [detailDish, setDetailDish] = useState<Dish | null>(null);
   const [confirmation, setConfirmation] = useState<{
@@ -184,14 +201,48 @@ export function BorneKiosk({
     number: number | null;
   } | null>(null);
 
-  const menu = useMemo(
-    () => menus.find((m) => m.id === activeMenuId) ?? menus[0],
-    [menus, activeMenuId]
-  );
-  const activeCat = useMemo(
-    () => menu?.categories.find((c) => c.id === activeCatId) ?? menu?.categories[0],
-    [menu, activeCatId]
-  );
+  // Scroll container + per-category section refs for scrollspy + click-to-scroll.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+  const railRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  // Scrollspy: highlight the category whose section is nearest the top of the
+  // scroll area, and keep the active rail item in view.
+  useEffect(() => {
+    const root = scrollRef.current;
+    if (!root || allCategories.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        // Pick the topmost intersecting section.
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        const id = visible[0]?.target.getAttribute('data-cat-id');
+        if (id) setActiveCatId(id);
+      },
+      { root, rootMargin: '0px 0px -70% 0px', threshold: 0 }
+    );
+    for (const c of allCategories) {
+      const el = sectionRefs.current[c.id];
+      if (el) observer.observe(el);
+    }
+    return () => observer.disconnect();
+  }, [allCategories, screen]);
+
+  // Keep the highlighted rail button scrolled into view.
+  useEffect(() => {
+    railRefs.current[activeCatId]?.scrollIntoView({
+      block: 'nearest',
+      behavior: 'smooth',
+    });
+  }, [activeCatId]);
+
+  const scrollToCategory = (id: string) => {
+    sectionRefs.current[id]?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    });
+  };
 
   const fmt = (n: number) =>
     (Number.isInteger(n) ? n.toString() : n.toFixed(2)) + ' ' + currency;
@@ -345,7 +396,8 @@ export function BorneKiosk({
   // ---- Menu (main) --------------------------------------------------------
   return (
     <div className="flex h-screen w-screen flex-col bg-neutral-50 text-neutral-900">
-      {/* Compact top bar (home + name + menu switcher) */}
+      {/* Compact top bar (home + name) — no menu switcher: the kiosk shows all
+          available menus' categories together. */}
       <header className="flex items-center justify-between border-b border-black/10 bg-white px-6 py-3">
         <button
           type="button"
@@ -355,25 +407,7 @@ export function BorneKiosk({
           <ArrowLeft className="h-5 w-5" /> Accueil
         </button>
         <span className="text-xl font-bold">{name}</span>
-        {menus.length > 1 ? (
-          <select
-            value={activeMenuId}
-            onChange={(e) => {
-              setActiveMenuId(e.target.value);
-              const m = menus.find((mm) => mm.id === e.target.value);
-              setActiveCatId(m?.categories[0]?.id ?? '');
-            }}
-            className="rounded-lg border border-black/10 px-3 py-2 text-lg"
-          >
-            {menus.map((m) => (
-              <option key={m.id} value={m.id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-        ) : (
-          <span className="w-24" />
-        )}
+        <span className="w-24" />
       </header>
 
       {/* Step progress */}
@@ -385,15 +419,19 @@ export function BorneKiosk({
       />
 
       <div className="flex min-h-0 flex-1">
-        {/* Category rail */}
+        {/* Category rail — reflects the section currently in view (scrollspy);
+            tapping a category scrolls to it. */}
         <nav className="w-44 shrink-0 overflow-y-auto border-r border-black/10 bg-white py-4">
-          {menu?.categories.map((cat) => {
-            const active = cat.id === activeCat?.id;
+          {allCategories.map((cat) => {
+            const active = cat.id === activeCatId;
             return (
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => setActiveCatId(cat.id)}
+                ref={(el) => {
+                  railRefs.current[cat.id] = el;
+                }}
+                onClick={() => scrollToCategory(cat.id)}
                 className={cn(
                   'flex w-full flex-col items-center gap-1 px-2 py-4 text-center text-base font-medium transition-colors',
                   active ? 'text-neutral-900' : 'text-neutral-400'
@@ -410,62 +448,35 @@ export function BorneKiosk({
           })}
         </nav>
 
-        {/* Dish grid */}
-        <div className="min-w-0 flex-1 overflow-y-auto p-6">
-          <h2 className="mb-4 text-3xl font-bold">{activeCat?.name}</h2>
-          {!activeCat || activeCat.dishes.length === 0 ? (
+        {/* All categories, one scrollable list (dishes of every available menu). */}
+        <div ref={scrollRef} className="min-w-0 flex-1 overflow-y-auto p-6">
+          {allCategories.length === 0 ? (
             <p className="text-xl text-neutral-400">Aucun plat.</p>
           ) : (
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-              {activeCat.dishes.map((dish) => (
-                <button
-                  key={dish.id}
-                  type="button"
-                  onClick={() => setDetailDish(dish)}
-                  className="flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white text-left shadow-sm transition-transform active:scale-[0.98]"
-                >
-                  {cfg.showPhotos && dish.photo ? (
-                    <div className="relative aspect-[4/3] w-full">
-                      <Image
-                        src={dish.photo}
-                        alt={dish.name}
-                        fill
-                        className="object-cover"
-                        sizes="(max-width:1280px) 33vw, 25vw"
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex aspect-[4/3] w-full items-center justify-center bg-neutral-100 text-neutral-300">
-                      <UtensilsCrossed className="h-10 w-10" />
-                    </div>
-                  )}
-                  <div className="flex flex-1 flex-col p-3">
-                    <p className="text-lg font-semibold leading-tight">
-                      {dish.name}
-                    </p>
-                    {dish.description ? (
-                      <p className="mt-1 line-clamp-2 text-sm text-neutral-500">
-                        {dish.description}
-                      </p>
-                    ) : null}
-                    <div className="mt-auto flex items-center justify-between pt-3">
-                      <span
-                        className="text-xl font-bold"
-                        style={{ color: accent }}
-                      >
-                        {fmt(dish.price)}
-                      </span>
-                      <span
-                        className="flex h-10 w-10 items-center justify-center rounded-full"
-                        style={{ backgroundColor: accent, color: '#000' }}
-                      >
-                        <Plus className="h-5 w-5" />
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
+            allCategories.map((cat) => (
+              <section
+                key={cat.id}
+                data-cat-id={cat.id}
+                ref={(el) => {
+                  sectionRefs.current[cat.id] = el;
+                }}
+                className="mb-10 scroll-mt-4"
+              >
+                <h2 className="mb-4 text-3xl font-bold">{cat.name}</h2>
+                <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+                  {cat.dishes.map((dish) => (
+                    <DishCard
+                      key={dish.id}
+                      dish={dish}
+                      accent={accent}
+                      showPhoto={cfg.showPhotos}
+                      fmt={fmt}
+                      onClick={() => setDetailDish(dish)}
+                    />
+                  ))}
+                </div>
+              </section>
+            ))
           )}
         </div>
       </div>
@@ -600,6 +611,64 @@ function TypeCard({
         {icon}
       </span>
       <span className="text-3xl font-semibold">{label}</span>
+    </button>
+  );
+}
+
+/** A single dish card in the kiosk menu grid. */
+function DishCard({
+  dish,
+  accent,
+  showPhoto,
+  fmt,
+  onClick,
+}: {
+  dish: Dish;
+  accent: string;
+  showPhoto: boolean;
+  fmt: (n: number) => string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-col overflow-hidden rounded-2xl border border-black/10 bg-white text-left text-neutral-900 shadow-sm transition-transform active:scale-[0.98]"
+    >
+      {showPhoto && dish.photo ? (
+        <div className="relative aspect-[4/3] w-full">
+          <Image
+            src={dish.photo}
+            alt={dish.name}
+            fill
+            className="object-cover"
+            sizes="(max-width:1280px) 33vw, 25vw"
+          />
+        </div>
+      ) : (
+        <div className="flex aspect-[4/3] w-full items-center justify-center bg-neutral-100 text-neutral-300">
+          <UtensilsCrossed className="h-10 w-10" />
+        </div>
+      )}
+      <div className="flex flex-1 flex-col p-3">
+        <p className="text-lg font-semibold leading-tight">{dish.name}</p>
+        {dish.description ? (
+          <p className="mt-1 line-clamp-2 text-sm text-neutral-500">
+            {dish.description}
+          </p>
+        ) : null}
+        <div className="mt-auto flex items-center justify-between pt-3">
+          <span className="text-xl font-bold" style={{ color: accent }}>
+            {fmt(dish.price)}
+          </span>
+          <span
+            className="flex h-10 w-10 items-center justify-center rounded-full"
+            style={{ backgroundColor: accent, color: '#000' }}
+          >
+            <Plus className="h-5 w-5" />
+          </span>
+        </div>
+      </div>
     </button>
   );
 }
