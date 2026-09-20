@@ -1,11 +1,12 @@
 import { notFound } from 'next/navigation';
 
 import { getPublicMenuData } from '../../restaurant/_shared/menu-data';
-import { BorneView } from './_components/BorneView';
+import { BorneKiosk } from './_components/BorneKiosk';
 
 /**
- * Public self-order kiosk (`/borne/[id]`). A touch-first ordering view meant to
- * run on an in-store kiosk. Always dynamic so it reflects the latest menu.
+ * Public self-order kiosk (`/borne/[id]`). A full-screen, touch-first ordering
+ * flow (welcome → order type → photo menu → cart → confirmation) modeled on a
+ * standard QSR kiosk. Always dynamic so it reflects the latest menu.
  */
 export const dynamic = 'force-dynamic';
 
@@ -17,8 +18,31 @@ export default async function BorneMenuPage({
   const data = await getPublicMenuData({ id: params.id });
   if (!data) notFound();
 
-  // Strip the config fields PublicMenu doesn't accept; forward the rest.
-  const { tvConfig: _tv, borneConfig, ...menu } = data;
-
-  return <BorneView menu={menu} borneConfig={borneConfig} />;
+  return (
+    <BorneKiosk
+      restaurantId={data.restaurantId}
+      name={data.name}
+      currency={data.currency}
+      tables={data.tables}
+      borneConfig={data.borneConfig}
+      menus={data.menus.map((m) => ({
+        id: m.id,
+        name: m.name,
+        categories: m.categories.map((c) => ({
+          id: c.id,
+          name: c.name,
+          logo: c.logo,
+          dishes: c.dishes.map((d) => ({
+            id: d.id,
+            name: d.name,
+            description: d.description,
+            price: d.price,
+            photo: d.photo,
+            allergenes: d.allergenes,
+            addonGroups: d.addonGroups,
+          })),
+        })),
+      }))}
+    />
+  );
 }
