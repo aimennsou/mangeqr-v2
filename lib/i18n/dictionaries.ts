@@ -75,6 +75,9 @@ const fr: Dict = {
     "Merci pour votre retour. Aidez-nous à nous améliorer — votre message reste privé.",
   "diner.reviewShareGoogle":
     "Merci ! Partagez votre expérience sur Google pour soutenir le restaurant.",
+  "diner.reviewHappy":
+    "Merci beaucoup ! Ravis que vous ayez apprécié. Laissez un petit mot si vous le souhaitez.",
+  "diner.happyMessagePlaceholder": "Un mot sur ce que vous avez aimé ? (optionnel)",
   "diner.send": "Envoyer",
   "diner.sending": "Envoi...",
   "diner.messagePlaceholder": "Qu'est-ce qui n'a pas été à la hauteur ? (optionnel)",
@@ -659,6 +662,9 @@ const ar: Dict = {
     "شكراً على ملاحظاتك. ساعدنا على التحسّن — رسالتك تبقى خاصة.",
   "diner.reviewShareGoogle":
     "شكراً! شارك تجربتك على Google لدعم المطعم.",
+  "diner.reviewHappy":
+    "شكراً جزيلاً! سعداء بأنك استمتعت. اترك كلمة إن أحببت.",
+  "diner.happyMessagePlaceholder": "كلمة عمّا أعجبك؟ (اختياري)",
   "diner.send": "إرسال",
   "diner.sending": "جارٍ الإرسال...",
   "diner.messagePlaceholder": "ما الذي لم يكن على المستوى؟ (اختياري)",
@@ -1227,6 +1233,9 @@ const en: Dict = {
     "Thanks for your feedback. Help us improve — your message stays private.",
   "diner.reviewShareGoogle":
     "Thank you! Share your experience on Google to support the restaurant.",
+  "diner.reviewHappy":
+    "Thank you so much! Glad you enjoyed it. Leave a note if you'd like.",
+  "diner.happyMessagePlaceholder": "A word about what you liked? (optional)",
   "diner.send": "Send",
   "diner.sending": "Sending...",
   "diner.messagePlaceholder": "What fell short? (optional)",

@@ -53,8 +53,11 @@ export function ReviewWidget({ restaurantId, googleLink, theme }: ReviewWidgetPr
     setSubmitted(true);
   };
 
-  // 1-3 stars (or high rating with no Google link): capture privately in-app.
-  const handleInApp = async () => {
+  // Capture a review privately in-app. `positive` marks a happy review that had
+  // nowhere public to go (high rating, but the restaurant set no Google link) —
+  // it's logged with state GOOGLE so the owner's analytics still count it as a
+  // positive review, and it uses the happy (not the "what went wrong") copy.
+  const handleInApp = async (positive: boolean) => {
     setSubmitting(true);
     try {
       const isEmail = contact.includes("@");
@@ -67,7 +70,7 @@ export function ReviewWidget({ restaurantId, googleLink, theme }: ReviewWidgetPr
           message: message || undefined,
           clientEmail: isEmail ? contact : undefined,
           clientNumero: !isEmail && contact ? contact : undefined,
-          state: "MANGEQR",
+          state: positive ? "GOOGLE" : "MANGEQR",
         }),
       });
       if (!response.ok) throw new Error("failed");
@@ -88,7 +91,9 @@ export function ReviewWidget({ restaurantId, googleLink, theme }: ReviewWidgetPr
     if (routesToGoogle) {
       handleGoogle();
     } else {
-      void handleInApp();
+      // High rating without a Google link => positive flow; low rating =>
+      // private "what went wrong" flow.
+      void handleInApp(isHighRating);
     }
   };
 
@@ -165,13 +170,19 @@ export function ReviewWidget({ restaurantId, googleLink, theme }: ReviewWidgetPr
               </Button>
             </div>
           ) : (
-            // 1-3 stars (or no Google link) -> private in-app feedback
+            // Two in-app cases:
+            //  - high rating, no Google link  -> POSITIVE thank-you (happy copy)
+            //  - low rating (1-3)             -> private "what went wrong"
             <div className="space-y-3">
               <p className="text-sm" style={{ color: theme.muted }}>
-                {t("diner.reviewHelp")}
+                {isHighRating ? t("diner.reviewHappy") : t("diner.reviewHelp")}
               </p>
               <Textarea
-                placeholder={t("diner.messagePlaceholder")}
+                placeholder={
+                  isHighRating
+                    ? t("diner.happyMessagePlaceholder")
+                    : t("diner.messagePlaceholder")
+                }
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
               />
