@@ -10,11 +10,10 @@ import {
   Minus,
   Plus,
   ShoppingBag,
-  Store,
+  Star,
   Trash2,
   UtensilsCrossed,
   Loader2,
-  PartyPopper,
 } from 'lucide-react';
 
 import { resolveBorneConfig, type BorneConfig } from '@/schemas';
@@ -53,7 +52,7 @@ export interface BorneKioskProps {
   borneConfig: BorneConfig | null;
 }
 
-type Screen = 'welcome' | 'type' | 'menu' | 'cart' | 'done';
+type Screen = 'welcome' | 'type' | 'menu' | 'cart' | 'payment' | 'done';
 type OrderType = 'DINE_IN' | 'DELIVERY';
 
 // The kiosk step sequence shown in the top stepper. The final node is the
@@ -196,10 +195,17 @@ export function BorneKiosk({
     allCategories[0]?.id ?? ''
   );
   const [detailDish, setDetailDish] = useState<Dish | null>(null);
+  // Checkout fields (collected on the cart step, used by the payment step).
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [note, setNote] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{
     id: string;
     number: number | null;
   } | null>(null);
+  const [rating, setRating] = useState(0);
 
   // Scroll container + per-category section refs for scrollspy + click-to-scroll.
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -260,9 +266,73 @@ export function BorneKiosk({
   const reset = () => {
     setLines([]);
     setTableId('');
+    setContactName('');
+    setContactPhone('');
+    setNote('');
+    setSubmitError(null);
     setDetailDish(null);
     setConfirmation(null);
+    setRating(0);
     setScreen('welcome');
+  };
+
+  // Post an optional experience rating (best-effort) tied to the restaurant.
+  const submitRating = (value: number) => {
+    setRating(value);
+    void fetch('/api/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        restaurantId,
+        review: value,
+        state: 'MANGEQR',
+      }),
+    }).catch(() => {});
+  };
+
+  // Submit the order (called from the payment step) then show confirmation.
+  const submitOrder = async () => {
+    if (lines.length === 0) return;
+    setSubmitError(null);
+    const payload = {
+      restaurantId,
+      type: orderType,
+      tableId: orderType === 'DINE_IN' ? tableId || null : null,
+      customerName: orderType === 'DELIVERY' ? contactName.trim() : '',
+      customerPhone: orderType === 'DELIVERY' ? contactPhone.trim() : '',
+      address: '',
+      latitude: null,
+      longitude: null,
+      note: note.trim(),
+      items: lines.map((l) => ({
+        dishId: l.dishId,
+        quantity: l.quantity,
+        optionIds: l.options.map((o) => o.id),
+        specialRequest: l.specialRequest,
+      })),
+    };
+    try {
+      setSubmitting(true);
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSubmitError(data?.error ?? 'Une erreur est survenue.');
+        return;
+      }
+      setConfirmation({
+        id: data.id,
+        number: typeof data.orderNumber === 'number' ? data.orderNumber : null,
+      });
+      setScreen('done');
+    } catch {
+      setSubmitError('Une erreur réseau est survenue.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   // ---- Welcome ------------------------------------------------------------
@@ -304,20 +374,23 @@ export function BorneKiosk({
     };
     return (
       <KioskShell
-        title="Comment souhaitez-vous commander ?"
+        title="Comment souhaitez-vous être servi ?"
+        subtitle="Choisissez ce qui vous arrange — la commande est la même."
         onHome={reset}
         coverUrl={coverUrl}
       >
         <div className="mx-auto grid max-w-3xl gap-6 p-8 sm:grid-cols-2">
           <TypeCard
-            icon={<Store className="h-16 w-16" />}
-            label="Sur place"
+            emoji="🪧"
+            label="Service à table"
+            subtitle="On vous apporte votre commande"
             accent={accent}
             onClick={() => pick('DINE_IN')}
           />
           <TypeCard
-            icon={<ShoppingBag className="h-16 w-16" />}
-            label="À emporter"
+            emoji="🔔"
+            label="Retrait au comptoir"
+            subtitle="On appelle votre numéro"
             accent={accent}
             onClick={() => pick('DELIVERY')}
           />
@@ -328,43 +401,120 @@ export function BorneKiosk({
 
   // ---- Confirmation -------------------------------------------------------
   if (screen === 'done' && confirmation) {
+    // Rough estimated wait: base + per-item, capped. Purely indicative.
+    const estMinutes = Math.min(30, 4 + cartCount * 1);
     return (
-      <div className="relative flex h-screen w-screen flex-col items-center justify-center gap-8 overflow-hidden bg-neutral-950 text-center text-neutral-50">
-        <CoverBackdrop coverUrl={coverUrl} />
-        <span
-          className="relative z-10 flex h-28 w-28 items-center justify-center rounded-full shadow-2xl"
-          style={{ backgroundColor: accent, color: '#000' }}
-        >
-          <PartyPopper className="h-14 w-14" />
-        </span>
-        <div className="relative z-10">
-          <h1 className="font-serif-display text-6xl font-light drop-shadow-lg">Merci !</h1>
-          <p className="mt-4 text-3xl text-white/70">
-            Votre commande est enregistrée.
+      <div className="relative flex h-screen w-screen flex-col overflow-y-auto bg-neutral-50 text-neutral-900">
+        <div className="mx-auto w-full max-w-xl px-6 py-10 text-center">
+          <span
+            className="mx-auto flex h-20 w-20 items-center justify-center rounded-full"
+            style={{ backgroundColor: '#0f766e', color: '#fff' }}
+          >
+            <Check className="h-10 w-10" />
+          </span>
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight">Merci !</h1>
+          <p className="mt-2 text-lg text-neutral-500">
+            Votre commande a été envoyée en cuisine.
           </p>
-        </div>
-        {confirmation.number != null ? (
-          <div className="relative z-10 mt-2">
-            <p className="text-xl uppercase tracking-widest text-white/50">
-              Votre numéro
+
+          {/* Order number ticket */}
+          <div
+            className="mt-8 rounded-3xl border-2 border-dashed p-6"
+            style={{ borderColor: `${accent}80` }}
+          >
+            <p className="text-sm font-semibold uppercase tracking-widest text-neutral-400">
+              Numéro de commande
             </p>
             <p
-              className="font-serif-display text-8xl font-medium tabular-nums drop-shadow-lg"
+              className="mt-1 text-7xl font-extrabold tabular-nums"
               style={{ color: accent }}
             >
-              #{confirmation.number}
+              #{confirmation.number ?? '—'}
+            </p>
+            <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-base font-medium text-emerald-700">
+              ⏱️ Temps d&apos;attente estimé ≈ {estMinutes} min
+            </span>
+            <p className="mt-3 text-sm text-neutral-400">
+              Notez votre numéro de commande
+            </p>
+
+            <div className="mt-5 space-y-1 border-t border-black/10 pt-4 text-left text-base">
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-500">Service</span>
+                <span className="font-medium">
+                  {orderType === 'DINE_IN' ? 'Sur place' : 'À emporter'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-neutral-500">Paiement</span>
+                <span className="font-medium">Paiement au comptoir</span>
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-black/10 pt-3">
+                <span className="text-xl font-bold">Total</span>
+                <span className="text-xl font-bold" style={{ color: accent }}>
+                  {fmt(cartTotal)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Experience rating */}
+          <div className="mt-6 rounded-2xl border border-black/10 bg-white p-5">
+            <p className="font-semibold">
+              Comment s&apos;est passée votre expérience ?
+            </p>
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <span className="text-2xl">😞</span>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => submitRating(n)}
+                  aria-label={`Note ${n}`}
+                  className="transition-transform active:scale-90"
+                >
+                  <Star
+                    className="h-9 w-9"
+                    style={{
+                      fill: n <= rating ? accent : 'transparent',
+                      color: n <= rating ? accent : 'rgba(0,0,0,0.2)',
+                    }}
+                  />
+                </button>
+              ))}
+              <span className="text-2xl">😍</span>
+            </div>
+            <p className="mt-2 text-sm text-neutral-400">
+              {rating > 0 ? 'Merci pour votre retour !' : '1 = mauvais · 5 = excellent'}
             </p>
           </div>
-        ) : null}
-        <button
-          type="button"
-          onClick={reset}
-          className="relative z-10 mt-6 rounded-full px-12 py-5 text-2xl font-semibold shadow-2xl"
-          style={{ backgroundColor: accent, color: '#000' }}
-        >
-          Nouvelle commande
-        </button>
+
+          <button
+            type="button"
+            onClick={reset}
+            className="mt-6 w-full rounded-full px-12 py-5 text-2xl font-semibold"
+            style={{ backgroundColor: accent, color: '#fff' }}
+          >
+            Nouvelle commande
+          </button>
+        </div>
       </div>
+    );
+  }
+
+  // ---- Payment mode -------------------------------------------------------
+  if (screen === 'payment') {
+    return (
+      <PaymentStep
+        accent={accent}
+        coverUrl={coverUrl}
+        total={cartTotal}
+        fmt={fmt}
+        submitting={submitting}
+        error={submitError}
+        onBack={() => setScreen('cart')}
+        onPay={submitOrder}
+      />
     );
   }
 
@@ -380,14 +530,16 @@ export function BorneKiosk({
         tableId={tableId}
         setTableId={setTableId}
         setOrderType={setOrderType}
+        name={contactName}
+        setName={setContactName}
+        phone={contactPhone}
+        setPhone={setContactPhone}
+        note={note}
+        setNote={setNote}
         onChangeQty={changeQty}
         onRemove={removeLine}
         onBack={() => setScreen('menu')}
-        onDone={(id, number) => {
-          setConfirmation({ id, number });
-          setScreen('done');
-        }}
-        restaurantId={restaurantId}
+        onProceed={() => setScreen('payment')}
         fmt={fmt}
       />
     );
@@ -524,11 +676,13 @@ export function BorneKiosk({
 
 function KioskShell({
   title,
+  subtitle,
   onHome,
   coverUrl,
   children,
 }: {
   title: string;
+  subtitle?: string;
   onHome: () => void;
   coverUrl?: string | null;
   children: React.ReactNode;
@@ -562,14 +716,26 @@ function KioskShell({
         </button>
       </header>
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
-        <h1
-          className={cn(
-            'mb-8 px-6 text-center font-serif-display text-4xl font-light',
-            hasCover && 'drop-shadow-lg'
-          )}
-        >
-          {title}
-        </h1>
+        <div className="mb-8 px-6 text-center">
+          <h1
+            className={cn(
+              'text-4xl font-extrabold tracking-tight',
+              hasCover && 'drop-shadow-lg'
+            )}
+          >
+            {title}
+          </h1>
+          {subtitle ? (
+            <p
+              className={cn(
+                'mt-2 text-lg',
+                hasCover ? 'text-white/70' : 'text-neutral-400'
+              )}
+            >
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
         {children}
       </div>
     </div>
@@ -577,13 +743,15 @@ function KioskShell({
 }
 
 function TypeCard({
-  icon,
+  emoji,
   label,
+  subtitle,
   accent,
   onClick,
 }: {
-  icon: React.ReactNode;
+  emoji: string;
   label: string;
+  subtitle?: string;
   accent: string;
   onClick: () => void;
 }) {
@@ -593,7 +761,7 @@ function TypeCard({
       onClick={onClick}
       style={{ ['--rim' as string]: accent }}
       className={cn(
-        'group flex flex-col items-center gap-6 rounded-3xl border-2 border-black/10 bg-white p-12 text-neutral-900 shadow-sm',
+        'group flex flex-col items-center gap-4 rounded-3xl border-2 border-black/10 bg-white p-12 text-neutral-900 shadow-sm',
         'transition-all duration-150 active:scale-[0.97]',
         // Highlight rim on hover (accent-colored border + glow ring).
         'hover:-translate-y-1 hover:border-[color:var(--rim)] hover:shadow-xl',
@@ -602,15 +770,18 @@ function TypeCard({
     >
       <span
         className={cn(
-          'flex h-28 w-28 items-center justify-center rounded-3xl',
+          'flex h-24 w-24 items-center justify-center rounded-3xl text-5xl',
           // Lean/tilt the icon on click (and a gentle nudge on hover).
           'transition-transform duration-150 group-hover:-rotate-3 group-active:rotate-12 group-active:scale-95'
         )}
-        style={{ backgroundColor: `${accent}22`, color: accent }}
+        style={{ backgroundColor: `${accent}22` }}
       >
-        {icon}
+        {emoji}
       </span>
-      <span className="text-3xl font-semibold">{label}</span>
+      <span className="text-3xl font-bold">{label}</span>
+      {subtitle ? (
+        <span className="text-base text-neutral-500">{subtitle}</span>
+      ) : null}
     </button>
   );
 }
@@ -896,11 +1067,16 @@ function CartReview({
   tableId,
   setTableId,
   setOrderType,
+  name,
+  setName,
+  phone,
+  setPhone,
+  note,
+  setNote,
   onChangeQty,
   onRemove,
   onBack,
-  onDone,
-  restaurantId,
+  onProceed,
   fmt,
 }: {
   lines: CartLine[];
@@ -911,66 +1087,30 @@ function CartReview({
   tableId: string;
   setTableId: (v: string) => void;
   setOrderType: (t: OrderType) => void;
+  name: string;
+  setName: (v: string) => void;
+  phone: string;
+  setPhone: (v: string) => void;
+  note: string;
+  setNote: (v: string) => void;
   onChangeQty: (lineId: string, qty: number) => void;
   onRemove: (lineId: string) => void;
   onBack: () => void;
-  onDone: (id: string, number: number | null) => void;
-  restaurantId: string;
+  onProceed: () => void;
   fmt: (n: number) => string;
 }) {
-  const [note, setNote] = useState('');
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const total = lines.reduce((s, l) => s + lineTotal(l), 0);
 
-  const submit = async () => {
+  const proceed = () => {
     setError(null);
     if (lines.length === 0) return;
     if (orderType === 'DINE_IN' && tables.length > 0 && !tableId) {
       setError('Sélectionnez votre table.');
       return;
     }
-    const payload = {
-      restaurantId,
-      type: orderType,
-      tableId: orderType === 'DINE_IN' ? tableId || null : null,
-      customerName: orderType === 'DELIVERY' ? name.trim() : '',
-      customerPhone: orderType === 'DELIVERY' ? phone.trim() : '',
-      address: '',
-      latitude: null,
-      longitude: null,
-      note: note.trim(),
-      items: lines.map((l) => ({
-        dishId: l.dishId,
-        quantity: l.quantity,
-        optionIds: l.options.map((o) => o.id),
-        specialRequest: l.specialRequest,
-      })),
-    };
-    try {
-      setSubmitting(true);
-      const res = await fetch('/api/orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data?.error ?? 'Une erreur est survenue.');
-        return;
-      }
-      onDone(
-        data.id,
-        typeof data.orderNumber === 'number' ? data.orderNumber : null
-      );
-    } catch {
-      setError('Une erreur réseau est survenue.');
-    } finally {
-      setSubmitting(false);
-    }
+    onProceed();
   };
 
   return (
@@ -1152,17 +1292,92 @@ function CartReview({
             </div>
             <button
               type="button"
-              onClick={submit}
-              disabled={submitting}
-              className="flex items-center gap-2 rounded-full px-10 py-5 text-2xl font-bold disabled:opacity-50"
+              onClick={proceed}
+              className="flex items-center gap-2 rounded-full px-10 py-5 text-2xl font-bold"
               style={{ backgroundColor: accent, color: '#000' }}
             >
-              {submitting ? <Loader2 className="h-6 w-6 animate-spin" /> : null}
-              Commander
+              Continuer
             </button>
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Payment mode step. Cash-at-counter only for now ("Payer au comptoir"); tapping
+ * it submits the order. A "Retour" link goes back to the cart.
+ */
+function PaymentStep({
+  accent,
+  coverUrl,
+  total,
+  fmt,
+  submitting,
+  error,
+  onBack,
+  onPay,
+}: {
+  accent: string;
+  coverUrl?: string | null;
+  total: number;
+  fmt: (n: number) => string;
+  submitting: boolean;
+  error: string | null;
+  onBack: () => void;
+  onPay: () => void;
+}) {
+  const hasCover = !!coverUrl;
+  return (
+    <div
+      className={cn(
+        'relative flex h-screen w-screen flex-col items-center justify-center overflow-hidden px-6 text-neutral-900',
+        hasCover ? 'bg-neutral-950 text-neutral-50' : 'bg-neutral-50'
+      )}
+    >
+      <CoverBackdrop coverUrl={coverUrl} />
+
+      <div className="relative z-10 w-full max-w-xl rounded-3xl border border-black/10 bg-white p-8 text-neutral-900 shadow-xl">
+        <p className="text-sm font-semibold uppercase tracking-widest text-neutral-400">
+          Mode de paiement
+        </p>
+        <button
+          type="button"
+          onClick={onPay}
+          disabled={submitting}
+          className="mt-4 flex w-full items-center justify-between gap-4 rounded-2xl px-6 py-5 text-2xl font-bold text-white transition-transform active:scale-[0.98] disabled:opacity-60"
+          style={{ backgroundColor: accent, color: '#000' }}
+        >
+          <span className="flex items-center gap-3">
+            {submitting ? (
+              <Loader2 className="h-7 w-7 animate-spin" />
+            ) : (
+              <span className="text-2xl">💵</span>
+            )}
+            Payer au comptoir
+          </span>
+          <span className="rounded-lg bg-black/15 px-3 py-1 text-xl">
+            {fmt(total)}
+          </span>
+        </button>
+
+        {error ? (
+          <p className="mt-4 text-center text-lg text-red-500">{error}</p>
+        ) : null}
+      </div>
+
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={submitting}
+        className={cn(
+          'relative z-10 mt-6 text-lg font-medium',
+          hasCover ? 'text-white/70' : 'text-neutral-500'
+        )}
+      >
+        ← Retour
+      </button>
     </div>
   );
 }
