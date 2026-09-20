@@ -22,7 +22,9 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { downloadDataUrl } from '@/lib/download';
 import { QrDesignPreview } from '@/components/design/QrDesignPreview';
+import { getDesignPrice } from '@/config';
 import { createLeadMenu, submitLeadOrder } from '@/actions/lead';
 import type { FunnelDict } from './dict';
 
@@ -170,10 +172,7 @@ export default function FunnelWizard({
 
   const downloadQr = () => {
     if (!qrDataUrl) return;
-    const a = document.createElement('a');
-    a.href = qrDataUrl;
-    a.download = `qr-${restaurantName || 'menu'}.png`;
-    a.click();
+    downloadDataUrl(qrDataUrl, `qr-${restaurantName || 'menu'}.png`);
   };
 
   const submitOrder = () => {
@@ -397,7 +396,7 @@ export default function FunnelWizard({
                       </div>
                     </div>
                     <span className="text-xs font-semibold text-neutral-900">{d.name}</span>
-                    <span className="mt-0.5 text-[11px] text-yellow-700">{d.price}</span>
+                    <span className="mt-0.5 text-[11px] text-yellow-700">{getDesignPrice(d.id, currency)}</span>
                   </button>
                 );
               })}

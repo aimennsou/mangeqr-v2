@@ -201,6 +201,79 @@ export function getDesignProduct(id: string): DesignProduct | undefined {
   );
 }
 
+// -----------------------------------------------------------------------------
+// Currency-aware pricing for the design + printed-menu catalogs.
+//
+// Prices must follow the restaurant currency (EURO | DOLLAR | DINAR) instead of
+// always showing euros. These are PLACEHOLDER amounts until final pricing is
+// provided; keep the numbers here as the single source of truth and swap them
+// when the definitive prices arrive.
+//
+// The `unit` flag distinguishes per-piece prices (QR supports, ordered as a
+// single object) from per-copy prices (printed menus, ordered in runs).
+// -----------------------------------------------------------------------------
+type PriceCurrency = 'EURO' | 'DOLLAR' | 'DINAR';
+
+interface ProductPricing {
+  /** Base amount per currency (placeholder values). */
+  amount: Record<PriceCurrency, number>;
+  /** Whether the price is per printed copy (menus) or per piece (QR supports). */
+  unit: 'piece' | 'copy';
+}
+
+/** Placeholder base prices per product id and currency. */
+const DESIGN_PRICING: Record<string, ProductPricing> = {
+  // QR-code supports (per piece).
+  'elegant-poster': { amount: { EURO: 24, DOLLAR: 26, DINAR: 3500 }, unit: 'piece' },
+  'wood-disc': { amount: { EURO: 34, DOLLAR: 37, DINAR: 4900 }, unit: 'piece' },
+  'table-sticker': { amount: { EURO: 12, DOLLAR: 13, DINAR: 1700 }, unit: 'piece' },
+  // Printed physical menus (per copy).
+  'printed-menu-a4': { amount: { EURO: 1.5, DOLLAR: 1.7, DINAR: 220 }, unit: 'copy' },
+  'laminated-menu': { amount: { EURO: 3, DOLLAR: 3.3, DINAR: 450 }, unit: 'copy' },
+  'menu-booklet': { amount: { EURO: 5, DOLLAR: 5.5, DINAR: 750 }, unit: 'copy' },
+};
+
+function normalizeCurrency(currency?: string | null): PriceCurrency {
+  return currency === 'DOLLAR' || currency === 'DINAR' ? currency : 'EURO';
+}
+
+/** Format an amount with the correct symbol and placement for the currency. */
+function formatMoney(amount: number, currency: PriceCurrency): string {
+  if (currency === 'DINAR') {
+    // Whole dinars, symbol after: "3500 DZD".
+    return `${Math.round(amount)} DZD`;
+  }
+  const symbol = currency === 'DOLLAR' ? '$' : '€';
+  // Keep decimals only when needed (e.g. "1,50€" vs "24€").
+  const hasDecimals = Math.round(amount) !== amount;
+  const value = hasDecimals
+    ? amount.toFixed(2).replace('.', ',')
+    : String(amount);
+  return `${value}${symbol}`;
+}
+
+/**
+ * Localized display price for a design / printed-menu product, following the
+ * given restaurant currency. Returns a string like "à partir de 24€",
+ * "à partir de 3500 DZD" or "à partir de 1,50€ / exemplaire".
+ *
+ * Falls back to the product's static `price` string when the id is unknown.
+ */
+export function getDesignPrice(
+  productId: string,
+  currency?: string | null,
+): string {
+  const pricing = DESIGN_PRICING[productId];
+  if (!pricing) {
+    return getDesignProduct(productId)?.price ?? '';
+  }
+  const cur = normalizeCurrency(currency);
+  const money = formatMoney(pricing.amount[cur], cur);
+  return pricing.unit === 'copy'
+    ? `à partir de ${money} / exemplaire`
+    : `à partir de ${money}`;
+}
+
 
 // -----------------------------------------------------------------------------
 // Delivery options for design / printed-menu orders.

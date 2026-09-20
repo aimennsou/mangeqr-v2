@@ -22,6 +22,7 @@ import {
 
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { downloadDataUrl } from '@/lib/download';
 import Logo from '@/components/Logo';
 import RestoDrawerDialogDemo from '@/app/(protected)/_components/restaurants/CreateRestaurant';
 import MenuDrawerDialogDemo from '@/app/(protected)/_components/menus/CreateMenu';
@@ -141,10 +142,7 @@ export default function OnboardingWizard({ userName, rootDomain }: OnboardingWiz
 
   const downloadQr = () => {
     if (!qrDataUrl) return;
-    const a = document.createElement('a');
-    a.href = qrDataUrl;
-    a.download = `qr-${restaurant?.name ?? 'menu'}.png`;
-    a.click();
+    downloadDataUrl(qrDataUrl, `qr-${restaurant?.name ?? 'menu'}.png`);
   };
 
   return (

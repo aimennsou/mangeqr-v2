@@ -488,6 +488,7 @@ export default function PhysiquePage() {
                             disabled={!selectedRestaurantId || !menuData}
                             templateId={templateId}
                             templateLabel={getTemplateById(templateId).label}
+                            onTemplateChange={setTemplateId}
                             menuData={menuData}
                           />
                         </div>

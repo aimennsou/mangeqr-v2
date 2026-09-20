@@ -35,9 +35,11 @@ import { cn } from '@/lib/utils';
 import {
   PHYSICAL_MENU_PRODUCTS,
   getDeliveryOptions,
+  getDesignPrice,
   isAlgerianCurrency,
 } from '@/config';
 import type { PhysicalMenuData } from '../_templates/types';
+import { MENU_TEMPLATES } from '../_templates/registry';
 import TemplateThumbnail from './TemplateThumbnail';
 import {
   Select,
@@ -62,6 +64,7 @@ export default function PhysicalMenuOrderDialog({
   disabled,
   templateId,
   templateLabel,
+  onTemplateChange,
   menuData,
 }: {
   restaurantId: string;
@@ -72,6 +75,9 @@ export default function PhysicalMenuOrderDialog({
   /** The visual template selected on the design tab (what gets printed). */
   templateId?: string;
   templateLabel?: string;
+  /** Change the selected visual template from inside the dialog (kept in sync
+      with the design tab so the preview + download match the printed run). */
+  onTemplateChange?: (id: string) => void;
   /** Menu data used to render the design preview inside the dialog. */
   menuData?: PhysicalMenuData | null;
 }) {
@@ -166,29 +172,52 @@ export default function PhysicalMenuOrderDialog({
 
         <form onSubmit={handleSubmit} className="flex max-h-[calc(90vh-8rem)] flex-col">
           <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
-          {/* Selected design preview — shows exactly which visual template will
-              be printed (chosen on the "Concevoir & télécharger" tab). */}
-          {templateId && menuData ? (
-            <div className="flex items-center gap-4 rounded-xl border border-border bg-muted/40 p-3">
-              <div className="shrink-0 overflow-hidden rounded-md border border-border shadow-sm">
-                <TemplateThumbnail
-                  templateId={templateId}
-                  data={menuData}
-                  width={96}
-                  heightRatio={0.7}
-                />
+          {/* Design picker — choose the visual template to be printed. Stays in
+              sync with the "Concevoir & télécharger" tab so the preview and the
+              downloaded/printed run always match. */}
+          {menuData ? (
+            <div className="grid gap-2">
+              <Label>Design du menu</Label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {MENU_TEMPLATES.map((tpl) => {
+                  const active = tpl.id === templateId;
+                  return (
+                    <button
+                      key={tpl.id}
+                      type="button"
+                      onClick={() => onTemplateChange?.(tpl.id)}
+                      aria-pressed={active}
+                      className={cn(
+                        'group relative overflow-hidden rounded-lg border p-1.5 text-left transition-colors',
+                        active
+                          ? 'border-yellow-400 ring-2 ring-yellow-400/40'
+                          : 'border-border hover:border-yellow-400/60'
+                      )}
+                    >
+                      {active && (
+                        <span className="absolute right-1.5 top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-yellow-400 text-black">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                      <div className="overflow-hidden rounded-md border border-border">
+                        <TemplateThumbnail
+                          templateId={tpl.id}
+                          data={menuData}
+                          width={200}
+                          heightRatio={0.7}
+                        />
+                      </div>
+                      <p className="mt-1.5 truncate text-xs font-medium">
+                        {tpl.label}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="min-w-0">
-                <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
-                  Design sélectionné
-                </p>
-                <p className="mt-0.5 truncate font-semibold text-foreground">
-                  {templateLabel ?? '—'}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  Modifiable dans l&apos;onglet « Concevoir &amp; télécharger ».
-                </p>
-              </div>
+              <p className="text-xs text-muted-foreground">
+                Le design sélectionné est aussi appliqué à l&apos;aperçu et au
+                téléchargement.
+              </p>
             </div>
           ) : null}
 
@@ -223,7 +252,9 @@ export default function PhysicalMenuOrderDialog({
                     <p className="mt-3 text-sm font-semibold leading-tight">
                       {p.name}
                     </p>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{p.price}</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">
+                      {getDesignPrice(p.id, currency)}
+                    </p>
                   </button>
                 );
               })}

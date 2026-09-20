@@ -23,6 +23,7 @@ import type { Restaurant } from '@/types';
 import {
   DESIGN_PRODUCTS,
   getDeliveryOptions,
+  getDesignPrice,
   isAlgerianCurrency,
   type DesignProduct,
 } from '@/config';
@@ -359,7 +360,7 @@ export default function DesignOrderSection() {
                 {product.description}
               </p>
               <p className="mt-2 text-sm font-medium text-yellow-600">
-                {product.price}
+                {getDesignPrice(product.id, selectedRestaurant?.currency)}
               </p>
             </button>
           );

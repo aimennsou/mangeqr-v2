@@ -38,6 +38,7 @@ import {
 import { ContentLayout } from "../_admin-panel/content-layout";
 import Logo from "@/components/Logo";
 import { Restaurant } from "@/types";
+import { downloadDataUrl } from "@/lib/download";
 import AppearanceSection from "./_components/AppearanceSection";
 import DesignOrderSection from "./_components/DesignOrderSection";
 import MyDesignOrders from "./_components/MyDesignOrders";
@@ -90,10 +91,7 @@ export default function NumeriquePage() {
 
   const handleDownloadPng = () => {
     if (!qrDataUrl) return;
-    const link = document.createElement("a");
-    link.href = qrDataUrl;
-    link.download = `qr-${selected?.name ?? "menu"}.png`;
-    link.click();
+    downloadDataUrl(qrDataUrl, `qr-${selected?.name ?? "menu"}.png`);
   };
 
   return (
