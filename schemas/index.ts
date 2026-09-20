@@ -38,6 +38,14 @@ export const SignUpSchema = z
     path: ['confirm']
   });
 
+/** The assignable member permission keys (mirrors lib/permissions.ts). */
+const PermissionKeySchema = z.enum([
+  'performances',
+  'menus',
+  'reviews',
+  'orders',
+]);
+
 /** Owner creates an invite with the invitee's contact prefilled (#13). */
 export const CreateInviteSchema = z.object({
   inviteeName: z.string().trim().max(120).optional().or(z.literal('')),
@@ -49,8 +57,18 @@ export const CreateInviteSchema = z.object({
     .or(z.literal('')),
   inviteePhone: z.string().trim().max(40).optional().or(z.literal('')),
   label: z.string().trim().max(80).optional().or(z.literal('')),
+  permissions: z.array(PermissionKeySchema).optional(),
 });
 export type CreateInviteValues = z.infer<typeof CreateInviteSchema>;
+
+/** Owner edits a member's permissions after they've joined. */
+export const UpdateMemberPermissionsSchema = z.object({
+  membershipId: z.string().uuid(),
+  permissions: z.array(PermissionKeySchema),
+});
+export type UpdateMemberPermissionsValues = z.infer<
+  typeof UpdateMemberPermissionsSchema
+>;
 
 /**
  * Invitee without an account signs up and joins in one step (#13). Requires the

@@ -19,13 +19,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const [{ role }, orderingEnabled] = await Promise.all([
+  const [{ role, permissions }, orderingEnabled] = await Promise.all([
     getWorkspaceContext(user.id),
     isOrderingEnabledForUser(user.id)
   ]);
 
   return NextResponse.json(
-    { role, appRole: user.role ?? null, orderingEnabled },
+    { role, permissions, appRole: user.role ?? null, orderingEnabled },
     { status: 200 }
   );
 }

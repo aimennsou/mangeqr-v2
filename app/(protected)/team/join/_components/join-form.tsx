@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Loader2, LogIn } from 'lucide-react';
 
@@ -20,7 +19,6 @@ interface JoinFormProps {
  * on failure, shows the French error message returned by the action.
  */
 export default function JoinForm({ initialCode = '' }: JoinFormProps) {
-  const router = useRouter();
   const [code, setCode] = useState(initialCode);
   const [isPending, startTransition] = useTransition();
 
@@ -39,8 +37,7 @@ export default function JoinForm({ initialCode = '' }: JoinFormProps) {
         return;
       }
       toast.success(res.success);
-      router.push('/dashboard');
-      router.refresh();
+      window.location.assign('/performances');
     });
   };
 

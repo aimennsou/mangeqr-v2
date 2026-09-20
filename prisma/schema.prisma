@@ -71,6 +71,7 @@ model User {
   assignedLeads      LeadMenu[]       @relation("LeadAssignee")
   leadActivities     LeadActivity[]   @relation("LeadActivityAuthor")
   planUpgradeRequests PlanUpgradeRequest[]
+  workspaceActivities WorkspaceActivity[] @relation("WorkspaceActivityActor")
 }
 
 model Membership {
@@ -78,6 +79,9 @@ model Membership {
   ownerUserId  String        @db.Uuid
   memberUserId String        @unique @db.Uuid
   role         WorkspaceRole @default(MEMBER)
+  // Granular per-member permissions (JSON array of permission keys, e.g.
+  // ["menus","orders","reviews"]). Null = default member permission set.
+  permissions  Json?
   createdAt    DateTime      @default(now())
   owner        User          @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   member       User          @relation("WorkspaceMember", fields: [memberUserId], references: [id], onDelete: Cascade)
@@ -99,6 +103,8 @@ model Invitation {
   inviteePhone String?
   // Human label for the invitee's spot (e.g. "Serveur", "Responsable salle").
   label        String?
+  // Permissions chosen at invite time; copied onto the Membership on redeem.
+  permissions  Json?
   expiresAt    DateTime?
   usedByUserId String?       @db.Uuid
   usedAt       DateTime?
@@ -108,6 +114,29 @@ model Invitation {
   @@index([ownerUserId])
   @@index([inviteeEmail])
   @@index([inviteePhone])
+}
+
+// Per-member activity journal (visible to the workspace owner). Each row is one
+// action a member performed on the owner's data (created a dish, edited a menu,
+// took an order, …). `actorUserId` is the member; `ownerUserId` scopes it to
+// the workspace so the owner can review their team's activity.
+model WorkspaceActivity {
+  id           String   @id @default(uuid()) @db.Uuid
+  ownerUserId  String   @db.Uuid
+  actorUserId  String   @db.Uuid
+  actor        User     @relation("WorkspaceActivityActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  // Denormalized actor label at write time (survives user rename/deletion).
+  actorName    String?
+  // Machine action key, e.g. "menu.create", "dish.update", "order.status".
+  action       String
+  // Short human summary shown in the journal.
+  summary      String
+  // Optional structured payload (ids, before/after, …).
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([ownerUserId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 

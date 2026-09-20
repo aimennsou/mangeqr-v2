@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import type { UserRole } from '@prisma/client';
 
 import type { WorkspaceNavRole } from '@/lib/menu-list';
+import type { MemberPermission } from '@/lib/permissions';
 
 interface TeamContext {
   role?: WorkspaceNavRole;
+  permissions?: MemberPermission[] | null;
   appRole?: UserRole | null;
   orderingEnabled?: boolean;
 }
@@ -101,6 +103,16 @@ function useTeamContext(): TeamContext | null {
 export function useWorkspaceRole(): WorkspaceNavRole {
   const ctx = useTeamContext();
   return ctx?.role === 'MEMBER' ? 'MEMBER' : 'OWNER';
+}
+
+/**
+ * Current member's granular permissions, or `null` for owners (who implicitly
+ * have all permissions). `undefined` while still resolving.
+ */
+export function useMemberPermissions(): MemberPermission[] | null | undefined {
+  const ctx = useTeamContext();
+  if (!ctx) return undefined;
+  return ctx.permissions ?? null;
 }
 
 /**

@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getWorkspaceOwnerId, logMemberActivity } from '@/data/workspace';
 
 
 export async function POST(req: NextRequest) {
@@ -66,6 +66,8 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await logMemberActivity(userId, 'dish.create', `A ajouté le plat « ${name} »`);
+
     return NextResponse.json(newDish, { status: 201 });
   } catch (error) {
     console.error("Error creating dish:", error);
@@ -117,7 +119,13 @@ export async function PUT(req: NextRequest) {
         where: { id },
         data,
       });
-  
+
+      await logMemberActivity(
+        userId,
+        'dish.update',
+        `A modifié le plat « ${updatedDish.name} »`
+      );
+
       return NextResponse.json(updatedDish, { status: 200 });
     } catch (error) {
       console.error("Error updating dish:", error);
@@ -146,13 +154,23 @@ export async function DELETE(req: NextRequest) {
       const targetIds: string[] = Array.isArray(ids) ? ids : id ? [id] : [];
 
       // Scope the delete to dishes within the caller's workspace only.
-      await db.dish.deleteMany({
+      const del = await db.dish.deleteMany({
         where: {
           id: { in: targetIds },
           category: { menu: { restaurant: { userId: ownerId } } },
         },
       });
-  
+
+      if (del.count > 0) {
+        await logMemberActivity(
+          userId,
+          'dish.delete',
+          del.count > 1
+            ? `A supprimé ${del.count} plats`
+            : 'A supprimé un plat'
+        );
+      }
+
       return NextResponse.json({ message: "Dish deleted successfully" }, { status: 200 });
     } catch (error) {
       console.error("Error deleting dish:", error);

@@ -26,6 +26,11 @@ import {
 } from "lucide-react";
 import type { UserRole } from "@prisma/client";
 import { MARKETING_ENABLED } from "@/config";
+import {
+  PERMISSION_HREFS,
+  DEFAULT_MEMBER_PERMISSIONS,
+  type MemberPermission,
+} from "@/lib/permissions";
 
 
 
@@ -75,7 +80,9 @@ export function getMenuList(
   pathname: string,
   role: WorkspaceNavRole = "OWNER",
   appRole?: UserRole | null,
-  orderingEnabled: boolean = false
+  orderingEnabled: boolean = false,
+  /** MEMBER granular permissions; null/undefined => all (owner or default). */
+  memberPermissions?: MemberPermission[] | null
 ): Group[] {
   const groups: Group[] = [
     {
@@ -368,11 +375,30 @@ export function getMenuList(
 
   // For MEMBERS, drop owner-only entries and any group left empty as a result.
   if (role === "MEMBER") {
+    // Resolve the member's permission set (default when unset for backwards
+    // compatibility with members created before permissions existed).
+    const perms = memberPermissions ?? DEFAULT_MEMBER_PERMISSIONS;
+    // Build the set of hrefs this member is allowed to see (permission-gated).
+    const allowedByPermission = new Set<string>();
+    (Object.keys(PERMISSION_HREFS) as MemberPermission[]).forEach((p) => {
+      if (perms.includes(p)) {
+        PERMISSION_HREFS[p].forEach((href) => allowedByPermission.add(href));
+      }
+    });
+    // Settings stays available to every member regardless of permissions.
+    allowedByPermission.add("/settings");
+
     return applyHidden(
       groups
         .map((group) => ({
           ...group,
-          menus: group.menus.filter((menu) => !OWNER_ONLY_HREFS.has(menu.href)),
+          menus: group.menus.filter(
+            (menu) =>
+              // Owner-only areas are always hidden for members…
+              !OWNER_ONLY_HREFS.has(menu.href) &&
+              // …and permission-gated areas require the matching permission.
+              allowedByPermission.has(menu.href)
+          ),
         }))
         .filter((group) => group.menus.length > 0)
     );

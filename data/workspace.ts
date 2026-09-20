@@ -2,6 +2,10 @@ import crypto from 'crypto';
 
 import { db } from '@/lib/db';
 import { getEffectivePlan, getPlanLimits } from '@/lib/plan';
+import {
+  parsePermissions,
+  type MemberPermission,
+} from '@/lib/permissions';
 import type { Invitation, WorkspaceRole } from '@prisma/client';
 
 /**
@@ -52,19 +56,28 @@ export async function getWorkspaceOwnerId(userId: string): Promise<string> {
  */
 export async function getWorkspaceContext(
   userId: string
-): Promise<{ ownerId: string; role: 'OWNER' | 'MEMBER' }> {
+): Promise<{
+  ownerId: string;
+  role: 'OWNER' | 'MEMBER';
+  permissions: MemberPermission[] | null;
+}> {
   try {
     const membership = await db.membership.findUnique({
       where: { memberUserId: userId },
-      select: { ownerUserId: true },
+      select: { ownerUserId: true, permissions: true },
     });
     if (membership) {
-      return { ownerId: membership.ownerUserId, role: 'MEMBER' };
+      return {
+        ownerId: membership.ownerUserId,
+        role: 'MEMBER',
+        permissions: parsePermissions(membership.permissions),
+      };
     }
   } catch {
     // fall through to owner default
   }
-  return { ownerId: userId, role: 'OWNER' };
+  // Owners implicitly have every permission.
+  return { ownerId: userId, role: 'OWNER', permissions: null };
 }
 
 /**
@@ -111,6 +124,7 @@ export interface WorkspaceMember {
   name: string | null;
   email: string | null;
   image: string | null;
+  permissions: MemberPermission[];
   createdAt: Date;
 }
 
@@ -131,8 +145,135 @@ export async function listMembers(ownerId: string): Promise<WorkspaceMember[]> {
       name: m.member.name,
       email: m.member.email,
       image: m.member.image,
+      permissions: parsePermissions(m.permissions),
       createdAt: m.createdAt,
     }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Update a member's permissions. Owner-scoped: only affects a membership owned
+ * by `ownerId`. Returns true when a row was updated.
+ */
+export async function updateMemberPermissions(
+  ownerId: string,
+  membershipId: string,
+  permissions: MemberPermission[]
+): Promise<boolean> {
+  try {
+    const res = await db.membership.updateMany({
+      where: { id: membershipId, ownerUserId: ownerId },
+      data: { permissions: permissions as unknown as object },
+    });
+    return res.count > 0;
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Member activity journal
+// ---------------------------------------------------------------------------
+
+export interface WorkspaceActivityRow {
+  id: string;
+  actorUserId: string;
+  actorName: string | null;
+  action: string;
+  summary: string;
+  createdAt: Date;
+}
+
+/**
+ * Log a member action for the owner's activity journal. Best-effort: never
+ * throws (a journal write must not break the primary mutation). Owner actions
+ * are skipped (only members are journaled).
+ */
+export async function logWorkspaceActivity(args: {
+  ownerId: string;
+  actorUserId: string;
+  actorName?: string | null;
+  action: string;
+  summary: string;
+  metadata?: Record<string, unknown> | null;
+}): Promise<void> {
+  try {
+    await db.workspaceActivity.create({
+      data: {
+        ownerUserId: args.ownerId,
+        actorUserId: args.actorUserId,
+        actorName: args.actorName ?? null,
+        action: args.action,
+        summary: args.summary,
+        metadata: (args.metadata ?? undefined) as object | undefined,
+      },
+    });
+  } catch {
+    // ignore
+  }
+}
+
+/**
+ * Convenience: log an activity for the given actor IF they are a workspace
+ * MEMBER (owner actions are not journaled). Resolves the owner + actor name.
+ * Best-effort; never throws. Call from owner-scoped mutation routes/actions
+ * with the authenticated user id.
+ */
+export async function logMemberActivity(
+  actorUserId: string,
+  action: string,
+  summary: string,
+  metadata?: Record<string, unknown> | null
+): Promise<void> {
+  try {
+    const membership = await db.membership.findUnique({
+      where: { memberUserId: actorUserId },
+      select: { ownerUserId: true },
+    });
+    // Only members are journaled (owner acting on their own data is skipped).
+    if (!membership) return;
+    const actor = await db.user.findUnique({
+      where: { id: actorUserId },
+      select: { name: true, email: true },
+    });
+    await logWorkspaceActivity({
+      ownerId: membership.ownerUserId,
+      actorUserId,
+      actorName: actor?.name ?? actor?.email ?? null,
+      action,
+      summary,
+      metadata,
+    });
+  } catch {
+    // ignore
+  }
+}
+
+/** List the workspace activity journal for an owner, newest first. */
+export async function listWorkspaceActivity(
+  ownerId: string,
+  opts?: { actorUserId?: string; take?: number }
+): Promise<WorkspaceActivityRow[]> {
+  try {
+    const rows = await db.workspaceActivity.findMany({
+      where: {
+        ownerUserId: ownerId,
+        ...(opts?.actorUserId ? { actorUserId: opts.actorUserId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: opts?.take ?? 100,
+      select: {
+        id: true,
+        actorUserId: true,
+        actorName: true,
+        action: true,
+        summary: true,
+        createdAt: true,
+      },
+    });
+    return rows;
   } catch {
     return [];
   }
@@ -208,6 +349,7 @@ export async function createInvitation(
     inviteeEmail?: string | null;
     inviteePhone?: string | null;
     label?: string | null;
+    permissions?: MemberPermission[] | null;
   }
 ): Promise<Invitation> {
   const days = opts?.expiresInDays ?? 7;
@@ -227,6 +369,9 @@ export async function createInvitation(
           inviteeEmail: opts?.inviteeEmail ?? null,
           inviteePhone: opts?.inviteePhone ?? null,
           label: opts?.label ?? null,
+          ...(opts?.permissions
+            ? { permissions: opts.permissions as unknown as object }
+            : {}),
         },
       });
     } catch (err) {
@@ -486,9 +631,16 @@ export async function consumeInvitationAndCreateMembership(
         return { ok: false, reason: 'seat_full' } as const;
       }
 
-      // Create membership + consume the invite atomically.
+      // Create membership + consume the invite atomically, carrying over the
+      // permissions the owner chose at invite time (default set when unset).
+      const invitePermissions = parsePermissions(invitation.permissions);
       await tx.membership.create({
-        data: { ownerUserId: ownerId, memberUserId, role: 'MEMBER' },
+        data: {
+          ownerUserId: ownerId,
+          memberUserId,
+          role: 'MEMBER',
+          permissions: invitePermissions as unknown as object,
+        },
       });
       await tx.invitation.update({
         where: { id: invitation.id },

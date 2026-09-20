@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getWorkspaceOwnerId, logMemberActivity } from '@/data/workspace';
 
 
 export async function POST(req: NextRequest) {
@@ -62,6 +62,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    await logMemberActivity(
+      userId,
+      'category.create',
+      `A ajouté la catégorie « ${categoryName} »`
+    );
+
     // Return the newly created category
     return NextResponse.json(newCategorie, { status: 201 });
   } catch (error) {
@@ -110,7 +116,13 @@ export async function PUT(req: NextRequest) {
         where: { id },
         data: dataToUpdate,
       });
-  
+
+      await logMemberActivity(
+        userId,
+        'category.update',
+        `A modifié la catégorie « ${updatedCategory.name} »`
+      );
+
       return NextResponse.json(updatedCategory, { status: 200 });
     } catch (error) {
       console.error('Error updating category:', error);
@@ -137,13 +149,23 @@ export async function DELETE(req: NextRequest) {
       const targetIds: string[] = Array.isArray(ids) ? ids : id ? [id] : [];
 
       // Scope the delete to categories within the caller's workspace only.
-      await db.menuCategory.deleteMany({
+      const del = await db.menuCategory.deleteMany({
         where: {
           id: { in: targetIds },
           menu: { restaurant: { userId: ownerId } },
         },
       });
-  
+
+      if (del.count > 0) {
+        await logMemberActivity(
+          userId,
+          'category.delete',
+          del.count > 1
+            ? `A supprimé ${del.count} catégories`
+            : 'A supprimé une catégorie'
+        );
+      }
+
       return NextResponse.json({ message: "Category deleted successfully" }, { status: 200 });
     } catch (error) {
       console.error('Error deleting category:', error);

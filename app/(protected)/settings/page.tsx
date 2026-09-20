@@ -28,9 +28,11 @@ import {
   getWorkspaceContext,
   canAddMember,
   listMembers,
-  listInvitations
+  listInvitations,
+  listWorkspaceActivity
 } from "@/data/workspace";
 import PlanCard from "./_components/plan-card";
+import ActivityJournal from "./_components/activity-journal";
 import CopyIdButton from "./_components/copy-id-button";
 import TeamSection from "./_components/team-section";
 import TeamMemberCard from "./_components/team-member-card";
@@ -112,17 +114,33 @@ export default async function SettingsPage() {
       name: string | null;
       email: string | null;
       image: string | null;
+      permissions: import('@/lib/permissions').MemberPermission[];
     }[];
     invites: { id: string; code: string; link: string }[];
   } | null = null;
   let teamOwnerName: string | null = null;
+  let memberActivity: {
+    id: string;
+    actorName: string | null;
+    action: string;
+    summary: string;
+    createdAt: string;
+  }[] = [];
 
   if (userId && workspace.role === "OWNER") {
-    const [seats, members, invitations] = await Promise.all([
+    const [seats, members, invitations, activity] = await Promise.all([
       canAddMember(userId),
       listMembers(userId),
-      listInvitations(userId)
+      listInvitations(userId),
+      listWorkspaceActivity(userId, { take: 50 })
     ]);
+    memberActivity = activity.map((a) => ({
+      id: a.id,
+      actorName: a.actorName,
+      action: a.action,
+      summary: a.summary,
+      createdAt: a.createdAt.toISOString()
+    }));
     teamOwnerSection = {
       used: seats.used,
       limit: seats.limit,
@@ -130,7 +148,8 @@ export default async function SettingsPage() {
         membershipId: m.membershipId,
         name: m.name,
         email: m.email,
-        image: m.image
+        image: m.image,
+        permissions: m.permissions
       })),
       invites: invitations.map((i) => ({
         id: i.id,
@@ -281,6 +300,11 @@ export default async function SettingsPage() {
           />
         ) : workspace.role === "MEMBER" ? (
           <TeamMemberCard ownerName={teamOwnerName} />
+        ) : null}
+
+        {/* Member activity journal (owner-only) */}
+        {workspace.role === "OWNER" ? (
+          <ActivityJournal entries={memberActivity} />
         ) : null}
 
         {/* Ticket-printer configuration (owner-only) — spans full width so the

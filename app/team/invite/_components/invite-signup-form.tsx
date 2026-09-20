@@ -64,8 +64,10 @@ export function InviteSignUpForm({
         router.push('/auth/sign-in');
         return;
       }
-      router.push('/dashboard');
-      router.refresh();
+      // Land the new member directly inside the app. A full navigation (not a
+      // client router.push) ensures the fresh session cookie is picked up by
+      // the server on the protected route.
+      window.location.assign('/performances');
     });
   };
 

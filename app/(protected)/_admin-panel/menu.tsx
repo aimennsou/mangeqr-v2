@@ -23,7 +23,7 @@ import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { useWorkspaceRole, useAppRole, useOrderingEnabled } from "@/hooks/use-workspace-role";
+import { useWorkspaceRole, useAppRole, useOrderingEnabled, useMemberPermissions } from "@/hooks/use-workspace-role";
 
 
 
@@ -46,7 +46,15 @@ export function Menu({ isOpen }: MenuProps) {
   const appRole = useAppRole();
   // Show ordering entries only when the account is ordering-enabled (FEAT-1).
   const orderingEnabled = useOrderingEnabled();
-  const menuList = getMenuList(pathname, workspaceRole, appRole, orderingEnabled);
+  // MEMBER granular permissions gate which sections a member can see.
+  const memberPermissions = useMemberPermissions();
+  const menuList = getMenuList(
+    pathname,
+    workspaceRole,
+    appRole,
+    orderingEnabled,
+    memberPermissions
+  );
   const { t } = useI18n();
 
   // Translate a nav key, falling back to the (French) literal label.

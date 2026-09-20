@@ -6,12 +6,17 @@ import bcrypt from 'bcryptjs';
 import { currentUser } from '@/lib/authentication';
 import { db } from '@/lib/db';
 import { getUserByEmail } from '@/data/user';
-import { CreateInviteSchema, SignUpAndJoinSchema } from '@/schemas';
+import {
+  CreateInviteSchema,
+  SignUpAndJoinSchema,
+  UpdateMemberPermissionsSchema,
+} from '@/schemas';
 import {
   canAddMember,
   createInvitation,
   revokeInvitation,
   removeMember,
+  updateMemberPermissions,
   isWorkspaceMember,
   consumeInvitationAndCreateMembership,
 } from '@/data/workspace';
@@ -92,6 +97,7 @@ export async function generateInvite(
       inviteeEmail: parsed.data.inviteeEmail || null,
       inviteePhone: parsed.data.inviteePhone || null,
       label: parsed.data.label || null,
+      permissions: parsed.data.permissions ?? null,
     });
     return {
       success: "Code d'invitation généré.",
@@ -162,6 +168,38 @@ export async function removeTeamMember(
   }
 
   return { success: 'Membre retiré.' };
+}
+
+/**
+ * Update a member's granular permissions (owner-only). Scoped to the caller's
+ * own memberships in the data layer.
+ */
+export async function updateTeamMemberPermissions(
+  values: z.infer<typeof UpdateMemberPermissionsSchema>
+): Promise<{ error: string } | { success: string }> {
+  const user = await currentUser();
+  if (!user?.id) {
+    return { error: 'Non autorisé.' };
+  }
+  if (await isWorkspaceMember(user.id)) {
+    return { error: OWNER_ONLY_ERROR };
+  }
+
+  const parsed = UpdateMemberPermissionsSchema.safeParse(values);
+  if (!parsed.success) {
+    return { error: 'Données invalides.' };
+  }
+
+  const ok = await updateMemberPermissions(
+    user.id,
+    parsed.data.membershipId,
+    parsed.data.permissions
+  );
+  if (!ok) {
+    return { error: 'Membre introuvable.' };
+  }
+
+  return { success: 'Permissions mises à jour.' };
 }
 
 const JoinSchema = z.object({
