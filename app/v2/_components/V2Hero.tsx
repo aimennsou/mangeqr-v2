@@ -57,7 +57,7 @@ export default function V2Hero() {
 
           <Reveal delay={0.15}>
             <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row">
-              <V2Button href="/auth/sign-up" className="w-full sm:w-auto">
+              <V2Button href="/go/fr" className="w-full sm:w-auto">
                 Créer ma carte
               </V2Button>
             </div>
