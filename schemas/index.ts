@@ -745,10 +745,10 @@ export const CreateOrderSchema = z
       message: 'Ajoutez au moins un article.'
     })
   })
-  .refine((v) => v.type !== 'DINE_IN' || !!v.tableId, {
-    message: 'Sélectionnez votre table.',
-    path: ['tableId']
-  })
+  // Note: a tableId is NOT required for DINE_IN. A kiosk "Retrait au comptoir"
+  // (counter pickup) and restaurants without a floor plan submit DINE_IN with
+  // no table; the diner menu still asks for a table when tables exist (client
+  // side). The API validates the table only when a tableId is provided.
   .refine(
     (v) =>
       v.type !== 'DELIVERY' ||

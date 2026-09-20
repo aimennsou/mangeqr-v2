@@ -53,7 +53,6 @@ export interface BorneKioskProps {
 }
 
 type Screen = 'welcome' | 'type' | 'menu' | 'cart' | 'payment' | 'done';
-type OrderType = 'DINE_IN' | 'DELIVERY';
 
 // The kiosk step sequence shown in the top stepper. The final node is the
 // payment/confirmation (card icon). `current` is the 1-based active step.
@@ -187,7 +186,10 @@ export function BorneKiosk({
   }, [menus]);
 
   const [screen, setScreen] = useState<Screen>('welcome');
-  const [orderType, setOrderType] = useState<OrderType>('DINE_IN');
+  // Kiosk service mode is on-site only: table service or counter pickup. Both
+  // submit as a DINE_IN order (no home delivery from a kiosk); "table" carries
+  // a tableId, "counter" doesn't.
+  const [serviceMode, setServiceMode] = useState<'table' | 'counter'>('table');
   // On the service step, whether a mode was picked (reveals the table picker).
   const [typeChosen, setTypeChosen] = useState(false);
   const [tableId, setTableId] = useState('');
@@ -197,9 +199,6 @@ export function BorneKiosk({
     allCategories[0]?.id ?? ''
   );
   const [detailDish, setDetailDish] = useState<Dish | null>(null);
-  // Checkout fields (collected on the cart step, used by the payment step).
-  const [contactName, setContactName] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -283,10 +282,9 @@ export function BorneKiosk({
 
   const reset = () => {
     setLines([]);
+    setServiceMode('table');
     setTypeChosen(false);
     setTableId('');
-    setContactName('');
-    setContactPhone('');
     setNote('');
     setSubmitError(null);
     setDetailDish(null);
@@ -315,10 +313,11 @@ export function BorneKiosk({
     setSubmitError(null);
     const payload = {
       restaurantId,
-      type: orderType,
-      tableId: orderType === 'DINE_IN' ? tableId || null : null,
-      customerName: orderType === 'DELIVERY' ? contactName.trim() : '',
-      customerPhone: orderType === 'DELIVERY' ? contactPhone.trim() : '',
+      // On-site kiosk order (dine-in). Counter pickup has no table.
+      type: 'DINE_IN' as const,
+      tableId: serviceMode === 'table' ? tableId || null : null,
+      customerName: '',
+      customerPhone: '',
       address: '',
       latitude: null,
       longitude: null,
@@ -387,12 +386,12 @@ export function BorneKiosk({
 
   // ---- Order type (between cart and payment) ------------------------------
   if (screen === 'type') {
-    // Pick a service mode. Dine-in with a table list requires choosing a table
-    // (revealed inline); take-away can proceed immediately.
-    const pick = (t: OrderType) => {
-      setOrderType(t);
+    // Pick a service mode. Table service with a table list requires choosing a
+    // table (revealed inline); counter pickup proceeds immediately.
+    const pick = (mode: 'table' | 'counter') => {
+      setServiceMode(mode);
       setTableId('');
-      if (t === 'DINE_IN' && tables.length > 0) {
+      if (mode === 'table' && tables.length > 0) {
         setTypeChosen(true); // reveal the table picker
       } else {
         setScreen('payment');
@@ -413,14 +412,14 @@ export function BorneKiosk({
               label="Service à table"
               subtitle="On vous apporte votre commande"
               accent={accent}
-              onClick={() => pick('DINE_IN')}
+              onClick={() => pick('table')}
             />
             <TypeCard
               emoji="🔔"
               label="Retrait au comptoir"
               subtitle="On appelle votre numéro"
               accent={accent}
-              onClick={() => pick('DELIVERY')}
+              onClick={() => pick('counter')}
             />
           </div>
         ) : (
@@ -511,7 +510,9 @@ export function BorneKiosk({
               <div className="flex items-center justify-between">
                 <span className="text-neutral-500">Service</span>
                 <span className="font-medium">
-                  {orderType === 'DINE_IN' ? 'Sur place' : 'À emporter'}
+                  {serviceMode === 'table'
+                    ? 'Service à table'
+                    : 'Retrait au comptoir'}
                 </span>
               </div>
               <div className="flex items-center justify-between">

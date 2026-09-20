@@ -67,9 +67,11 @@ export async function POST(req: NextRequest) {
 
   // Validate the table for dine-in.
   let tableLabel: string | null = null;
-  if (type === 'DINE_IN') {
+  // Validate the table only when one is provided. Dine-in without a table
+  // (counter pickup / no floor plan) is allowed.
+  if (type === 'DINE_IN' && tableId) {
     const table = await db.restaurantTable.findFirst({
-      where: { id: tableId ?? '', restaurantId },
+      where: { id: tableId, restaurantId },
       select: { id: true, label: true }
     });
     if (!table) {
