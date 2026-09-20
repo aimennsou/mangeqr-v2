@@ -194,7 +194,7 @@ const components: { title: string; href: string; description: string }[] = [
   
 </NavigationMenuList>
 </NavigationMenu>
-<Link href={"/pricing"}>
+<Link href={"/#tarifs"}>
 <Button variant={"ghost"}>
 Tarifs
   

@@ -131,7 +131,7 @@ export default function V2Pricing() {
                     {tier.description}
                   </p>
 
-                  <Link href="/pricing" className="mt-6 block">
+                  <Link href="/auth/sign-up" className="mt-6 block">
                     <Button
                       className={cn(
                         'w-full',

@@ -3,7 +3,7 @@
  * These routes does not require authentication
  * @type {string[]}
  */
-export const publicRoutes: string[] = ['/', '/v2', '/pricing', '/auth/email-verification', '/lp/ar'];
+export const publicRoutes: string[] = ['/', '/v2', '/auth/email-verification', '/lp/ar'];
 
 /**
  * Route prefixes that are publicly accessible (matched by startsWith, not exact).

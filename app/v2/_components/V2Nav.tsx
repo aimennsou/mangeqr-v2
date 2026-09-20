@@ -38,7 +38,7 @@ export default function V2Nav() {
         </Link>
 
         <div className="flex items-center gap-1 sm:gap-2">
-          <Link href="/pricing">
+          <Link href="/#tarifs">
             <Button variant="ghost" className="hidden sm:inline-flex">
               Tarifs
             </Button>

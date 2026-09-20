@@ -3,7 +3,7 @@ import Link from 'next/link';
 import Logo from '@/components/Logo';
 
 const LINKS = [
-  { label: 'Tarifs', href: '/pricing' },
+  { label: 'Tarifs', href: '/#tarifs' },
   { label: 'Se connecter', href: '/auth/sign-in' },
   { label: 'Créer un compte', href: '/auth/sign-up' },
   { label: 'Voir un menu', href: '/artisto' }

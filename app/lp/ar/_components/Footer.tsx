@@ -13,7 +13,7 @@ export function Footer() {
         </div>
 
         <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-neutral-600">
-          <Link href="/pricing" className="hover:text-neutral-900">
+          <Link href="/#tarifs" className="hover:text-neutral-900">
             الأسعار
           </Link>
           <Link href="/auth/sign-in" className="hover:text-neutral-900">
