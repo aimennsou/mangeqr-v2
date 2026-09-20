@@ -23,6 +23,7 @@ export default async function BorneMenuPage({
       restaurantId={data.restaurantId}
       name={data.name}
       currency={data.currency}
+      coverUrl={data.coverUrl}
       tables={data.tables}
       borneConfig={data.borneConfig}
       menus={data.menus.map((m) => ({

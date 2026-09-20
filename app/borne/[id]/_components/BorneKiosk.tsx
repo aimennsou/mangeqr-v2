@@ -46,6 +46,8 @@ export interface BorneKioskProps {
   restaurantId: string;
   name: string;
   currency: string;
+  /** Restaurant cover photo, used as a big blurred backdrop on the intro screens. */
+  coverUrl?: string | null;
   menus: Menu[];
   tables: DinerTable[];
   borneConfig: BorneConfig | null;
@@ -128,6 +130,28 @@ function KioskSteps({
 }
 
 /**
+ * Big blurred restaurant cover backdrop for the intro screens (welcome / order
+ * type). Absolutely positioned behind the content with a dark scrim so text and
+ * cards stay readable. Renders nothing when there's no cover photo.
+ */
+function CoverBackdrop({ coverUrl }: { coverUrl?: string | null }) {
+  if (!coverUrl) return null;
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+      <Image
+        src={coverUrl}
+        alt=""
+        fill
+        priority
+        className="scale-110 object-cover blur-2xl"
+        sizes="100vw"
+      />
+      <div className="absolute inset-0 bg-neutral-950/70" />
+    </div>
+  );
+}
+
+/**
  * Full-screen self-order kiosk (borne de commande), modeled on a typical QSR
  * kiosk flow: welcome → order type → photo menu (category rail + dish grid,
  * item detail with add-ons, persistent cart bar) → cart review → confirmation
@@ -138,6 +162,7 @@ export function BorneKiosk({
   restaurantId,
   name,
   currency,
+  coverUrl,
   menus,
   tables,
   borneConfig,
@@ -195,22 +220,23 @@ export function BorneKiosk({
       <button
         type="button"
         onClick={() => setScreen('type')}
-        className="flex h-screen w-screen flex-col items-center justify-center gap-10 bg-neutral-950 text-center text-neutral-50"
+        className="relative flex h-screen w-screen flex-col items-center justify-center gap-10 overflow-hidden bg-neutral-950 text-center text-neutral-50"
       >
+        <CoverBackdrop coverUrl={coverUrl} />
         <span
-          className="flex h-32 w-32 items-center justify-center rounded-[2rem]"
+          className="relative z-10 flex h-32 w-32 items-center justify-center rounded-[2rem] shadow-2xl"
           style={{ backgroundColor: accent, color: '#000' }}
         >
           <UtensilsCrossed className="h-16 w-16" />
         </span>
-        <div>
-          <h1 className="font-serif-display text-7xl font-light tracking-tight">
+        <div className="relative z-10">
+          <h1 className="font-serif-display text-7xl font-light tracking-tight drop-shadow-lg">
             {cfg.welcomeTitle}
           </h1>
-          <p className="mt-5 text-3xl text-white/60">{cfg.welcomeSubtitle}</p>
+          <p className="mt-5 text-3xl text-white/70">{cfg.welcomeSubtitle}</p>
         </div>
         <span
-          className="mt-4 animate-pulse rounded-full px-12 py-5 text-3xl font-semibold"
+          className="relative z-10 mt-4 animate-pulse rounded-full px-12 py-5 text-3xl font-semibold shadow-2xl"
           style={{ backgroundColor: accent, color: '#000' }}
         >
           {name}
@@ -226,7 +252,11 @@ export function BorneKiosk({
       setScreen('menu');
     };
     return (
-      <KioskShell title="Comment souhaitez-vous commander ?" onHome={reset}>
+      <KioskShell
+        title="Comment souhaitez-vous commander ?"
+        onHome={reset}
+        coverUrl={coverUrl}
+      >
         <div className="mx-auto grid max-w-3xl gap-6 p-8 sm:grid-cols-2">
           <TypeCard
             icon={<Store className="h-16 w-16" />}
@@ -248,26 +278,27 @@ export function BorneKiosk({
   // ---- Confirmation -------------------------------------------------------
   if (screen === 'done' && confirmation) {
     return (
-      <div className="flex h-screen w-screen flex-col items-center justify-center gap-8 bg-neutral-950 text-center text-neutral-50">
+      <div className="relative flex h-screen w-screen flex-col items-center justify-center gap-8 overflow-hidden bg-neutral-950 text-center text-neutral-50">
+        <CoverBackdrop coverUrl={coverUrl} />
         <span
-          className="flex h-28 w-28 items-center justify-center rounded-full"
+          className="relative z-10 flex h-28 w-28 items-center justify-center rounded-full shadow-2xl"
           style={{ backgroundColor: accent, color: '#000' }}
         >
           <PartyPopper className="h-14 w-14" />
         </span>
-        <div>
-          <h1 className="font-serif-display text-6xl font-light">Merci !</h1>
+        <div className="relative z-10">
+          <h1 className="font-serif-display text-6xl font-light drop-shadow-lg">Merci !</h1>
           <p className="mt-4 text-3xl text-white/70">
             Votre commande est enregistrée.
           </p>
         </div>
         {confirmation.number != null ? (
-          <div className="mt-2">
+          <div className="relative z-10 mt-2">
             <p className="text-xl uppercase tracking-widest text-white/50">
               Votre numéro
             </p>
             <p
-              className="font-serif-display text-8xl font-medium tabular-nums"
+              className="font-serif-display text-8xl font-medium tabular-nums drop-shadow-lg"
               style={{ color: accent }}
             >
               #{confirmation.number}
@@ -277,7 +308,7 @@ export function BorneKiosk({
         <button
           type="button"
           onClick={reset}
-          className="mt-6 rounded-full px-12 py-5 text-2xl font-semibold"
+          className="relative z-10 mt-6 rounded-full px-12 py-5 text-2xl font-semibold shadow-2xl"
           style={{ backgroundColor: accent, color: '#000' }}
         >
           Nouvelle commande
@@ -483,25 +514,49 @@ export function BorneKiosk({
 function KioskShell({
   title,
   onHome,
+  coverUrl,
   children,
 }: {
   title: string;
   onHome: () => void;
+  coverUrl?: string | null;
   children: React.ReactNode;
 }) {
+  const hasCover = !!coverUrl;
   return (
-    <div className="flex h-screen w-screen flex-col bg-neutral-50 text-neutral-900">
-      <header className="flex items-center gap-4 border-b border-black/10 bg-white px-6 py-4">
+    <div
+      className={cn(
+        'relative flex h-screen w-screen flex-col overflow-hidden text-neutral-900',
+        hasCover ? 'bg-neutral-950 text-neutral-50' : 'bg-neutral-50'
+      )}
+    >
+      <CoverBackdrop coverUrl={coverUrl} />
+      <header
+        className={cn(
+          'relative z-10 flex items-center gap-4 border-b px-6 py-4',
+          hasCover
+            ? 'border-white/10 bg-white/5 backdrop-blur-sm'
+            : 'border-black/10 bg-white'
+        )}
+      >
         <button
           type="button"
           onClick={onHome}
-          className="flex items-center gap-2 text-lg font-medium text-neutral-500"
+          className={cn(
+            'flex items-center gap-2 text-lg font-medium',
+            hasCover ? 'text-white/70' : 'text-neutral-500'
+          )}
         >
           <ArrowLeft className="h-5 w-5" /> Accueil
         </button>
       </header>
-      <div className="flex flex-1 flex-col items-center justify-center">
-        <h1 className="mb-8 px-6 text-center font-serif-display text-4xl font-light">
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
+        <h1
+          className={cn(
+            'mb-8 px-6 text-center font-serif-display text-4xl font-light',
+            hasCover && 'drop-shadow-lg'
+          )}
+        >
           {title}
         </h1>
         {children}
@@ -525,10 +580,21 @@ function TypeCard({
     <button
       type="button"
       onClick={onClick}
-      className="flex flex-col items-center gap-6 rounded-3xl border-2 border-black/10 bg-white p-12 shadow-sm transition-transform active:scale-[0.98]"
+      style={{ ['--rim' as string]: accent }}
+      className={cn(
+        'group flex flex-col items-center gap-6 rounded-3xl border-2 border-black/10 bg-white p-12 shadow-sm',
+        'transition-all duration-150 active:scale-[0.97]',
+        // Highlight rim on hover (accent-colored border + glow ring).
+        'hover:-translate-y-1 hover:border-[color:var(--rim)] hover:shadow-xl',
+        'hover:ring-4 hover:ring-[color:var(--rim)]/25'
+      )}
     >
       <span
-        className="flex h-28 w-28 items-center justify-center rounded-3xl"
+        className={cn(
+          'flex h-28 w-28 items-center justify-center rounded-3xl',
+          // Lean/tilt the icon on click (and a gentle nudge on hover).
+          'transition-transform duration-150 group-hover:-rotate-3 group-active:rotate-12 group-active:scale-95'
+        )}
         style={{ backgroundColor: `${accent}22`, color: accent }}
       >
         {icon}
