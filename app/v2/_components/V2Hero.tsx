@@ -1,8 +1,5 @@
 'use client';
 
-import Link from 'next/link';
-
-import { Button } from '@/components/ui/button';
 import PhoneFrame from '../../(landing)/_components/ui/PhoneFrame';
 import LiveMenu from '../../(landing)/_components/ui/LiveMenu';
 import Reveal from './Reveal';
@@ -63,11 +60,6 @@ export default function V2Hero() {
               <V2Button href="/auth/sign-up" className="w-full sm:w-auto">
                 Créer ma carte
               </V2Button>
-              <Link href="/artisto">
-                <Button variant="ghost" size="lg" className="w-full sm:w-auto">
-                  Voir un vrai menu
-                </Button>
-              </Link>
             </div>
           </Reveal>
 
