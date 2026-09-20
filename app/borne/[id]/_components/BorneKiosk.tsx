@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import {
   ArrowLeft,
   Check,
+  CreditCard,
   Minus,
   Plus,
   ShoppingBag,
@@ -52,6 +53,79 @@ export interface BorneKioskProps {
 
 type Screen = 'welcome' | 'type' | 'menu' | 'cart' | 'done';
 type OrderType = 'DINE_IN' | 'DELIVERY';
+
+// The kiosk step sequence shown in the top stepper. The final node is the
+// payment/confirmation (card icon). `current` is the 1-based active step.
+const KIOSK_STEP_COUNT = 4; // numbered steps before the card node
+
+function KioskSteps({
+  current,
+  title,
+  subtitle,
+  accent,
+}: {
+  current: number;
+  title: string;
+  subtitle: string;
+  accent: string;
+}) {
+  const numbered = [1, 2, 3, 4];
+  return (
+    <div className="border-b border-black/10 bg-white px-6 py-5">
+      <div className="mx-auto max-w-3xl">
+        <div className="flex items-center justify-center gap-2">
+          {numbered.map((n, i) => {
+            const done = n < current;
+            const active = n === current;
+            return (
+              <div key={n} className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold transition-colors',
+                    done || active ? 'text-white' : 'text-neutral-400'
+                  )}
+                  style={
+                    done || active
+                      ? { backgroundColor: accent, color: '#000' }
+                      : { border: '2px solid rgba(0,0,0,0.15)' }
+                  }
+                >
+                  {done ? <Check className="h-5 w-5" /> : n}
+                </span>
+                <span
+                  className="h-0.5 w-6 rounded-full"
+                  style={{
+                    backgroundColor:
+                      n < current ? accent : 'rgba(0,0,0,0.12)',
+                  }}
+                />
+              </div>
+            );
+          })}
+          {/* Payment / confirmation node (card icon). */}
+          <span
+            className={cn(
+              'flex h-10 w-12 shrink-0 items-center justify-center rounded-full transition-colors',
+              current > KIOSK_STEP_COUNT ? '' : 'text-neutral-400'
+            )}
+            style={
+              current > KIOSK_STEP_COUNT
+                ? { backgroundColor: accent, color: '#000' }
+                : { border: '2px solid rgba(0,0,0,0.15)' }
+            }
+          >
+            <CreditCard className="h-5 w-5" />
+          </span>
+        </div>
+
+        <div className="mt-5 text-center">
+          <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
+          <p className="mt-1 text-lg text-neutral-400">{subtitle}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 /**
  * Full-screen self-order kiosk (borne de commande), modeled on a typical QSR
@@ -240,16 +314,16 @@ export function BorneKiosk({
   // ---- Menu (main) --------------------------------------------------------
   return (
     <div className="flex h-screen w-screen flex-col bg-neutral-50 text-neutral-900">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-black/10 bg-white px-6 py-4">
+      {/* Compact top bar (home + name + menu switcher) */}
+      <header className="flex items-center justify-between border-b border-black/10 bg-white px-6 py-3">
         <button
           type="button"
           onClick={reset}
-          className="flex items-center gap-2 text-lg font-medium text-neutral-500"
+          className="flex items-center gap-2 text-base font-medium text-neutral-500"
         >
           <ArrowLeft className="h-5 w-5" /> Accueil
         </button>
-        <span className="text-2xl font-bold">{name}</span>
+        <span className="text-xl font-bold">{name}</span>
         {menus.length > 1 ? (
           <select
             value={activeMenuId}
@@ -270,6 +344,14 @@ export function BorneKiosk({
           <span className="w-24" />
         )}
       </header>
+
+      {/* Step progress */}
+      <KioskSteps
+        current={1}
+        title="Choisissez votre plat"
+        subtitle="Choisissez pour commencer"
+        accent={accent}
+      />
 
       <div className="flex min-h-0 flex-1">
         {/* Category rail */}
@@ -758,16 +840,24 @@ function CartReview({
 
   return (
     <div className="flex h-screen w-screen flex-col bg-neutral-50 text-neutral-900">
-      <header className="flex items-center gap-4 border-b border-black/10 bg-white px-6 py-4">
+      <header className="flex items-center gap-4 border-b border-black/10 bg-white px-6 py-3">
         <button
           type="button"
           onClick={onBack}
-          className="flex items-center gap-2 text-lg font-medium text-neutral-500"
+          className="flex items-center gap-2 text-base font-medium text-neutral-500"
         >
           <ArrowLeft className="h-5 w-5" /> Menu
         </button>
-        <h1 className="text-2xl font-bold">Ma commande</h1>
       </header>
+
+      {/* Step progress */}
+      <KioskSteps
+        current={3}
+        title="Vérifiez votre commande"
+        subtitle="Modifiez les quantités puis validez"
+        accent={accent}
+      />
+
 
       <div className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto p-6">
         {lines.length === 0 ? (
