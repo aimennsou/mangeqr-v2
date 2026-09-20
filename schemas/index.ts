@@ -38,6 +38,44 @@ export const SignUpSchema = z
     path: ['confirm']
   });
 
+/** Owner creates an invite with the invitee's contact prefilled (#13). */
+export const CreateInviteSchema = z.object({
+  inviteeName: z.string().trim().max(120).optional().or(z.literal('')),
+  inviteeEmail: z
+    .string()
+    .trim()
+    .email({ message: 'Adresse e-mail invalide.' })
+    .optional()
+    .or(z.literal('')),
+  inviteePhone: z.string().trim().max(40).optional().or(z.literal('')),
+  label: z.string().trim().max(80).optional().or(z.literal('')),
+});
+export type CreateInviteValues = z.infer<typeof CreateInviteSchema>;
+
+/**
+ * Invitee without an account signs up and joins in one step (#13). Requires the
+ * invite code + their new credentials + contact. Email-verified on creation so
+ * they can sign in immediately.
+ */
+export const SignUpAndJoinSchema = z
+  .object({
+    code: z.string().trim().min(1, { message: 'Code requis.' }),
+    name: z.string().trim().min(1, { message: 'Le nom est requis.' }),
+    email: z
+      .string()
+      .trim()
+      .min(1, { message: 'L’e-mail est requis.' })
+      .email({ message: 'Adresse e-mail invalide.' }),
+    phone: z.string().trim().max(40).optional().or(z.literal('')),
+    password: z.string().min(6, { message: '6 caractères minimum.' }),
+    confirm: z.string().min(1, { message: 'Confirmez votre mot de passe.' }),
+  })
+  .refine((data) => data.password === data.confirm, {
+    message: 'Les mots de passe ne correspondent pas.',
+    path: ['confirm'],
+  });
+export type SignUpAndJoinValues = z.infer<typeof SignUpAndJoinSchema>;
+
 export const ForgotPasswordSchema = z.object({
   email: z.string().email({
     message: 'A valid email is required.'

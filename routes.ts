@@ -27,6 +27,9 @@ export const publicRoutePrefixes: string[] = [
   // Stripe webhook: called by Stripe's servers (no user session); verified via
   // the signature secret instead of auth.
   '/api/stripe/webhook',
+  // Invite-without-account (#13): the public invite landing where a person can
+  // sign up + join a workspace from an invite link.
+  '/team/invite',
 ];
 
 /**

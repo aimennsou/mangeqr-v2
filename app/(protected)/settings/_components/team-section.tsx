@@ -7,7 +7,8 @@ import { Loader2, Trash2, UserPlus, Users } from 'lucide-react';
 
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import {
@@ -57,6 +58,11 @@ export default function TeamSection({
   const [isPending, startTransition] = useTransition();
   // The most recently generated invite (code + link) to surface for copying.
   const [freshInvite, setFreshInvite] = useState<TeamInviteView | null>(null);
+  // Optional invitee prefill (invite-without-account, #13).
+  const [inviteeName, setInviteeName] = useState('');
+  const [inviteeEmail, setInviteeEmail] = useState('');
+  const [inviteePhone, setInviteePhone] = useState('');
+  const [label, setLabel] = useState('');
 
   const isStarter = limit === 0;
   const seatFull = used >= limit && limit > 0;
@@ -64,12 +70,21 @@ export default function TeamSection({
 
   const onGenerate = () => {
     startTransition(async () => {
-      const res = await generateInvite();
+      const res = await generateInvite({
+        inviteeName,
+        inviteeEmail,
+        inviteePhone,
+        label,
+      });
       if ('error' in res) {
         toast.error(res.error);
         return;
       }
       setFreshInvite({ id: res.code, code: res.code, link: res.link });
+      setInviteeName('');
+      setInviteeEmail('');
+      setInviteePhone('');
+      setLabel('');
       toast.success(res.success);
       router.refresh();
     });
@@ -135,6 +150,64 @@ export default function TeamSection({
           </div>
         ) : (
           <div className='space-y-3'>
+            {/* Optional: prefill the invitee's contact so the person is uniquely
+                attached and can sign up + join from the link without an account. */}
+            <div className='grid gap-3 rounded-md border border-dashed p-3 sm:grid-cols-2'>
+              <div className='space-y-1.5'>
+                <Label htmlFor='inv-name' className='text-xs text-muted-foreground'>
+                  Nom (optionnel)
+                </Label>
+                <Input
+                  id='inv-name'
+                  value={inviteeName}
+                  onChange={(e) => setInviteeName(e.target.value)}
+                  placeholder='Jean Dupont'
+                  disabled={isPending}
+                />
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='inv-role' className='text-xs text-muted-foreground'>
+                  Rôle / poste (optionnel)
+                </Label>
+                <Input
+                  id='inv-role'
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  placeholder='Serveur, responsable…'
+                  disabled={isPending}
+                />
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='inv-email' className='text-xs text-muted-foreground'>
+                  Email (optionnel)
+                </Label>
+                <Input
+                  id='inv-email'
+                  type='email'
+                  value={inviteeEmail}
+                  onChange={(e) => setInviteeEmail(e.target.value)}
+                  placeholder='invite@exemple.com'
+                  disabled={isPending}
+                />
+              </div>
+              <div className='space-y-1.5'>
+                <Label htmlFor='inv-phone' className='text-xs text-muted-foreground'>
+                  Téléphone (optionnel)
+                </Label>
+                <Input
+                  id='inv-phone'
+                  value={inviteePhone}
+                  onChange={(e) => setInviteePhone(e.target.value)}
+                  placeholder='+213 …'
+                  disabled={isPending}
+                />
+              </div>
+              <p className='sm:col-span-2 text-xs text-muted-foreground'>
+                Le lien généré permet à la personne de créer un compte et de
+                rejoindre directement votre espace, même sans compte existant.
+              </p>
+            </div>
+
             <Button
               type='button'
               onClick={onGenerate}
@@ -146,7 +219,7 @@ export default function TeamSection({
               ) : (
                 <UserPlus className='mr-2 h-4 w-4' />
               )}
-              Générer un code d&apos;invitation
+              Générer un lien d&apos;invitation
             </Button>
             {seatFull ? (
               <p className='text-xs text-muted-foreground'>

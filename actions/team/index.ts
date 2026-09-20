@@ -1,8 +1,12 @@
 'use server';
 
 import * as z from 'zod';
+import bcrypt from 'bcryptjs';
 
 import { currentUser } from '@/lib/authentication';
+import { db } from '@/lib/db';
+import { getUserByEmail } from '@/data/user';
+import { CreateInviteSchema, SignUpAndJoinSchema } from '@/schemas';
 import {
   canAddMember,
   createInvitation,
@@ -32,7 +36,9 @@ const OWNER_ONLY_ERROR = 'Action réservée au propriétaire du compte.';
  */
 function buildRedeemLink(code: string): string {
   const origin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') ?? '';
-  const path = `/team/join?code=${encodeURIComponent(code)}`;
+  // Public invite landing (#13): works for people WITHOUT an account (they can
+  // sign up + join in one step) and for signed-in users (redirected to redeem).
+  const path = `/team/invite?code=${encodeURIComponent(code)}`;
   return origin ? `${origin}${path}` : path;
 }
 
@@ -43,7 +49,9 @@ function buildRedeemLink(code: string): string {
  * plan (R2) — STARTER (0 seats) or a full workspace is refused with a French
  * message. On success returns the code and a copyable redeem link.
  */
-export async function generateInvite(): Promise<
+export async function generateInvite(
+  values?: z.infer<typeof CreateInviteSchema>
+): Promise<
   { error: string } | { success: string; code: string; link: string }
 > {
   const user = await currentUser();
@@ -57,6 +65,12 @@ export async function generateInvite(): Promise<
   }
 
   const ownerId = user.id;
+
+  // Optional invitee prefill (invite-without-account, #13).
+  const parsed = CreateInviteSchema.safeParse(values ?? {});
+  if (!parsed.success) {
+    return { error: 'Coordonnées invalides.' };
+  }
 
   // Seat enforcement (expiry-aware) before creating an invite.
   const seats = await canAddMember(ownerId);
@@ -73,7 +87,12 @@ export async function generateInvite(): Promise<
   }
 
   try {
-    const invitation = await createInvitation(ownerId);
+    const invitation = await createInvitation(ownerId, {
+      inviteeName: parsed.data.inviteeName || null,
+      inviteeEmail: parsed.data.inviteeEmail || null,
+      inviteePhone: parsed.data.inviteePhone || null,
+      label: parsed.data.label || null,
+    });
     return {
       success: "Code d'invitation généré.",
       code: invitation.code,
@@ -209,4 +228,74 @@ export async function joinWorkspace(
   }
 
   return { success: 'Vous avez rejoint l\'espace de travail.' };
+}
+
+
+/**
+ * Invite-without-account (#13): a person WITHOUT an account creates one from an
+ * invite link and is immediately attached to the inviting workspace.
+ *
+ * The account is created EMAIL-VERIFIED so they can sign in right away (no email
+ * round-trip), then the invitation is consumed atomically to create the
+ * membership. On success the client signs the user in with the same
+ * credentials. Never leaks whether the email exists beyond a generic message.
+ */
+export async function signUpAndJoin(
+  values: z.infer<typeof SignUpAndJoinSchema>
+): Promise<{ error: string } | { success: string; email: string }> {
+  const parsed = SignUpAndJoinSchema.safeParse(values);
+  if (!parsed.success) {
+    return {
+      error: parsed.error.errors[0]?.message ?? 'Données invalides.',
+    };
+  }
+
+  const { code, name, email, phone, password } = parsed.data;
+
+  const existing = await getUserByEmail(email);
+  if (existing) {
+    return {
+      error:
+        'Un compte existe déjà avec cet e-mail. Connectez-vous puis utilisez votre code.',
+    };
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  let userId: string;
+  try {
+    const created = await db.user.create({
+      data: {
+        name: phone ? `${name}` : name,
+        email,
+        password: hashedPassword,
+        // Trusted invite flow → verified so they can log in immediately.
+        emailVerified: new Date(),
+        // Members don't onboard (they can't create restaurants).
+        onboardedAt: new Date(),
+      },
+      select: { id: true },
+    });
+    userId = created.id;
+  } catch {
+    return { error: 'Impossible de créer le compte.' };
+  }
+
+  // Attach to the inviting workspace (atomic, re-checks all invariants).
+  const result = await consumeInvitationAndCreateMembership(code, userId);
+  if (!result.ok) {
+    // Roll back the just-created account so a bad/expired code doesn't leave a
+    // dangling, unattached user.
+    try {
+      await db.user.delete({ where: { id: userId } });
+    } catch {
+      // ignore cleanup failure
+    }
+    return { error: redeemReasonToMessage(result.reason) };
+  }
+
+  return {
+    success: 'Compte créé et rattaché à l’espace.',
+    email,
+  };
 }

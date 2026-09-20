@@ -202,7 +202,13 @@ export function generateInviteCode(): string {
  */
 export async function createInvitation(
   ownerId: string,
-  opts?: { expiresInDays?: number }
+  opts?: {
+    expiresInDays?: number;
+    inviteeName?: string | null;
+    inviteeEmail?: string | null;
+    inviteePhone?: string | null;
+    label?: string | null;
+  }
 ): Promise<Invitation> {
   const days = opts?.expiresInDays ?? 7;
   const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
@@ -217,6 +223,10 @@ export async function createInvitation(
           code: generateInviteCode(),
           role: 'MEMBER',
           expiresAt,
+          inviteeName: opts?.inviteeName ?? null,
+          inviteeEmail: opts?.inviteeEmail ?? null,
+          inviteePhone: opts?.inviteePhone ?? null,
+          label: opts?.label ?? null,
         },
       });
     } catch (err) {
@@ -225,6 +235,43 @@ export async function createInvitation(
     }
   }
   throw lastError ?? new Error('Failed to create invitation');
+}
+
+/**
+ * Public view of an invitation for the join/sign-up landing (#13): resolves the
+ * owner label + the invitee's pre-filled contact, WITHOUT exposing internals.
+ * Returns null if the code is invalid/expired/used.
+ */
+export interface PublicInviteInfo {
+  code: string;
+  ownerName: string | null;
+  label: string | null;
+  inviteeName: string | null;
+  inviteeEmail: string | null;
+  inviteePhone: string | null;
+}
+
+export async function getPublicInviteByCode(
+  code: string
+): Promise<PublicInviteInfo | null> {
+  const invitation = await findValidInvitationByCode(code);
+  if (!invitation) return null;
+  try {
+    const owner = await db.user.findUnique({
+      where: { id: invitation.ownerUserId },
+      select: { name: true },
+    });
+    return {
+      code: invitation.code,
+      ownerName: owner?.name ?? null,
+      label: invitation.label,
+      inviteeName: invitation.inviteeName,
+      inviteeEmail: invitation.inviteeEmail,
+      inviteePhone: invitation.inviteePhone,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export interface InvitationSummary {
