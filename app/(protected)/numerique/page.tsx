@@ -125,11 +125,13 @@ export default function NumeriquePage() {
             </p>
           </div>
           <Tabs defaultValue="qr" className="w-full">
-            <TabsList>
-              <TabsTrigger value="qr">{t("numerique.tab.qr")}</TabsTrigger>
-              <TabsTrigger value="appearance">{t("numerique.tab.appearance")}</TabsTrigger>
-              <TabsTrigger value="design">{t("numerique.tab.design")}</TabsTrigger>
-              <TabsTrigger value="orders">{t("numerique.tab.orders")}</TabsTrigger>
+            {/* Scrollable on small screens so all tabs stay reachable within a
+                phone width instead of overflowing off-screen. */}
+            <TabsList className="flex w-full max-w-full justify-start gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <TabsTrigger value="qr" className="shrink-0">{t("numerique.tab.qr")}</TabsTrigger>
+              <TabsTrigger value="appearance" className="shrink-0">{t("numerique.tab.appearance")}</TabsTrigger>
+              <TabsTrigger value="design" className="shrink-0">{t("numerique.tab.design")}</TabsTrigger>
+              <TabsTrigger value="orders" className="shrink-0">{t("numerique.tab.orders")}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="qr">

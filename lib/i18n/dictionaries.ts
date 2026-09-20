@@ -545,6 +545,12 @@ const fr: Dict = {
 
   // --- Floor plan (Plan de salle) — availability ---
   "tables.addTable": "Ajouter une table",
+  "tables.multi.select": "Sélection multiple",
+  "tables.multi.done": "Terminer la sélection",
+  "tables.multi.selected": "sélectionnée(s)",
+  "tables.multi.assignZone": "Assigner à une zone",
+  "tables.multi.noZone": "Aucune zone",
+  "tables.multi.delete": "Supprimer",
   "tables.status.free": "Libre",
   "tables.status.occupied": "Occupée",
   "tables.status.order": "commande",
@@ -1110,6 +1116,12 @@ const ar: Dict = {
 
   // --- مخطط القاعة — التوفر ---
   "tables.addTable": "إضافة طاولة",
+  "tables.multi.select": "تحديد متعدد",
+  "tables.multi.done": "إنهاء التحديد",
+  "tables.multi.selected": "محددة",
+  "tables.multi.assignZone": "تعيين إلى منطقة",
+  "tables.multi.noZone": "بدون منطقة",
+  "tables.multi.delete": "حذف",
   "tables.status.free": "متاحة",
   "tables.status.occupied": "مشغولة",
   "tables.status.order": "طلب",
@@ -1673,6 +1685,12 @@ const en: Dict = {
 
   // --- Floor plan — availability ---
   "tables.addTable": "Add a table",
+  "tables.multi.select": "Multi-select",
+  "tables.multi.done": "Done selecting",
+  "tables.multi.selected": "selected",
+  "tables.multi.assignZone": "Assign to a zone",
+  "tables.multi.noZone": "No zone",
+  "tables.multi.delete": "Delete",
   "tables.status.free": "Free",
   "tables.status.occupied": "Occupied",
   "tables.status.order": "order",

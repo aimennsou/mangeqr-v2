@@ -3,10 +3,18 @@
 import { CookieIcon } from "lucide-react";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 export default function CookieConsent({ variant = "default", demo = false, onAcceptCallback = () => { }, onDeclineCallback = () => { } }) {
+    const pathname = usePathname();
+    // Never show the cookie banner inside embedded/utility views: the review
+    // badge iframe (/embed) and the public lead-menu preview (/m) are meant to
+    // be chrome-free, so the banner leaking into them (e.g. the badge Aperçu)
+    // is a bug.
+    const suppressed =
+        !!pathname && (pathname.startsWith("/embed") || pathname.startsWith("/m/"));
     const [isOpen, setIsOpen] = useState(false);
     const [hide, setHide] = useState(false);
 
@@ -43,6 +51,8 @@ export default function CookieConsent({ variant = "default", demo = false, onAcc
             // console.log("Error: ", e);
         }
     }, []);
+
+    if (suppressed) return null;
 
     return (
         variant == "default" ? (

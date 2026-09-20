@@ -116,14 +116,41 @@
    default backdrop. Paint the element AND its ::backdrop with the theme page
    color so fullscreen matches the app instead of going black. The class is a
    no-op until the element is actually the fullscreen element. */
-.fs-surface:fullscreen,
+/* NOTE: these are split into separate rules (not a comma list) on purpose —
+   browsers drop the ENTIRE selector list if one pseudo-class is unknown, which
+   was silently killing the fullscreen padding. Each vendor variant stands
+   alone so a supported one always applies. */
+.fs-surface:fullscreen {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  overflow: auto;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
 .fs-surface:-webkit-full-screen {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   overflow: auto;
   padding: 1.5rem;
+  box-sizing: border-box;
 }
-.fs-surface:fullscreen::backdrop,
+.fs-surface:-moz-full-screen {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  overflow: auto;
+  padding: 1.5rem;
+  box-sizing: border-box;
+}
+/* On small screens give a touch less padding so content isn't cramped. */
+@media (max-width: 640px) {
+  .fs-surface:fullscreen,
+  .fs-surface:-webkit-full-screen {
+    padding: 1rem;
+  }
+}
+.fs-surface:fullscreen::backdrop {
+  background-color: hsl(var(--background));
+}
 .fs-surface:-webkit-full-screen::backdrop {
   background-color: hsl(var(--background));
 }

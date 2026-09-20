@@ -9,7 +9,7 @@ import {
 } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { toast } from 'sonner';
-import { Loader2, Plus, Save, Trash2, Users } from 'lucide-react';
+import { CheckSquare, Loader2, Plus, Save, Trash2, Users } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -57,6 +57,10 @@ export function FloorPlanEditor() {
   const [loading, setLoading] = useState(true);
   const [isSaving, startSaving] = useTransition();
   const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  // Multi-select mode: tap tables to (de)select, then bulk delete or assign a
+  // zone to all of them at once.
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [newZoneName, setNewZoneName] = useState('');
   // Live occupancy: active DINE_IN orders for the selected restaurant, polled.
   const [activeOrders, setActiveOrders] = useState<OrderView[]>([]);
@@ -162,12 +166,18 @@ export function FloorPlanEditor() {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const rect = canvas.getBoundingClientRect();
+    // Account for canvas scroll so the grab offset is correct when the board
+    // has been scrolled (mobile / many tables).
     dragRef.current = {
       id: table.id,
-      dx: e.clientX - rect.left - table.posX,
-      dy: e.clientY - rect.top - table.posY
+      dx: e.clientX - rect.left + canvas.scrollLeft - table.posX,
+      dy: e.clientY - rect.top + canvas.scrollTop - table.posY
     };
-    setSelectedTableId(table.id);
+    if (multiSelect) {
+      toggleInSelection(table.id);
+    } else {
+      setSelectedTableId(table.id);
+    }
   };
 
   const onCanvasPointerMove = (e: React.PointerEvent) => {
@@ -175,11 +185,12 @@ export function FloorPlanEditor() {
     const canvas = canvasRef.current;
     if (!drag || !canvas) return;
     const rect = canvas.getBoundingClientRect();
-    let x = e.clientX - rect.left - drag.dx;
-    let y = e.clientY - rect.top - drag.dy;
-    // Clamp inside the canvas.
-    x = Math.max(0, Math.min(x, rect.width - TABLE_W));
-    y = Math.max(0, Math.min(y, rect.height - TABLE_H));
+    let x = e.clientX - rect.left + canvas.scrollLeft - drag.dx;
+    let y = e.clientY - rect.top + canvas.scrollTop - drag.dy;
+    // Clamp to non-negative; tables may extend past the visible box (the canvas
+    // scrolls), so we don't cap to rect width/height.
+    x = Math.max(0, x);
+    y = Math.max(0, y);
     setTables((prev) =>
       prev.map((t) => (t.id === drag.id ? { ...t, posX: x, posY: y } : t))
     );
@@ -191,12 +202,18 @@ export function FloorPlanEditor() {
 
   // ---- Mutations (local state; persisted on Save) ----
   const addTable = () => {
-    // Suggest the next numeric label.
-    const nums = tables
-      .map((t) => Number(t.label))
-      .filter((n) => !Number.isNaN(n));
-    const nextLabel = String((nums.length ? Math.max(...nums) : 0) + 1);
+    // Reuse the lowest free number (so deleting 5 & 6 then adding gives 5, not
+    // 7). The label stays editable in the side panel either way.
+    const used = new Set(
+      tables.map((t) => Number(t.label)).filter((n) => !Number.isNaN(n))
+    );
+    let next = 1;
+    while (used.has(next)) next += 1;
+    const nextLabel = String(next);
     const id = uuidv4();
+    // Tighter grid (4 columns, 84px pitch) so new tables land on-screen even on
+    // a phone; the canvas is scrollable if they run past the viewport.
+    const cols = 4;
     setTables((prev) => [
       ...prev,
       {
@@ -204,9 +221,8 @@ export function FloorPlanEditor() {
         label: nextLabel,
         seats: 2,
         zoneId: null,
-        // Stagger new tables so they don't stack exactly.
-        posX: 20 + (prev.length % 6) * 90,
-        posY: 20 + Math.floor(prev.length / 6) * 90
+        posX: 16 + (prev.length % cols) * 84,
+        posY: 16 + Math.floor(prev.length / cols) * 84
       }
     ]);
     setSelectedTableId(id);
@@ -219,6 +235,37 @@ export function FloorPlanEditor() {
 
   const updateTable = (id: string, patch: Partial<TableItem>) => {
     setTables((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
+  };
+
+  // ---- Multi-select ----
+  const toggleInSelection = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const toggleMultiSelect = () => {
+    setMultiSelect((on) => {
+      if (on) clearSelection();
+      return !on;
+    });
+    setSelectedTableId(null);
+  };
+
+  const deleteSelected = () => {
+    setTables((prev) => prev.filter((t) => !selectedIds.has(t.id)));
+    clearSelection();
+  };
+
+  const assignSelectedToZone = (zoneId: string | null) => {
+    setTables((prev) =>
+      prev.map((t) => (selectedIds.has(t.id) ? { ...t, zoneId } : t))
+    );
   };
 
   const addZone = () => {
@@ -311,6 +358,14 @@ export function FloorPlanEditor() {
               <Plus className="mr-2 h-4 w-4" /> {t('tables.addTable')}
             </Button>
             <Button
+              variant={multiSelect ? 'default' : 'outline'}
+              onClick={toggleMultiSelect}
+              className={multiSelect ? 'bg-yellow-400 text-black hover:bg-yellow-400/90' : ''}
+            >
+              <CheckSquare className="mr-2 h-4 w-4" />
+              {multiSelect ? t('tables.multi.done') : t('tables.multi.select')}
+            </Button>
+            <Button
               className="bg-yellow-400 text-black hover:bg-yellow-400"
               onClick={save}
               disabled={isSaving}
@@ -344,6 +399,44 @@ export function FloorPlanEditor() {
         </div>
       ) : null}
 
+      {/* Bulk actions bar (multi-select) */}
+      {multiSelect && selectedRestaurantId ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-yellow-400/60 bg-yellow-400/5 px-3 py-2">
+          <span className="text-sm font-medium">
+            {selectedIds.size} {t('tables.multi.selected')}
+          </span>
+          <div className="ml-auto flex flex-wrap items-center gap-2">
+            <Select
+              onValueChange={(v) =>
+                assignSelectedToZone(v === NO_ZONE ? null : v)
+              }
+              disabled={selectedIds.size === 0}
+            >
+              <SelectTrigger className="h-8 w-44">
+                <SelectValue placeholder={t('tables.multi.assignZone')} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={NO_ZONE}>{t('tables.multi.noZone')}</SelectItem>
+                {zones.map((z) => (
+                  <SelectItem key={z.id} value={z.id}>
+                    {z.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-red-500 hover:text-red-600"
+              onClick={deleteSelected}
+              disabled={selectedIds.size === 0}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> {t('tables.multi.delete')}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
       {!selectedRestaurantId ? (
         <div className="py-16 text-center text-muted-foreground">
           <p className="text-lg font-semibold">Sélectionnez un restaurant.</p>
@@ -359,7 +452,7 @@ export function FloorPlanEditor() {
             onPointerMove={onCanvasPointerMove}
             onPointerUp={onCanvasPointerUp}
             onPointerLeave={onCanvasPointerUp}
-            className="relative h-[520px] w-full overflow-hidden rounded-lg border bg-muted/30"
+            className="relative h-[520px] w-full touch-pan-x touch-pan-y overflow-auto rounded-lg border bg-muted/30"
             style={{
               backgroundImage:
                 'radial-gradient(circle, rgba(120,120,120,0.15) 1px, transparent 1px)',
@@ -372,7 +465,9 @@ export function FloorPlanEditor() {
               </div>
             ) : null}
             {tables.map((tbl) => {
-              const isSelected = tbl.id === selectedTableId;
+              const isSelected = multiSelect
+                ? selectedIds.has(tbl.id)
+                : tbl.id === selectedTableId;
               const orderCount = occupancyByLabel.get(tbl.label) ?? 0;
               const isOccupied = orderCount > 0;
               // Occupancy sets the base color (green free / red occupied);
