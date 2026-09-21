@@ -365,27 +365,41 @@ export function UsersTable({
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm text-foreground">
-                          {user.plan}
-                        </span>
-                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                          {user.planPaymentMethod === PlanPaymentMethod.CASH
-                            ? 'Espèces'
-                            : 'En ligne'}
-                          {user.stripeSubscriptionId ? (
-                            <Badge
-                              variant="outline"
-                              className="ml-1 border-yellow-400/60 text-[10px] font-normal text-yellow-600 dark:text-yellow-500"
-                            >
-                              Stripe
-                            </Badge>
-                          ) : null}
-                        </span>
-                      </div>
+                      {user.isMember ? (
+                        <div className="flex flex-col">
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-blue-400/50 bg-blue-400/10 text-[11px] font-normal text-blue-700 dark:text-blue-400"
+                          >
+                            Membre invité
+                          </Badge>
+                          <span className="mt-0.5 text-xs text-muted-foreground">
+                            Espace : {user.ownerName ?? user.ownerEmail ?? '—'}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col">
+                          <span className="text-sm text-foreground">
+                            {user.plan}
+                          </span>
+                          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                            {user.planPaymentMethod === PlanPaymentMethod.CASH
+                              ? 'Espèces'
+                              : 'En ligne'}
+                            {user.stripeSubscriptionId ? (
+                              <Badge
+                                variant="outline"
+                                className="ml-1 border-yellow-400/60 text-[10px] font-normal text-yellow-600 dark:text-yellow-500"
+                              >
+                                Stripe
+                              </Badge>
+                            ) : null}
+                          </span>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm">
-                      {formatDate(user.planRenewsAt)}
+                      {user.isMember ? '—' : formatDate(user.planRenewsAt)}
                     </TableCell>
                     <TableCell className="text-sm">
                       {user.restaurantCount}
@@ -399,26 +413,35 @@ export function UsersTable({
                     </TableCell>
                     <TableCell>
                       {/* Ordering enable/disable (FEAT-1/D16) — superadmin gates
-                          ordering per account. */}
-                      <Switch
-                        checked={user.orderingEnabled}
-                        disabled={busy || isSuperadmin}
-                        onCheckedChange={(c) => toggleOrdering(user, c)}
-                        aria-label="Activer les commandes"
-                      />
+                          ordering per account. Members inherit the owner's
+                          account so it's not shown for them. */}
+                      {user.isMember ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Switch
+                          checked={user.orderingEnabled}
+                          disabled={busy || isSuperadmin}
+                          onCheckedChange={(c) => toggleOrdering(user, c)}
+                          aria-label="Activer les commandes"
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={busy}
-                          onClick={() => openPlanDialog(user)}
-                        >
-                          <CreditCard className="mr-1 h-4 w-4" />
-                          Abonnement
-                        </Button>
-                        {user.stripeSubscriptionId ? (
+                        {/* Subscription controls only for owner accounts —
+                            members have no subscription of their own. */}
+                        {!user.isMember ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => openPlanDialog(user)}
+                          >
+                            <CreditCard className="mr-1 h-4 w-4" />
+                            Abonnement
+                          </Button>
+                        ) : null}
+                        {!user.isMember && user.stripeSubscriptionId ? (
                           <Button
                             variant="outline"
                             size="sm"

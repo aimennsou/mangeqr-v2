@@ -371,6 +371,13 @@ export async function superadminCreateUser(
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
+  // Owner accounts (not tied to an existing workspace as a member) start on the
+  // FREE trial with a 30-day expiry, like every other new account. Members
+  // inherit the owner's plan and don't carry their own subscription.
+  const isMemberAccount = Boolean(ownerUserId);
+  const trialEndsAt = new Date();
+  trialEndsAt.setDate(trialEndsAt.getDate() + FREE_TRIAL_DAYS);
+
   try {
     const created = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -380,7 +387,10 @@ export async function superadminCreateUser(
           password: hashedPassword,
           role,
           // Superadmin-created accounts are trusted → mark verified.
-          emailVerified: new Date()
+          emailVerified: new Date(),
+          ...(isMemberAccount
+            ? {}
+            : { plan: 'FREE', planRenewsAt: trialEndsAt })
         },
         select: { id: true }
       });

@@ -2,7 +2,6 @@
 
 import Image from 'next/image';
 
-import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 
 // NOTE: Logo renders a plain container (not a <Link>). Callers already wrap it
@@ -30,9 +29,6 @@ export default function Logo({ className }: { className?: string }) {
           Mange
           <span className="text-yellow-500">QR</span>
         </span>
-        <Badge variant="outline" className="bg-yellow-400 text-black">
-          v1.0
-        </Badge>
       </div>
     </div>
   );

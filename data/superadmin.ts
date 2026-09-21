@@ -28,6 +28,15 @@ export interface SuperadminUserRow {
   /** Stripe linkage — present when the user has an online subscription. */
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
+  /**
+   * True when this user is a workspace MEMBER (invited into someone else's
+   * space). Such accounts have no own subscription — they act on the owner's
+   * data — so the console shows them as "Membre invité" instead of a subscriber.
+   */
+  isMember: boolean;
+  /** The owner's name/email when this user is a member (for context). */
+  ownerName: string | null;
+  ownerEmail: string | null;
 }
 
 interface ListUsersArgs {
@@ -83,6 +92,12 @@ export async function listUsers({
         orderingEnabled: true,
         stripeCustomerId: true,
         stripeSubscriptionId: true,
+        // Membership as a MEMBER (invited into another owner's workspace).
+        memberOf: {
+          select: {
+            owner: { select: { name: true, email: true } }
+          }
+        },
         _count: { select: { restaurants: true } }
       }
     });
@@ -99,7 +114,10 @@ export async function listUsers({
       restaurantCount: u._count.restaurants,
       orderingEnabled: u.orderingEnabled,
       stripeCustomerId: u.stripeCustomerId,
-      stripeSubscriptionId: u.stripeSubscriptionId
+      stripeSubscriptionId: u.stripeSubscriptionId,
+      isMember: u.memberOf !== null,
+      ownerName: u.memberOf?.owner?.name ?? null,
+      ownerEmail: u.memberOf?.owner?.email ?? null
     }));
   } catch {
     return [];
