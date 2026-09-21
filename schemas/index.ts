@@ -371,6 +371,42 @@ export type SuperadminSetOrderingEnabledValues = z.infer<
   typeof SuperadminSetOrderingEnabledSchema
 >;
 
+/** Enable/disable a display feature (kiosk / TV) for an account. SUPERADMIN. */
+export const SuperadminSetFeatureEnabledSchema = z.object({
+  userId: z.string().uuid({ message: 'A valid user id is required.' }),
+  feature: z.enum(['kiosk', 'tv']),
+  enabled: z.boolean()
+});
+
+export type SuperadminSetFeatureEnabledValues = z.infer<
+  typeof SuperadminSetFeatureEnabledSchema
+>;
+
+/** Public "demande de devis" for kiosk / TV hardware (#4). */
+export const DevisRequestSchema = z.object({
+  kind: z.enum(['BORNE', 'TV', 'BOTH']).default('BOTH'),
+  name: z.string().trim().min(1, { message: 'Nom requis.' }).max(120),
+  phone: z.string().trim().min(1, { message: 'Téléphone requis.' }).max(40),
+  email: z
+    .string()
+    .trim()
+    .email({ message: 'Adresse e-mail invalide.' })
+    .optional()
+    .or(z.literal('')),
+  restaurantName: z.string().trim().max(120).optional().or(z.literal('')),
+  message: z.string().trim().max(1000).optional().or(z.literal(''))
+});
+export type DevisRequestValues = z.infer<typeof DevisRequestSchema>;
+
+/** SUPERADMIN updates a devis request's status (#4). */
+export const SuperadminSetDevisStatusSchema = z.object({
+  id: z.string().uuid(),
+  status: z.enum(['NEW', 'CONTACTED', 'QUOTED', 'WON', 'CLOSED'])
+});
+export type SuperadminSetDevisStatusValues = z.infer<
+  typeof SuperadminSetDevisStatusSchema
+>;
+
 /**
  * SUPERADMIN creates a user account directly (bypassing self-service sign-up
  * and email verification). Optionally ties the new user to an existing OWNER as

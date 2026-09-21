@@ -22,6 +22,7 @@ import {
   SuperadminDeleteUserSchema,
   SuperadminSetDesignOrderStatusSchema,
   SuperadminSetOrderingEnabledSchema,
+  SuperadminSetFeatureEnabledSchema,
   SuperadminCreateUserSchema,
   SuperadminCancelSubscriptionSchema,
   SuperadminSetSupportStatusSchema,
@@ -325,6 +326,42 @@ export async function superadminSetOrderingEnabled(
 
   return {
     success: enabled ? 'Commandes activées.' : 'Commandes désactivées.'
+  };
+}
+
+
+/**
+ * Enable/disable a DISPLAY feature (kiosk / TV) for an account. SUPERADMIN-only.
+ * Off by default; when disabled the /borne and /tv views are unavailable.
+ */
+export async function superadminSetFeatureEnabled(
+  values: z.infer<typeof SuperadminSetFeatureEnabledSchema>
+): Promise<ActionResult> {
+  if (!(await requireSuperadmin())) {
+    return FORBIDDEN;
+  }
+
+  const parsed = SuperadminSetFeatureEnabledSchema.safeParse(values);
+  if (!parsed.success) {
+    return INVALID;
+  }
+
+  const { userId, feature, enabled } = parsed.data;
+
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: feature === 'kiosk'
+        ? { kioskEnabled: enabled }
+        : { tvEnabled: enabled }
+    });
+  } catch {
+    return { error: 'Impossible de mettre à jour la fonctionnalité.' };
+  }
+
+  const label = feature === 'kiosk' ? 'Borne' : 'Affichage TV';
+  return {
+    success: enabled ? `${label} activé.` : `${label} désactivé.`
   };
 }
 

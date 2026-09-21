@@ -61,6 +61,10 @@ model User {
   // then toggle it per restaurant (Restaurant.orderingEnabled). Defaults off so
   // ordering is opt-in and centrally gated.
   orderingEnabled         Boolean                 @default(false)
+  // Kiosk (borne de commande) + TV menu-board display features, enabled per
+  // ACCOUNT by the SUPERADMIN (like ordering). Off by default.
+  kioskEnabled            Boolean                 @default(false)
+  tvEnabled               Boolean                 @default(false)
   accounts                Account[]
   isTwoFactorEnabled      Boolean                 @default(false)
   twoFactorConfirmation   TwoFactorConfirmation?
@@ -75,6 +79,7 @@ model User {
   leadActivities     LeadActivity[]   @relation("LeadActivityAuthor")
   planUpgradeRequests PlanUpgradeRequest[]
   workspaceActivities WorkspaceActivity[] @relation("WorkspaceActivityActor")
+  devisRequests       DevisRequest[]
 }
 
 model Membership {
@@ -619,6 +624,41 @@ model PlanUpgradeRequest {
 
   @@index([status, createdAt])
   @@index([userId, createdAt])
+}
+
+// A quote request ("demande de devis") for hardware add-ons — kiosk (borne) or
+// TV menu-board — captured from the Kit section and followed up by the
+// back-office on a dedicated superadmin page.
+enum DevisKind {
+  BORNE
+  TV
+  BOTH
+}
+
+enum DevisStatus {
+  NEW
+  CONTACTED
+  QUOTED
+  WON
+  CLOSED
+}
+
+model DevisRequest {
+  id            String       @id @default(uuid()) @db.Uuid
+  // Optional link to the requesting account (present when logged in).
+  userId        String?      @db.Uuid
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  kind          DevisKind    @default(BOTH)
+  name          String
+  phone         String
+  email         String?
+  restaurantName String?
+  message       String?
+  status        DevisStatus  @default(NEW)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, createdAt])
 }
 
 enum UserType {
