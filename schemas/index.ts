@@ -311,7 +311,7 @@ export const AdminSetPlanSchema = z.object({
   userId: z.string().uuid({
     message: 'A valid user id is required.'
   }),
-  plan: z.enum([Plan.STARTER, Plan.PRO, Plan.PREMIUM]),
+  plan: z.enum([Plan.FREE, Plan.STARTER, Plan.PRO, Plan.PREMIUM]),
   planPaymentMethod: z.enum([PlanPaymentMethod.CASH, PlanPaymentMethod.ONLINE]),
   planRenewsAt: z.string().datetime().nullable().optional()
 });
@@ -328,7 +328,7 @@ export const SuperadminSetPlanSchema = z.object({
   userId: z.string().uuid({
     message: 'A valid user id is required.'
   }),
-  plan: z.enum([Plan.STARTER, Plan.PRO, Plan.PREMIUM]),
+  plan: z.enum([Plan.FREE, Plan.STARTER, Plan.PRO, Plan.PREMIUM]),
   planPaymentMethod: z.enum([PlanPaymentMethod.CASH, PlanPaymentMethod.ONLINE]),
   planRenewsAt: z.string().datetime().nullable().optional()
 });
@@ -628,7 +628,8 @@ export const SuperadminConvertLeadSchema = z.object({
   name: z.string().trim().min(1).max(120),
   email: z.string().trim().email(),
   password: z.string().min(6).max(100),
-  plan: z.enum(['STARTER', 'PRO', 'PREMIUM']).optional(),
+  // Converted leads default to the FREE trial when unspecified.
+  plan: z.enum(['FREE', 'STARTER', 'PRO', 'PREMIUM']).optional(),
 });
 export type SuperadminConvertLeadValues = z.infer<
   typeof SuperadminConvertLeadSchema

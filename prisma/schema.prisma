@@ -17,6 +17,9 @@ enum UserRole {
 }
 
 enum Plan {
+  // Free tier — no payment. Used for accounts created by the back-office (e.g.
+  // a converted funnel lead) so they aren't assumed to have paid for STARTER.
+  FREE
   STARTER
   PRO
   PREMIUM

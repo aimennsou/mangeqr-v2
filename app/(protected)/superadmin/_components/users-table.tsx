@@ -515,6 +515,7 @@ export function UsersTable({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value={Plan.FREE}>Gratuit (essai)</SelectItem>
                   <SelectItem value={Plan.STARTER}>Starter</SelectItem>
                   <SelectItem value={Plan.PRO}>Pro</SelectItem>
                   <SelectItem value={Plan.PREMIUM}>Premium</SelectItem>

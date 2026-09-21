@@ -450,7 +450,8 @@ export function LeadCrmDialog({
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="sm:col-span-2 text-xs text-muted-foreground">
                 Le restaurant, le menu, les catégories et les plats du lead
-                seront créés et rattachés à ce nouveau compte.
+                seront créés et rattachés à ce nouveau compte. Le compte démarre
+                en essai gratuit (30 jours) — sans forfait payant.
               </div>
               <Input
                 value={convertName}

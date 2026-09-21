@@ -67,7 +67,7 @@ interface CreateSubscriptionResult {
  * Element. Returns that PaymentIntent's client secret.
  */
 export async function createSubscription(
-  plan: Exclude<Plan, 'STARTER'>,
+  plan: Exclude<Plan, 'STARTER' | 'FREE'>,
   frequency: BillingFrequency
 ): Promise<CreateSubscriptionResult> {
   if (!isStripeEnabled()) {

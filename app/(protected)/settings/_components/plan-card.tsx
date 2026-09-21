@@ -11,6 +11,7 @@ import BillingActions from "./billing-actions";
 
 // Libellés FR pour les plans.
 const PLAN_LABELS: Record<Plan, string> = {
+  FREE: "Gratuit (essai)",
   STARTER: "Starter",
   PRO: "Pro",
   PREMIUM: "Premium"
@@ -93,17 +94,19 @@ export default function PlanCard({
   planPaymentMethod,
   isAlgerian = false
 }: PlanCardProps) {
-  // Un plan payant est expiré quand sa date d'échéance est passée.
+  // FREE is a time-limited trial; paid plans expire on their échéance. STARTER
+  // is the legacy non-expiring entry tier.
   const expired =
     subscribedPlan !== "STARTER" &&
     planRenewsAt !== null &&
     planRenewsAt.getTime() < Date.now();
 
-  // Starter n'a pas d'échéance ; les autres plans en ont une (si définie).
+  // Starter n'a pas d'échéance ; les autres plans (FREE inclus) en ont une.
   const hasExpiry = subscribedPlan !== "STARTER" && planRenewsAt !== null;
 
-  // Starter est gratuit : pas de paiement (ni espèces ni en ligne) requis.
-  const isFreePlan = subscribedPlan === "STARTER";
+  // FREE (essai) et STARTER : pas de paiement en ligne / espèces requis.
+  const isTrial = subscribedPlan === "FREE";
+  const isFreePlan = subscribedPlan === "STARTER" || isTrial;
 
   // Les limites appliquées correspondent au plan EFFECTIF (cohérent avec le gating).
   const limits = getPlanLimits(effectivePlan);
@@ -166,7 +169,19 @@ export default function PlanCard({
         {/* Mode de paiement (C.2) : note hors ligne pour les plans payants en
             espèces, note neutre en ligne, ou mention « gratuit » pour Starter.
             Affichage seul — aucun bouton de paiement (Stripe hors périmètre). */}
-        {isFreePlan ? (
+        {isTrial ? (
+          <Alert variant={expired ? "destructive" : undefined}>
+            <Gift className="h-4 w-4" />
+            <AlertTitle>
+              {expired ? "Essai gratuit terminé" : "Essai gratuit"}
+            </AlertTitle>
+            <AlertDescription className="text-muted-foreground">
+              {expired
+                ? "Votre période d'essai est terminée. Passez à un forfait payant pour continuer."
+                : "Vous êtes en période d'essai gratuite. Passez à un forfait payant avant l'échéance pour ne pas perdre l'accès."}
+            </AlertDescription>
+          </Alert>
+        ) : isFreePlan ? (
           <Alert>
             <Gift className="h-4 w-4" />
             <AlertTitle>Plan gratuit</AlertTitle>

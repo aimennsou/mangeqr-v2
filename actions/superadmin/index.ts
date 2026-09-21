@@ -10,6 +10,7 @@ import { db } from '@/lib/db';
 import { currentRole, currentUserId } from '@/lib/authentication';
 import { getUserByEmail } from '@/data/user';
 import { stripe, isStripeEnabled } from '@/lib/stripe';
+import { FREE_TRIAL_DAYS } from '@/lib/plan';
 import {
   buildPathMenuUrl,
   normalizeSubdomain,
@@ -945,6 +946,17 @@ export async function superadminConvertLead(
   const hashedPassword = await bcrypt.hash(password, 10);
   const staff = await currentStaffLabel();
 
+  // Converted leads default to the FREE trial (no payment implied). FREE is
+  // time-limited: it expires after FREE_TRIAL_DAYS and the owner must then move
+  // to a paid plan. A paid plan chosen explicitly gets a 1-year cash expiry.
+  const grantedPlan = plan ?? 'FREE';
+  const planExpiry = new Date();
+  if (grantedPlan === 'FREE') {
+    planExpiry.setDate(planExpiry.getDate() + FREE_TRIAL_DAYS);
+  } else {
+    planExpiry.setFullYear(planExpiry.getFullYear() + 1);
+  }
+
   try {
     const result = await db.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -953,7 +965,9 @@ export async function superadminConvertLead(
           email,
           password: hashedPassword,
           role: 'USER',
-          plan: plan ?? 'STARTER',
+          plan: grantedPlan,
+          planPaymentMethod: 'CASH',
+          planRenewsAt: planExpiry,
           emailVerified: new Date(),
           onboardedAt: new Date(),
         },

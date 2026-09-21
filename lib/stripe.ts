@@ -50,7 +50,7 @@ export type BillingFrequency = 'mensuel' | 'annuel';
  * frequency to its recurring EUR Stripe Price id from the environment.
  */
 export const PRICE_IDS: Record<
-  Exclude<Plan, 'STARTER'>,
+  Exclude<Plan, 'STARTER' | 'FREE'>,
   Record<BillingFrequency, string | undefined>
 > = {
   PRO: {
@@ -65,7 +65,7 @@ export const PRICE_IDS: Record<
 
 /** Resolve the Stripe Price id for a paid plan + frequency (or undefined). */
 export function priceIdFor(
-  plan: Exclude<Plan, 'STARTER'>,
+  plan: Exclude<Plan, 'STARTER' | 'FREE'>,
   frequency: BillingFrequency
 ): string | undefined {
   return PRICE_IDS[plan]?.[frequency];
