@@ -23,7 +23,7 @@ import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
 import { DotsHorizontalIcon } from "@radix-ui/react-icons";
 import { SignOutButton } from "@/components/auth/sign-out-button";
-import { useWorkspaceRole, useAppRole, useOrderingEnabled, useMemberPermissions } from "@/hooks/use-workspace-role";
+import { useWorkspaceRole, useAppRole, useOrderingEnabled, useMemberPermissions, useAdminPermissions } from "@/hooks/use-workspace-role";
 
 
 
@@ -48,12 +48,15 @@ export function Menu({ isOpen }: MenuProps) {
   const orderingEnabled = useOrderingEnabled();
   // MEMBER granular permissions gate which sections a member can see.
   const memberPermissions = useMemberPermissions();
+  // ADMIN back-office permissions gate which Administration entries appear (#2).
+  const adminPermissions = useAdminPermissions();
   const menuList = getMenuList(
     pathname,
     workspaceRole,
     appRole,
     orderingEnabled,
-    memberPermissions
+    memberPermissions,
+    adminPermissions
   );
   const { t } = useI18n();
 

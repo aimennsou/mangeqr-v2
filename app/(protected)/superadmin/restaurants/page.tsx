@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@prisma/client';
 
 import {
   Breadcrumb,
@@ -11,7 +10,7 @@ import {
   BreadcrumbSeparator
 } from '@/components/ui/breadcrumb';
 import { Card, CardContent } from '@/components/ui/card';
-import { currentRole } from '@/lib/authentication';
+import { canAccessBackoffice } from '@/lib/backoffice';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
 import {
   listRestaurantsForSuperadmin,
@@ -29,8 +28,7 @@ const PAGE_SIZE = 20;
  * owner), edit, and delete. Server-guarded.
  */
 export default async function SuperadminRestaurantsPage() {
-  const role = await currentRole();
-  if (role !== UserRole.SUPERADMIN) {
+  if (!(await canAccessBackoffice('restaurants'))) {
     redirect(DEFAULT_SIGNIN_REDIRECT);
   }
 

@@ -87,6 +87,11 @@ export const {
       }
 
       if (session.user) {
+        // Back-office permissions for ADMIN accounts (#2).
+        session.user.adminPermissions = token.adminPermissions ?? null;
+      }
+
+      if (session.user) {
         session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean;
       }
 
@@ -126,6 +131,8 @@ export const {
       token.email = existingUser.email;
       token.tempEmail = existingUser.tempEmail;
       token.role = existingUser.role;
+      // ADMIN back-office permissions (#2); null for other roles.
+      token.adminPermissions = existingUser.adminPermissions ?? null;
       token.isTwoFactorEnabled = existingUser.isTwoFactorEnabled;
       // Onboarding: expose whether the owner has completed the first-login
       // wizard so the app can gate the /onboarding redirect.

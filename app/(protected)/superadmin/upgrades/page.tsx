@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@prisma/client';
 
 import {
   Breadcrumb,
@@ -11,7 +10,7 @@ import {
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
 import { Card, CardContent } from '@/components/ui/card';
-import { currentRole } from '@/lib/authentication';
+import { canAccessBackoffice } from '@/lib/backoffice';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
 import { listUpgradeRequests } from '@/data/superadmin';
 import Logo from '@/components/Logo';
@@ -25,8 +24,7 @@ import { UpgradesTable } from '../_components/upgrades-table';
  * user, take payment, approve to grant the plan). Server-guarded.
  */
 export default async function SuperadminUpgradesPage() {
-  const role = await currentRole();
-  if (role !== UserRole.SUPERADMIN) {
+  if (!(await canAccessBackoffice('upgrades'))) {
     redirect(DEFAULT_SIGNIN_REDIRECT);
   }
 

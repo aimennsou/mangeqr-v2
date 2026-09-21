@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@prisma/client';
 
 import {
   Breadcrumb,
@@ -11,7 +10,7 @@ import {
   BreadcrumbSeparator
 } from '@/components/ui/breadcrumb';
 import { Card, CardContent } from '@/components/ui/card';
-import { currentRole } from '@/lib/authentication';
+import { canAccessBackoffice } from '@/lib/backoffice';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
 import { listUsers, countUsers } from '@/data/superadmin';
 import Logo from '@/components/Logo';
@@ -28,8 +27,8 @@ const PAGE_SIZE = 20;
  * (including tying a new user to an owner as a team member, bypassing invites).
  */
 export default async function SuperadminUsersPage() {
-  const role = await currentRole();
-  if (role !== UserRole.SUPERADMIN) {
+  // SUPERADMIN or an ADMIN granted the "users" back-office permission (#2).
+  if (!(await canAccessBackoffice('users'))) {
     redirect(DEFAULT_SIGNIN_REDIRECT);
   }
 

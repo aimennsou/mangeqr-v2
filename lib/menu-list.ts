@@ -32,6 +32,11 @@ import {
   DEFAULT_MEMBER_PERMISSIONS,
   type MemberPermission,
 } from "@/lib/permissions";
+import {
+  ADMIN_PERMISSIONS,
+  ADMIN_PERMISSION_HREFS,
+  type AdminPermission,
+} from "@/lib/admin-permissions";
 
 
 
@@ -83,7 +88,9 @@ export function getMenuList(
   appRole?: UserRole | null,
   orderingEnabled: boolean = false,
   /** MEMBER granular permissions; null/undefined => all (owner or default). */
-  memberPermissions?: MemberPermission[] | null
+  memberPermissions?: MemberPermission[] | null,
+  /** ADMIN back-office permissions (#2); gates the Administration entries. */
+  adminPermissions?: AdminPermission[] | null
 ): Group[] {
   const groups: Group[] = [
     {
@@ -357,6 +364,82 @@ export function getMenuList(
     });
   }
 
+  // ADMIN (#2): a SUPERADMIN helper. They get a permission-gated back-office —
+  // ONLY the Administration entries the superadmin granted. Fail-closed: an
+  // ADMIN with no granted permissions sees an empty console. Routes stay
+  // guarded server-side.
+  if (appRole === "ADMIN") {
+    const granted = new Set<AdminPermission>(adminPermissions ?? []);
+    // Icons reused from the SUPERADMIN block, keyed by permission.
+    const ADMIN_ENTRY: Record<
+      AdminPermission,
+      { href: string; label: string; labelKey: string; icon: LucideIcon }
+    > = {
+      users: {
+        href: "/superadmin/users",
+        label: "Utilisateurs",
+        labelKey: "nav.superadmin.users",
+        icon: Users,
+      },
+      restaurants: {
+        href: "/superadmin/restaurants",
+        label: "Restaurants",
+        labelKey: "nav.superadmin.restaurants",
+        icon: Store,
+      },
+      "design-orders": {
+        href: "/superadmin/design-orders",
+        label: "Commandes de designs",
+        labelKey: "nav.superadmin.designOrders",
+        icon: Package,
+      },
+      leads: {
+        href: "/superadmin/leads",
+        label: "Leads",
+        labelKey: "nav.superadmin.leads",
+        icon: Sparkles,
+      },
+      upgrades: {
+        href: "/superadmin/upgrades",
+        label: "Demandes de forfait",
+        labelKey: "nav.superadmin.upgrades",
+        icon: CreditCard,
+      },
+      devis: {
+        href: "/superadmin/devis",
+        label: "Demandes de devis",
+        labelKey: "nav.superadmin.devis",
+        icon: FileText,
+      },
+      support: {
+        href: "/superadmin/support",
+        label: "Messages",
+        labelKey: "nav.superadmin.support",
+        icon: MessageSquare,
+      },
+    };
+
+    const adminMenus = ADMIN_PERMISSIONS.filter((p) => granted.has(p.key)).map(
+      (p) => {
+        const entry = ADMIN_ENTRY[p.key];
+        return {
+          href: entry.href,
+          label: entry.label,
+          labelKey: entry.labelKey,
+          active: pathname.includes(ADMIN_PERMISSION_HREFS[p.key][0]),
+          icon: entry.icon,
+          submenus: [],
+        };
+      },
+    );
+
+    groups.push({
+      groupLabel: "Administration",
+      groupLabelKey: "nav.group.administration",
+      menus: adminMenus,
+    });
+  }
+
   // Hide feature-flagged entries not yet shipped (e.g. marketing campaigns).
   // UX hiding only — the pages are also guarded server-side.
   const hiddenHrefs = new Set<string>();
@@ -374,7 +457,11 @@ export function getMenuList(
   // use the Administration console, so hide all the owner-facing groups
   // (dashboard, activity, clientele, personnalisations, settings) and show just
   // the Administration group. UX only — routes stay guarded server-side.
-  if (appRole === "SUPERADMIN" || appRole === "STAFF") {
+  if (
+    appRole === "SUPERADMIN" ||
+    appRole === "STAFF" ||
+    appRole === "ADMIN"
+  ) {
     return applyHidden(
       groups.filter(
         (group) => group.groupLabelKey === "nav.group.administration"

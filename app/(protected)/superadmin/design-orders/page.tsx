@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { UserRole } from '@prisma/client';
 
 import {
   Breadcrumb,
@@ -11,7 +10,7 @@ import {
   BreadcrumbSeparator
 } from '@/components/ui/breadcrumb';
 import { Card, CardContent } from '@/components/ui/card';
-import { currentRole } from '@/lib/authentication';
+import { canAccessBackoffice } from '@/lib/backoffice';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
 import { listDesignOrders, countDesignOrders } from '@/data/superadmin';
 import Logo from '@/components/Logo';
@@ -34,9 +33,7 @@ import { DesignOrdersTable } from '../_components/design-orders-table';
 const PAGE_SIZE = 20;
 
 export default async function SuperadminDesignOrdersPage() {
-  const role = await currentRole();
-
-  if (role !== UserRole.SUPERADMIN) {
+  if (!(await canAccessBackoffice('design-orders'))) {
     redirect(DEFAULT_SIGNIN_REDIRECT);
   }
 

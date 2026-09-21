@@ -65,6 +65,10 @@ model User {
   // ACCOUNT by the SUPERADMIN (like ordering). Off by default.
   kioskEnabled            Boolean                 @default(false)
   tvEnabled               Boolean                 @default(false)
+  // Back-office permissions for ADMIN accounts (#2): JSON array of keys, e.g.
+  // ["users","leads","devis"]. Null = no back-office access granted yet. Only
+  // meaningful when role = ADMIN (SUPERADMIN implicitly has all).
+  adminPermissions        Json?
   accounts                Account[]
   isTwoFactorEnabled      Boolean                 @default(false)
   twoFactorConfirmation   TwoFactorConfirmation?

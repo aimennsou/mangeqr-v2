@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { db } from '@/lib/db';
 import { currentRole, currentUserId } from '@/lib/authentication';
+import { canAccessBackoffice } from '@/lib/backoffice';
+import type { AdminPermission } from '@/lib/admin-permissions';
 import { getUserByEmail } from '@/data/user';
 import { stripe, isStripeEnabled } from '@/lib/stripe';
 import { FREE_TRIAL_DAYS } from '@/lib/plan';
@@ -36,7 +38,8 @@ import {
   SuperadminConvertLeadSchema,
   SuperadminBroadcastSchema,
   SuperadminSetUpgradeStatusSchema,
-  SuperadminSetDevisStatusSchema
+  SuperadminSetDevisStatusSchema,
+  SuperadminSetAdminPermissionsSchema
 } from '@/schemas';
 import { revalidatePath } from 'next/cache';
 import {
@@ -71,13 +74,26 @@ async function requireSuperadmin(): Promise<boolean> {
 }
 
 /**
+ * Back-office action guard (#2): SUPERADMIN always passes; an ADMIN passes only
+ * when granted the matching back-office permission. Mirrors the page-level
+ * `canAccessBackoffice` so ADMIN helpers can operate the sections they see.
+ */
+async function requireBackoffice(
+  permission: AdminPermission
+): Promise<boolean> {
+  return canAccessBackoffice(permission);
+}
+
+/**
  * Leads-console access (#11): SUPERADMIN or STAFF. STAFF can follow up on leads
  * (call, log activity, update CRM fields, convert) but cannot touch the rest of
  * the superadmin console.
  */
 async function requireLeadsAccess(): Promise<boolean> {
   const role = await currentRole();
-  return role === UserRole.SUPERADMIN || role === UserRole.STAFF;
+  if (role === UserRole.STAFF) return true;
+  // SUPERADMIN, or an ADMIN granted the "leads" back-office permission (#2).
+  return canAccessBackoffice('leads');
 }
 
 /** Label of the current staff member, for activity attribution. */
@@ -102,7 +118,7 @@ async function currentStaffLabel(): Promise<{ id: string | null; name: string }>
 export async function superadminSetUserPlan(
   values: z.infer<typeof SuperadminSetPlanSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('users'))) {
     return FORBIDDEN;
   }
 
@@ -137,7 +153,7 @@ export async function superadminSetUserPlan(
 export async function superadminSetSuspended(
   values: z.infer<typeof SuperadminSetSuspendedSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('users'))) {
     return FORBIDDEN;
   }
 
@@ -196,7 +212,7 @@ export async function superadminSetSuspended(
 export async function superadminDeleteUser(
   values: z.infer<typeof SuperadminDeleteUserSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('users'))) {
     return FORBIDDEN;
   }
 
@@ -249,7 +265,7 @@ export async function superadminDeleteUser(
 export async function superadminSetDesignOrderStatus(
   values: z.infer<typeof SuperadminSetDesignOrderStatusSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('design-orders'))) {
     return FORBIDDEN;
   }
 
@@ -305,7 +321,7 @@ const DESIGN_ORDER_STATUS_LABELS: Record<string, string> = {
 export async function superadminSetOrderingEnabled(
   values: z.infer<typeof SuperadminSetOrderingEnabledSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('users'))) {
     return FORBIDDEN;
   }
 
@@ -338,7 +354,7 @@ export async function superadminSetOrderingEnabled(
 export async function superadminSetFeatureEnabled(
   values: z.infer<typeof SuperadminSetFeatureEnabledSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('users'))) {
     return FORBIDDEN;
   }
 
@@ -373,7 +389,7 @@ export async function superadminSetFeatureEnabled(
 export async function superadminSetDevisStatus(
   values: z.infer<typeof SuperadminSetDevisStatusSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('devis'))) {
     return FORBIDDEN;
   }
 
@@ -399,6 +415,47 @@ export async function superadminSetDevisStatus(
 
 
 /**
+ * Set an ADMIN account's back-office permissions (#2). SUPERADMIN-only. The
+ * target must be an ADMIN (permissions only make sense for that role). Changes
+ * take effect on the ADMIN's next session refresh (jwt callback reloads them).
+ */
+export async function superadminSetAdminPermissions(
+  values: z.infer<typeof SuperadminSetAdminPermissionsSchema>
+): Promise<ActionResult> {
+  if (!(await requireSuperadmin())) {
+    return FORBIDDEN;
+  }
+
+  const parsed = SuperadminSetAdminPermissionsSchema.safeParse(values);
+  if (!parsed.success) {
+    return INVALID;
+  }
+
+  const { userId, permissions } = parsed.data;
+
+  const target = await db.user.findUnique({
+    where: { id: userId },
+    select: { role: true }
+  });
+  if (!target) return { error: 'Compte introuvable.' };
+  if (target.role !== UserRole.ADMIN) {
+    return { error: 'Les permissions ne s’appliquent qu’aux comptes Admin.' };
+  }
+
+  try {
+    await db.user.update({
+      where: { id: userId },
+      data: { adminPermissions: permissions }
+    });
+  } catch {
+    return { error: 'Impossible de mettre à jour les permissions.' };
+  }
+
+  return { success: 'Permissions mises à jour.' };
+}
+
+
+/**
  * Create a user account directly (bypassing self-service sign-up + email
  * verification). The account is created email-verified. When `ownerUserId` is
  * provided, the new user is tied to that OWNER as a team MEMBER (bypassing the
@@ -416,7 +473,8 @@ export async function superadminCreateUser(
     return INVALID;
   }
 
-  const { name, email, password, role, ownerUserId } = parsed.data;
+  const { name, email, password, role, ownerUserId, adminPermissions } =
+    parsed.data;
 
   const existing = await getUserByEmail(email);
   if (existing) {
@@ -457,6 +515,10 @@ export async function superadminCreateUser(
           role,
           // Superadmin-created accounts are trusted → mark verified.
           emailVerified: new Date(),
+          // Back-office permissions apply only to ADMIN accounts (#2).
+          ...(role === UserRole.ADMIN && adminPermissions
+            ? { adminPermissions }
+            : {}),
           ...(isMemberAccount
             ? {}
             : { plan: 'FREE', planRenewsAt: trialEndsAt })
@@ -494,7 +556,7 @@ export async function superadminCreateUser(
 export async function superadminCancelSubscription(
   values: z.infer<typeof SuperadminCancelSubscriptionSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('users'))) {
     return FORBIDDEN;
   }
 
@@ -531,7 +593,7 @@ export async function superadminCancelSubscription(
 export async function superadminSetSupportStatus(
   values: z.infer<typeof SuperadminSetSupportStatusSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('support'))) {
     return FORBIDDEN;
   }
 
@@ -562,7 +624,7 @@ export async function superadminSetSupportStatus(
 export async function superadminUpsertRestaurant(
   values: z.infer<typeof SuperadminUpsertRestaurantSchema>
 ): Promise<ActionResult & { restaurantId?: string }> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('restaurants'))) {
     return FORBIDDEN;
   }
 
@@ -697,7 +759,7 @@ export async function superadminUpsertRestaurant(
 export async function superadminReplyToTicket(
   values: z.infer<typeof SupportReplySchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('support'))) {
     return FORBIDDEN;
   }
 
@@ -782,7 +844,7 @@ export async function superadminSetLeadStatus(
 export async function superadminDeleteRestaurant(
   values: z.infer<typeof SuperadminDeleteRestaurantSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) {
+  if (!(await requireBackoffice('restaurants'))) {
     return FORBIDDEN;
   }
 
@@ -1211,7 +1273,7 @@ export async function superadminBroadcast(
 export async function superadminSetUpgradeStatus(
   values: z.infer<typeof SuperadminSetUpgradeStatusSchema>
 ): Promise<ActionResult> {
-  if (!(await requireSuperadmin())) return FORBIDDEN;
+  if (!(await requireBackoffice('upgrades'))) return FORBIDDEN;
 
   const parsed = SuperadminSetUpgradeStatusSchema.safeParse(values);
   if (!parsed.success) return INVALID;

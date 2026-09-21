@@ -28,6 +28,8 @@ export interface SuperadminUserRow {
   /** Display features (#3): kiosk (borne) and TV board activation. */
   kioskEnabled: boolean;
   tvEnabled: boolean;
+  /** ADMIN back-office permissions (#2). Raw JSON; normalize with parse fn. */
+  adminPermissions: unknown;
   /** Stripe linkage — present when the user has an online subscription. */
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
@@ -95,6 +97,7 @@ export async function listUsers({
         orderingEnabled: true,
         kioskEnabled: true,
         tvEnabled: true,
+        adminPermissions: true,
         stripeCustomerId: true,
         stripeSubscriptionId: true,
         // Membership as a MEMBER (invited into another owner's workspace).
@@ -120,6 +123,7 @@ export async function listUsers({
       orderingEnabled: u.orderingEnabled,
       kioskEnabled: u.kioskEnabled,
       tvEnabled: u.tvEnabled,
+      adminPermissions: u.adminPermissions,
       stripeCustomerId: u.stripeCustomerId,
       stripeSubscriptionId: u.stripeSubscriptionId,
       isMember: u.memberOf !== null,

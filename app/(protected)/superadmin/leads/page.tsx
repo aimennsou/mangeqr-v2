@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { Card, CardContent } from '@/components/ui/card';
 import { currentRole } from '@/lib/authentication';
+import { canAccessBackoffice } from '@/lib/backoffice';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
 import { listLeads, listStaff } from '@/data/superadmin';
 import Logo from '@/components/Logo';
@@ -25,9 +26,12 @@ import { LeadsTable } from '../_components/leads-table';
  * can follow up and convert them into accounts. Server-guarded.
  */
 export default async function SuperadminLeadsPage() {
-  const role = await currentRole();
   // #11: leads console is open to SUPERADMIN and STAFF (back-office follow-up).
-  if (role !== UserRole.SUPERADMIN && role !== UserRole.STAFF) {
+  // #2: also an ADMIN granted the "leads" back-office permission.
+  const role = await currentRole();
+  const allowed =
+    role === UserRole.STAFF || (await canAccessBackoffice('leads'));
+  if (!allowed) {
     redirect(DEFAULT_SIGNIN_REDIRECT);
   }
 

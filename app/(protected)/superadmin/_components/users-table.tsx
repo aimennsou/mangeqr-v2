@@ -10,6 +10,7 @@ import {
   Search,
   Trash2,
   CreditCard,
+  ShieldCheck,
   XCircle
 } from 'lucide-react';
 import { Plan, PlanPaymentMethod, UserRole } from '@prisma/client';
@@ -54,11 +55,17 @@ import {
 import type { SuperadminUserRow } from '@/data/superadmin';
 import { Switch } from '@/components/ui/switch';
 import {
+  ADMIN_PERMISSIONS,
+  parseAdminPermissions,
+  type AdminPermission
+} from '@/lib/admin-permissions';
+import {
   superadminSetUserPlan,
   superadminSetSuspended,
   superadminDeleteUser,
   superadminSetOrderingEnabled,
   superadminSetFeatureEnabled,
+  superadminSetAdminPermissions,
   superadminCancelSubscription
 } from '@/actions/superadmin';
 
@@ -118,6 +125,40 @@ export function UsersTable({
   const [cancelTarget, setCancelTarget] = useState<SuperadminUserRow | null>(
     null
   );
+
+  // ADMIN back-office permissions editor state (#2).
+  const [permsTarget, setPermsTarget] = useState<SuperadminUserRow | null>(
+    null
+  );
+  const [permsValue, setPermsValue] = useState<AdminPermission[]>([]);
+
+  const openPermsDialog = (user: SuperadminUserRow) => {
+    setPermsTarget(user);
+    setPermsValue(parseAdminPermissions(user.adminPermissions));
+  };
+
+  const togglePerm = (key: AdminPermission, on: boolean) =>
+    setPermsValue((prev) =>
+      on ? [...prev, key] : prev.filter((p) => p !== key)
+    );
+
+  const submitPerms = () => {
+    if (!permsTarget) return;
+    const target = permsTarget;
+    startTransition(async () => {
+      const res = await superadminSetAdminPermissions({
+        userId: target.id,
+        permissions: permsValue
+      });
+      if (res.error) {
+        toast.error(res.error);
+        return;
+      }
+      toast.success(res.success ?? 'Permissions mises à jour.');
+      setPermsTarget(null);
+      refresh();
+    });
+  };
 
   const fetchUsers = useCallback(
     async (nextSkip: number, nextSearch: string) => {
@@ -513,6 +554,18 @@ export function UsersTable({
                             Annuler en ligne
                           </Button>
                         ) : null}
+                        {/* ADMIN back-office permissions editor (#2). */}
+                        {user.role === UserRole.ADMIN ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={busy}
+                            onClick={() => openPermsDialog(user)}
+                          >
+                            <ShieldCheck className="mr-1 h-4 w-4" />
+                            Accès
+                          </Button>
+                        ) : null}
                         <Button
                           variant={user.suspended ? 'secondary' : 'outline'}
                           size="sm"
@@ -674,6 +727,56 @@ export function UsersTable({
               Annuler
             </Button>
             <Button onClick={submitPlan} disabled={isPending}>
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Enregistrer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ADMIN back-office permissions editor (#2) */}
+      <Dialog
+        open={permsTarget !== null}
+        onOpenChange={(open) => !open && setPermsTarget(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Accès back-office</DialogTitle>
+            <DialogDescription>
+              {permsTarget?.email ?? permsTarget?.name ?? ''} — sections que cet
+              admin peut gérer.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid gap-3">
+            {ADMIN_PERMISSIONS.map((p) => (
+              <label
+                key={p.key}
+                className="flex items-start justify-between gap-3"
+              >
+                <span className="text-sm">
+                  <span className="font-medium">{p.label}</span>
+                  <span className="block text-xs text-muted-foreground">
+                    {p.description}
+                  </span>
+                </span>
+                <Switch
+                  checked={permsValue.includes(p.key)}
+                  onCheckedChange={(c) => togglePerm(p.key, c)}
+                />
+              </label>
+            ))}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setPermsTarget(null)}
+              disabled={isPending}
+            >
+              Annuler
+            </Button>
+            <Button onClick={submitPerms} disabled={isPending}>
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Enregistrer
             </Button>

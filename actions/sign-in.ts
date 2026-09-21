@@ -12,6 +12,10 @@ import { SignInSchema } from '@/schemas';
 import { getUserByEmail } from '@/data/user';
 import { isWorkspaceMember } from '@/data/workspace';
 import { isTrialExpired } from '@/lib/plan';
+import {
+  parseAdminPermissions,
+  adminLandingHref,
+} from '@/lib/admin-permissions';
 import { signIn as authSignIn } from '@/auth';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
 import { getTwoFactorTokenByEmail } from '@/data/two-factor-token';
@@ -125,6 +129,12 @@ export async function signIn(
   } else if (existingUser.role === 'STAFF') {
     // #11: back-office follow-up staff land directly in the leads CRM.
     defaultDestination = '/superadmin/leads';
+  } else if (existingUser.role === 'ADMIN') {
+    // #2: an ADMIN is a back-office helper. Land on the first back-office
+    // section they were granted (never the restaurateur app).
+    defaultDestination = adminLandingHref(
+      parseAdminPermissions(existingUser.adminPermissions)
+    );
   } else if (
     existingUser.role === 'USER' &&
     !existingUser.onboardedAt &&

@@ -25,7 +25,15 @@ export async function GET() {
   ]);
 
   return NextResponse.json(
-    { role, permissions, appRole: user.role ?? null, orderingEnabled },
+    {
+      role,
+      permissions,
+      appRole: user.role ?? null,
+      orderingEnabled,
+      // ADMIN back-office permissions (#2). Raw JSON from the session; the nav
+      // normalizes it via parseAdminPermissions.
+      adminPermissions: user.adminPermissions ?? null,
+    },
     { status: 200 }
   );
 }

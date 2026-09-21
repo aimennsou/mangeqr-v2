@@ -25,6 +25,10 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { superadminCreateUser } from '@/actions/superadmin';
+import {
+  ADMIN_PERMISSIONS,
+  type AdminPermission,
+} from '@/lib/admin-permissions';
 
 type Role = 'USER' | 'ADMIN' | 'SUPERADMIN';
 type OwnerOption = { id: string; label: string };
@@ -43,9 +47,15 @@ export function CreateUserDialog() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState<Role>('USER');
+  const [adminPerms, setAdminPerms] = useState<AdminPermission[]>([]);
   const [tieToOwner, setTieToOwner] = useState(false);
   const [ownerId, setOwnerId] = useState('');
   const [owners, setOwners] = useState<OwnerOption[]>([]);
+
+  const toggleAdminPerm = (key: AdminPermission, on: boolean) =>
+    setAdminPerms((prev) =>
+      on ? [...prev, key] : prev.filter((p) => p !== key),
+    );
 
   // Load candidate owners (all users; the action rejects invalid ones) when the
   // "tie to owner" toggle is turned on.
@@ -72,6 +82,7 @@ export function CreateUserDialog() {
     setEmail('');
     setPassword('');
     setRole('USER');
+    setAdminPerms([]);
     setTieToOwner(false);
     setOwnerId('');
   };
@@ -87,7 +98,8 @@ export function CreateUserDialog() {
         email,
         password,
         role,
-        ownerUserId: tieToOwner ? ownerId : null
+        ownerUserId: tieToOwner ? ownerId : null,
+        adminPermissions: role === 'ADMIN' ? adminPerms : undefined
       });
       if (res.error) {
         toast.error(res.error);
@@ -149,6 +161,35 @@ export function CreateUserDialog() {
               </SelectContent>
             </Select>
           </div>
+
+          {/* Back-office permissions — only for ADMIN accounts (#2). */}
+          {role === 'ADMIN' ? (
+            <div className="rounded-xl border border-border p-3">
+              <p className="text-sm font-medium">Permissions back-office</p>
+              <p className="mb-2 text-xs text-muted-foreground">
+                Sélectionnez les sections que cet admin peut gérer.
+              </p>
+              <div className="grid gap-2">
+                {ADMIN_PERMISSIONS.map((p) => (
+                  <label
+                    key={p.key}
+                    className="flex items-start justify-between gap-3"
+                  >
+                    <span className="text-sm">
+                      <span className="font-medium">{p.label}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {p.description}
+                      </span>
+                    </span>
+                    <Switch
+                      checked={adminPerms.includes(p.key)}
+                      onCheckedChange={(c) => toggleAdminPerm(p.key, c)}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="rounded-xl border border-border p-3">
             <label className="flex items-center justify-between gap-4">

@@ -5,12 +5,18 @@ import type { UserRole } from '@prisma/client';
 
 import type { WorkspaceNavRole } from '@/lib/menu-list';
 import type { MemberPermission } from '@/lib/permissions';
+import {
+  parseAdminPermissions,
+  type AdminPermission,
+} from '@/lib/admin-permissions';
 
 interface TeamContext {
   role?: WorkspaceNavRole;
   permissions?: MemberPermission[] | null;
   appRole?: UserRole | null;
   orderingEnabled?: boolean;
+  /** Raw JSON from the session; normalized by consumers. */
+  adminPermissions?: unknown;
 }
 
 /**
@@ -122,6 +128,15 @@ export function useMemberPermissions(): MemberPermission[] | null | undefined {
 export function useAppRole(): UserRole | null {
   const ctx = useTeamContext();
   return ctx?.appRole ?? null;
+}
+
+/**
+ * ADMIN back-office permissions (#2). Empty array until resolved (fail-closed)
+ * so back-office entries never flash for an ADMIN without the permission.
+ */
+export function useAdminPermissions(): AdminPermission[] {
+  const ctx = useTeamContext();
+  return parseAdminPermissions(ctx?.adminPermissions);
 }
 
 /**

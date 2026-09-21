@@ -422,17 +422,40 @@ export type SuperadminSetDevisStatusValues = z.infer<
  * and email verification). Optionally ties the new user to an existing OWNER as
  * a team MEMBER, bypassing the invitation flow. Role defaults to USER.
  */
+/** Back-office (ADMIN) permission keys — mirrors lib/admin-permissions.ts. */
+export const AdminPermissionSchema = z.enum([
+  'users',
+  'restaurants',
+  'design-orders',
+  'leads',
+  'upgrades',
+  'devis',
+  'support'
+]);
+
 export const SuperadminCreateUserSchema = z.object({
   name: z.string().trim().min(1, { message: 'Nom requis.' }).max(120),
   email: z.string().email({ message: 'Email invalide.' }),
   password: z.string().min(8, { message: 'Mot de passe : 8 caractères min.' }),
   role: z.enum([UserRole.USER, UserRole.ADMIN, UserRole.SUPERADMIN]).default(UserRole.USER),
   /** When set, create a Membership tying this user (MEMBER) to this owner. */
-  ownerUserId: z.string().uuid().nullable().optional()
+  ownerUserId: z.string().uuid().nullable().optional(),
+  /** Back-office permissions granted when role = ADMIN (#2). */
+  adminPermissions: z.array(AdminPermissionSchema).optional()
 });
 
 export type SuperadminCreateUserValues = z.infer<
   typeof SuperadminCreateUserSchema
+>;
+
+/** SUPERADMIN updates an ADMIN account's back-office permissions (#2). */
+export const SuperadminSetAdminPermissionsSchema = z.object({
+  userId: z.string().uuid({ message: 'A valid user id is required.' }),
+  permissions: z.array(AdminPermissionSchema)
+});
+
+export type SuperadminSetAdminPermissionsValues = z.infer<
+  typeof SuperadminSetAdminPermissionsSchema
 >;
 
 /** SUPERADMIN cancels a user's ONLINE (Stripe) subscription at period end. */
