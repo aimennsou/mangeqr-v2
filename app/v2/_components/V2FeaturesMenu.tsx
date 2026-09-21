@@ -123,14 +123,22 @@ const USE_CASES: MenuEntry[] = [
 ];
 
 /**
- * "Fonctionnalités" mega-menu for the landing navbar. Opens on hover (desktop)
- * or click, showing the main product features and the use cases by
- * establishment type, each linking to the relevant section or the funnel.
+ * Landing navbar dropdown. Two variants:
+ *  - 'features'  → the wide product-features mega-menu ("Fonctionnalités")
+ *  - 'usecases'  → the establishment-type dropdown ("Cas d'usage")
+ * Opens on hover (desktop) or click; each item links to the relevant section
+ * or the funnel.
  */
-export default function V2FeaturesMenu() {
+export default function V2FeaturesMenu({
+  variant = 'features',
+}: {
+  variant?: 'features' | 'usecases';
+}) {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
+  const isFeatures = variant === 'features';
+  const label = isFeatures ? 'Fonctionnalités' : "Cas d'usage";
 
   const openNow = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -175,42 +183,38 @@ export default function V2FeaturesMenu() {
             : 'text-muted-foreground hover:text-foreground'
         )}
       >
-        Fonctionnalités
+        {label}
         <ChevronDown
-          className={cn(
-            'h-4 w-4 transition-transform',
-            open && 'rotate-180'
-          )}
+          className={cn('h-4 w-4 transition-transform', open && 'rotate-180')}
         />
       </button>
 
       {open ? (
-        <div className="absolute left-1/2 top-full z-50 mt-2 w-[min(92vw,860px)] -translate-x-1/2 px-2">
-          <div className="overflow-hidden rounded-2xl border border-border bg-background shadow-xl">
-            <div className="grid grid-cols-1 gap-0 md:grid-cols-3">
-              {/* Features — 2 columns worth */}
-              <div className="md:col-span-2 p-5">
-                <p className="mb-3 px-2 text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
-                  Fonctionnalités
-                </p>
-                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2">
-                  {FEATURES.map((f) => (
-                    <MenuItem key={f.title} entry={f} onNavigate={() => setOpen(false)} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Use cases */}
-              <div className="border-t border-border bg-muted/30 p-5 md:border-l md:border-t-0">
-                <p className="mb-3 px-2 text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
-                  Cas d&apos;usage
-                </p>
-                <div className="grid grid-cols-1 gap-1">
-                  {USE_CASES.map((u) => (
-                    <MenuItem key={u.title} entry={u} onNavigate={() => setOpen(false)} />
-                  ))}
-                </div>
-              </div>
+        <div
+          className={cn(
+            'absolute top-full z-50 mt-2 px-2',
+            isFeatures
+              ? 'left-0 w-[min(92vw,640px)]'
+              : 'left-0 w-[min(92vw,320px)]'
+          )}
+        >
+          <div className="overflow-hidden rounded-2xl border border-border bg-background p-4 shadow-xl">
+            <p className="mb-3 px-2 text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+              {label}
+            </p>
+            <div
+              className={cn(
+                'grid grid-cols-1 gap-1',
+                isFeatures && 'sm:grid-cols-2'
+              )}
+            >
+              {(isFeatures ? FEATURES : USE_CASES).map((entry) => (
+                <MenuItem
+                  key={entry.title}
+                  entry={entry}
+                  onNavigate={() => setOpen(false)}
+                />
+              ))}
             </div>
           </div>
         </div>

@@ -14,7 +14,12 @@ import V2FeaturesMenu from './V2FeaturesMenu';
  * blurred surface once the page scrolls, so the nav separates from content
  * without a permanent heavy bar.
  */
-export default function V2Nav() {
+export default function V2Nav({
+  accountHref = null,
+}: {
+  /** Set when a user is signed in → show a single "Aller à mon compte" button. */
+  accountHref?: string | null;
+}) {
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -34,25 +39,40 @@ export default function V2Nav() {
       )}
     >
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
-        <Link href="/v2" aria-label="MangeQR" className="flex items-center">
-          <Logo />
-        </Link>
+        {/* Left: logo + primary menus */}
+        <div className="flex items-center gap-1 sm:gap-3">
+          <Link href="/" aria-label="MangeQR" className="flex items-center">
+            <Logo />
+          </Link>
+          <V2FeaturesMenu variant="features" />
+          <V2FeaturesMenu variant="usecases" />
+        </div>
 
+        {/* Right: pricing + auth */}
         <div className="flex items-center gap-1 sm:gap-2">
-          <V2FeaturesMenu />
           <Link href="/#tarifs">
             <Button variant="ghost" className="hidden sm:inline-flex">
               Tarifs
             </Button>
           </Link>
-          <Link href="/auth/sign-in">
-            <Button variant="ghost">Se connecter</Button>
-          </Link>
-          <Link href="/auth/sign-up">
-            <Button className="bg-yellow-400 text-black hover:bg-yellow-400/90">
-              Créer un compte
-            </Button>
-          </Link>
+          {accountHref ? (
+            <Link href={accountHref}>
+              <Button className="bg-yellow-400 text-black hover:bg-yellow-400/90">
+                Aller à mon compte
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <Link href="/auth/sign-in">
+                <Button variant="ghost">Se connecter</Button>
+              </Link>
+              <Link href="/auth/sign-up">
+                <Button className="bg-yellow-400 text-black hover:bg-yellow-400/90">
+                  Créer un compte
+                </Button>
+              </Link>
+            </>
+          )}
           <ModeToggle />
         </div>
       </div>

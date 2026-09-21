@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { currentUser } from '@/lib/authentication';
 import V2Nav from './v2/_components/V2Nav';
 import V2Hero from './v2/_components/V2Hero';
 import V2Values from './v2/_components/V2Values';
@@ -41,10 +42,21 @@ export const metadata: Metadata = {
   }
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Detect a signed-in visitor so the nav shows a single "Aller à mon compte"
+  // button instead of sign-in / sign-up. Route by role.
+  const user = await currentUser();
+  const accountHref = !user
+    ? null
+    : user.role === 'SUPERADMIN'
+      ? '/superadmin'
+      : user.role === 'STAFF'
+        ? '/superadmin/leads'
+        : '/performances';
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <V2Nav />
+      <V2Nav accountHref={accountHref} />
       <main>
         <V2Hero />
         <V2Values />

@@ -7,8 +7,8 @@ import V2Button from './V2Button';
 
 const STATS = [
   { value: '+22%', label: 'de clients fidélisés' },
-  { value: '10 s', label: 'pour mettre à jour' },
-  { value: '2 400+', label: 'restaurants' }
+  { value: '2 pays', label: 'France & Algérie' },
+  { value: '+50', label: 'restaurants' }
 ];
 
 /**
