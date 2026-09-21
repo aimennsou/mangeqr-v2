@@ -634,9 +634,9 @@ export type SuperadminUpdateLeadValues = z.infer<
   typeof SuperadminUpdateLeadSchema
 >;
 
-/** Cash (espèce) plan-upgrade request from an Algerian (DZD) account (#2). */
+/** Cash (espèce) plan-upgrade request (#2). Starter is a valid cash target. */
 export const RequestPlanUpgradeSchema = z.object({
-  targetPlan: z.enum(['PRO', 'PREMIUM']),
+  targetPlan: z.enum(['STARTER', 'PRO', 'PREMIUM']),
   frequency: z.enum(['mensuel', 'annuel']).default('mensuel'),
   contactPhone: z.string().trim().max(40).optional().or(z.literal('')),
   note: z.string().trim().max(1000).optional().or(z.literal('')),

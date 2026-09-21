@@ -395,7 +395,10 @@ export function getRegionTierPrice(
 // cash/offline price shown to Algerian accounts, who request an upgrade the
 // back-office fulfills manually. PLACEHOLDER DZD amounts until finals are given.
 // -----------------------------------------------------------------------------
-export type PaidPlanId = 'PRO' | 'PREMIUM';
+// STARTER is included for the CASH (espèces) upgrade-request flow, where the
+// back-office grants it manually. It has NO Stripe price (see lib/stripe.ts),
+// so it is never offered through the online checkout.
+export type PaidPlanId = 'STARTER' | 'PRO' | 'PREMIUM';
 export type PlanBillingFrequency = 'mensuel' | 'annuel';
 
 interface PlanAmount {
@@ -404,6 +407,10 @@ interface PlanAmount {
 }
 
 const PLAN_PRICING: Record<PaidPlanId, Record<PlanBillingFrequency, PlanAmount>> = {
+  STARTER: {
+    mensuel: { EUR: 19, DZD: 2500 },
+    annuel: { EUR: 190, DZD: 30000 },
+  },
   PRO: {
     mensuel: { EUR: 35, DZD: 5000 },
     annuel: { EUR: 350, DZD: 50000 },

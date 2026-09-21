@@ -235,6 +235,7 @@ export default function PlanCard({
           stripeEnabled={isStripeEnabled()}
           isPaidOnline={!isFreePlan && planPaymentMethod === "ONLINE"}
           isAlgerian={isAlgerian}
+          paymentMethod={planPaymentMethod}
           currentPlan={effectivePlan}
         />
       </CardContent>
