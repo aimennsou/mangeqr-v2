@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Bell, Check, LifeBuoy, Megaphone, Package } from 'lucide-react';
+import {
+  Bell,
+  Check,
+  LifeBuoy,
+  Megaphone,
+  Package,
+  TrendingUp,
+} from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -16,7 +23,11 @@ import {
   markNotificationRead,
 } from '@/actions/notifications';
 
-type NotificationType = 'SUPPORT_REPLY' | 'ORDER_STATUS' | 'BROADCAST';
+type NotificationType =
+  | 'SUPPORT_REPLY'
+  | 'ORDER_STATUS'
+  | 'BROADCAST'
+  | 'PLAN_LIMIT';
 
 interface NotificationItem {
   id: string;
@@ -32,6 +43,7 @@ const TYPE_ICON: Record<NotificationType, typeof Bell> = {
   SUPPORT_REPLY: LifeBuoy,
   ORDER_STATUS: Package,
   BROADCAST: Megaphone,
+  PLAN_LIMIT: TrendingUp,
 };
 
 function timeAgo(iso: string): string {

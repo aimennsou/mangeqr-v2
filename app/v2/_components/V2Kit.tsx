@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { Tv, MonitorSmartphone, type LucideIcon } from 'lucide-react';
 
 import Reveal from './Reveal';
-import V2Button from './V2Button';
+import V2DevisDialog from './V2DevisDialog';
 
 /**
  * "Kit restaurateur" — hardware add-ons the team can provide on top of the
@@ -108,7 +108,7 @@ export default function V2Kit() {
               Écrans TV pour vos menus et bornes de commande sur demande —
               contactez-nous pour un devis adapté à votre salle.
             </p>
-            <V2Button href="/auth/sign-up">Demander un devis</V2Button>
+            <V2DevisDialog />
           </div>
         </Reveal>
       </div>

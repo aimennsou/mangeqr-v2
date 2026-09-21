@@ -22,6 +22,7 @@ import {
   UtensilsCrossed,
   LayoutDashboard,
   CreditCard,
+  FileText,
  
 } from "lucide-react";
 import type { UserRole } from "@prisma/client";
@@ -315,6 +316,14 @@ export function getMenuList(
           labelKey: "nav.superadmin.upgrades",
           active: pathname.includes("/superadmin/upgrades"),
           icon: CreditCard,
+          submenus: [],
+        },
+        {
+          href: "/superadmin/devis",
+          label: "Demandes de devis",
+          labelKey: "nav.superadmin.devis",
+          active: pathname.includes("/superadmin/devis"),
+          icon: FileText,
           submenus: [],
         },
         {

@@ -112,3 +112,74 @@ export async function listNotifications(
     return [];
   }
 }
+
+
+/**
+ * Notify on a plan-limit hit (#4). When a (free/paid) account hits a resource
+ * cap, we let the OWNER know (nudge to upgrade → /settings) and alert every
+ * SUPERADMIN so the back-office can reach out. Best-effort; never throws.
+ *
+ * De-duped per (owner, resource) within a short window so repeated blocked
+ * attempts don't spam the inbox.
+ *
+ * @param resource   Human label of what was capped (e.g. "restaurants", "menus").
+ * @param limit      The account's limit for that resource.
+ */
+export async function notifyPlanLimitHit(args: {
+  ownerId: string;
+  resource: string;
+  limit: number;
+}): Promise<void> {
+  const { ownerId, resource, limit } = args;
+  try {
+    // Skip if we already notified this owner about this resource in the last
+    // 24h (avoid spamming on repeated blocked attempts).
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recent = await db.notification.findFirst({
+      where: {
+        userId: ownerId,
+        type: 'PLAN_LIMIT' as NotificationType,
+        entityId: resource,
+        createdAt: { gte: since },
+      },
+      select: { id: true },
+    });
+    if (recent) return;
+
+    const owner = await db.user.findUnique({
+      where: { id: ownerId },
+      select: { name: true, email: true },
+    });
+    const who = owner?.name ?? owner?.email ?? 'Un compte';
+
+    // Owner nudge.
+    await createNotification({
+      userId: ownerId,
+      type: 'PLAN_LIMIT' as NotificationType,
+      title: 'Limite de votre forfait atteinte',
+      body: `Vous avez atteint la limite de ${limit} ${resource}. Passez à un forfait supérieur pour en ajouter davantage.`,
+      link: '/settings',
+      entityId: resource,
+    });
+
+    // Back-office alert.
+    const admins = await db.user.findMany({
+      where: { role: 'SUPERADMIN' },
+      select: { id: true },
+    });
+    await Promise.all(
+      admins.map((a) =>
+        createNotification({
+          userId: a.id,
+          type: 'PLAN_LIMIT' as NotificationType,
+          title: 'Compte à la limite de son forfait',
+          body: `${who} a atteint la limite de ${limit} ${resource}.`,
+          link: '/superadmin/users',
+          entityId: resource,
+        }),
+      ),
+    );
+  } catch {
+    // Best-effort: ignore.
+  }
+}

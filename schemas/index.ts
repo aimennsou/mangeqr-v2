@@ -394,6 +394,16 @@ export const DevisRequestSchema = z.object({
     .optional()
     .or(z.literal('')),
   restaurantName: z.string().trim().max(120).optional().or(z.literal('')),
+  // Devis sizing details. Coerced from the numeric inputs; 0/empty allowed.
+  restaurantCount: z.coerce
+    .number()
+    .int()
+    .min(0)
+    .max(9999)
+    .optional(),
+  borneCount: z.coerce.number().int().min(0).max(9999).optional(),
+  tvCount: z.coerce.number().int().min(0).max(9999).optional(),
+  teamType: z.string().trim().max(200).optional().or(z.literal('')),
   message: z.string().trim().max(1000).optional().or(z.literal(''))
 });
 export type DevisRequestValues = z.infer<typeof DevisRequestSchema>;

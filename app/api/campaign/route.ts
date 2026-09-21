@@ -4,6 +4,7 @@ import { currentUserId } from '@/lib/authentication';
 import { db } from '@/lib/db';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
 import { getWorkspaceOwnerId, isWorkspaceMember } from '@/data/workspace';
+import { notifyPlanLimitHit } from '@/lib/notifications';
 
 // Create a MarketingCampaign
 export async function POST(req: NextRequest) {
@@ -56,6 +57,12 @@ export async function POST(req: NextRequest) {
       where: { restaurant: { userId } },
     });
     if (campaignCount >= campaignLimit) {
+      const ownerId = await getWorkspaceOwnerId(userId);
+      await notifyPlanLimitHit({
+        ownerId,
+        resource: 'campagnes',
+        limit: campaignLimit,
+      });
       return NextResponse.json(
         {
           error: `Limite de campagnes atteinte. Votre plan permet jusqu'à ${campaignLimit} campagne(s).`,

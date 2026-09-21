@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { buildPathMenuUrl, normalizeSubdomain, validateSubdomain } from '@/lib/subdomain';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
 import { getWorkspaceOwnerId, isWorkspaceMember } from '@/data/workspace';
+import { notifyPlanLimitHit } from '@/lib/notifications';
 
 
 export async function POST(req: NextRequest) {
@@ -62,6 +63,12 @@ export async function POST(req: NextRequest) {
     const restaurantLimit = getPlanLimits(getEffectivePlan(user)).restaurants;
     const restaurantCount = await db.restaurant.count({ where: { userId } });
     if (restaurantCount >= restaurantLimit) {
+      // Notify the owner (upgrade nudge) + the back-office (#4).
+      await notifyPlanLimitHit({
+        ownerId: userId,
+        resource: 'restaurants',
+        limit: restaurantLimit,
+      });
       return NextResponse.json(
         {
           error: `Limite de restaurants atteinte. Votre plan permet jusqu'à ${restaurantLimit} restaurant(s).`,

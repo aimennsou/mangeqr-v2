@@ -944,3 +944,74 @@ export async function countPendingUpgradeRequests(): Promise<number> {
     return 0;
   }
 }
+
+
+// -----------------------------------------------------------------------------
+// Devis requests (#4) — hardware quote requests (kiosk / TV) from the landing.
+// -----------------------------------------------------------------------------
+
+import type { DevisKind, DevisStatus } from '@prisma/client';
+
+export interface SuperadminDevisRow {
+  id: string;
+  kind: DevisKind;
+  name: string;
+  phone: string;
+  email: string | null;
+  restaurantName: string | null;
+  restaurantCount: number | null;
+  borneCount: number | null;
+  tvCount: number | null;
+  teamType: string | null;
+  message: string | null;
+  status: DevisStatus;
+  createdAt: Date;
+  /** Present when the request was submitted by a logged-in account. */
+  userEmail: string | null;
+}
+
+/** List devis (quote) requests for the SUPERADMIN, newest first. */
+export async function listDevisRequests({
+  status,
+  skip = 0,
+  take = 100,
+}: { status?: DevisStatus; skip?: number; take?: number } = {}): Promise<
+  SuperadminDevisRow[]
+> {
+  try {
+    const rows = await db.devisRequest.findMany({
+      where: status ? { status } : {},
+      orderBy: { createdAt: 'desc' },
+      skip,
+      take,
+      include: { user: { select: { email: true } } },
+    });
+    return rows.map((r) => ({
+      id: r.id,
+      kind: r.kind,
+      name: r.name,
+      phone: r.phone,
+      email: r.email,
+      restaurantName: r.restaurantName,
+      restaurantCount: r.restaurantCount,
+      borneCount: r.borneCount,
+      tvCount: r.tvCount,
+      teamType: r.teamType,
+      message: r.message,
+      status: r.status,
+      createdAt: r.createdAt,
+      userEmail: r.user?.email ?? null,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** Count NEW devis requests — for the dashboard/nav badge. */
+export async function countNewDevisRequests(): Promise<number> {
+  try {
+    return await db.devisRequest.count({ where: { status: 'NEW' } });
+  } catch {
+    return 0;
+  }
+}

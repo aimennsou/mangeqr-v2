@@ -35,7 +35,8 @@ import {
   SuperadminLeadNoteSchema,
   SuperadminConvertLeadSchema,
   SuperadminBroadcastSchema,
-  SuperadminSetUpgradeStatusSchema
+  SuperadminSetUpgradeStatusSchema,
+  SuperadminSetDevisStatusSchema
 } from '@/schemas';
 import { revalidatePath } from 'next/cache';
 import {
@@ -363,6 +364,37 @@ export async function superadminSetFeatureEnabled(
   return {
     success: enabled ? `${label} activé.` : `${label} désactivé.`
   };
+}
+
+
+/**
+ * Update a devis (quote) request's status (#4). SUPERADMIN-only.
+ */
+export async function superadminSetDevisStatus(
+  values: z.infer<typeof SuperadminSetDevisStatusSchema>
+): Promise<ActionResult> {
+  if (!(await requireSuperadmin())) {
+    return FORBIDDEN;
+  }
+
+  const parsed = SuperadminSetDevisStatusSchema.safeParse(values);
+  if (!parsed.success) {
+    return INVALID;
+  }
+
+  const { id, status } = parsed.data;
+
+  try {
+    await db.devisRequest.update({
+      where: { id },
+      data: { status }
+    });
+  } catch {
+    return { error: 'Impossible de mettre à jour la demande.' };
+  }
+
+  revalidatePath('/superadmin/devis');
+  return { success: 'Demande mise à jour.' };
 }
 
 

@@ -6,6 +6,7 @@ import { currentUserId } from '@/lib/authentication';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
 import { getWorkspaceOwnerId } from '@/data/workspace';
 import { blockIfTrialExpired } from '@/lib/trial-guard';
+import { notifyPlanLimitHit } from '@/lib/notifications';
 
 
 export async function POST(req: NextRequest) {
@@ -61,6 +62,11 @@ export async function POST(req: NextRequest) {
     });
 
     if (menuCount >= menuLimit) {
+      await notifyPlanLimitHit({
+        ownerId: user.id,
+        resource: 'menus',
+        limit: menuLimit,
+      });
       return NextResponse.json(
         { error: `Limite de menus atteinte. Votre plan permet jusqu'à ${menuLimit} menus.` },
         { status: 400 }

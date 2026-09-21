@@ -572,10 +572,12 @@ model DesignOrder {
 //  - SUPPORT_REPLY : staff replied to one of the user's support tickets
 //  - ORDER_STATUS  : a design / printed-menu order changed status (NOT kitchen)
 //  - BROADCAST     : a message sent from the admin console to users
+//  - PLAN_LIMIT    : an account hit a plan resource cap (#4)
 enum NotificationType {
   SUPPORT_REPLY
   ORDER_STATUS
   BROADCAST
+  PLAN_LIMIT
 }
 
 model Notification {
@@ -653,7 +655,12 @@ model DevisRequest {
   phone         String
   email         String?
   restaurantName String?
-  message       String?
+  // Devis sizing details captured from the dialog form.
+  restaurantCount Int?       // how many restaurants/sites
+  borneCount      Int?       // how many self-order kiosks (bornes) wanted
+  tvCount         Int?       // how many TV screens wanted
+  teamType        String?    // free-text about their team (size / structure)
+  message         String?
   status        DevisStatus  @default(NEW)
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
