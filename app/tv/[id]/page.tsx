@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { getPublicMenuData } from '../../restaurant/_shared/menu-data';
+import { MenuUnavailable } from '../../restaurant/_shared/MenuUnavailable';
 import { TvMenuBoard } from './_components/TvMenuBoard';
 
 /**
@@ -16,6 +17,7 @@ export default async function TvMenuPage({
 }) {
   const data = await getPublicMenuData({ id: params.id });
   if (!data) notFound();
+  if (data.trialExpired) return <MenuUnavailable name={data.name} />;
 
   return (
     <TvMenuBoard

@@ -5,6 +5,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
 import { getWorkspaceOwnerId, logMemberActivity } from '@/data/workspace';
+import { blockIfTrialExpired } from '@/lib/trial-guard';
 
 
 export async function POST(req: NextRequest) {
@@ -13,6 +14,8 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const blocked = await blockIfTrialExpired(userId);
+    if (blocked) return blocked;
     const ownerId = await getWorkspaceOwnerId(userId);
 
     const { name, description, photo, price, 
@@ -82,6 +85,8 @@ export async function PUT(req: NextRequest) {
       if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+      const blocked = await blockIfTrialExpired(userId);
+      if (blocked) return blocked;
       const ownerId = await getWorkspaceOwnerId(userId);
 
       const { id, name, description, photo,  state,
@@ -142,6 +147,8 @@ export async function DELETE(req: NextRequest) {
       if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
+      const blocked = await blockIfTrialExpired(userId);
+      if (blocked) return blocked;
       const ownerId = await getWorkspaceOwnerId(userId);
 
       const { id, ids } = await req.json();

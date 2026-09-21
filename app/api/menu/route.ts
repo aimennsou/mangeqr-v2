@@ -5,6 +5,7 @@ import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
 import { getWorkspaceOwnerId } from '@/data/workspace';
+import { blockIfTrialExpired } from '@/lib/trial-guard';
 
 
 export async function POST(req: NextRequest) {
@@ -13,6 +14,8 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const blocked = await blockIfTrialExpired(userId);
+    if (blocked) return blocked;
     // Resolve the workspace owner so members act on the owner's data.
     const ownerId = await getWorkspaceOwnerId(userId);
 
@@ -106,6 +109,8 @@ export async function PUT(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const blocked = await blockIfTrialExpired(userId);
+    if (blocked) return blocked;
     const ownerId = await getWorkspaceOwnerId(userId);
 
     const { id, restaurantId, state, name, availability } = await req.json();
@@ -181,6 +186,8 @@ export async function DELETE(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const blocked = await blockIfTrialExpired(userId);
+    if (blocked) return blocked;
     const ownerId = await getWorkspaceOwnerId(userId);
 
     const body = await req.json();

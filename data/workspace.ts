@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 import { db } from '@/lib/db';
-import { getEffectivePlan, getPlanLimits } from '@/lib/plan';
+import { getEffectivePlan, getPlanLimits, isTrialExpired } from '@/lib/plan';
 import {
   parsePermissions,
   type MemberPermission,
@@ -78,6 +78,27 @@ export async function getWorkspaceContext(
   }
   // Owners implicitly have every permission.
   return { ownerId: userId, role: 'OWNER', permissions: null };
+}
+
+/**
+ * Whether the workspace OWNER's FREE trial has expired. Resolves the caller to
+ * their owner and checks the owner's plan/expiry. Used to hard-block mutations
+ * (menu/dish/category edits, etc.) once the trial ends. Never throws.
+ */
+export async function isWorkspaceTrialExpired(
+  userId: string
+): Promise<boolean> {
+  try {
+    const ownerId = await getWorkspaceOwnerId(userId);
+    const owner = await db.user.findUnique({
+      where: { id: ownerId },
+      select: { plan: true, planRenewsAt: true },
+    });
+    if (!owner) return false;
+    return isTrialExpired({ plan: owner.plan, planRenewsAt: owner.planRenewsAt });
+  } catch {
+    return false;
+  }
 }
 
 /**
