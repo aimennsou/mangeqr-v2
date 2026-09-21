@@ -45,7 +45,7 @@ model User {
   image                   String?
   password                String?
   role                    UserRole                @default(USER)
-  plan                    Plan                    @default(STARTER)
+  plan                    Plan                    @default(FREE)
   planPaymentMethod       PlanPaymentMethod       @default(CASH)
   stripeCustomerId        String?
   stripeSubscriptionId    String?

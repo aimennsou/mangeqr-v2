@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { getS3Url } from "@/lib/s3";
 import type { MenuAppearance, TvConfig, BorneConfig } from "@/schemas";
 import { currencySymbol } from "@/lib/currency";
+import { isTrialExpired } from "@/lib/plan";
 
 /**
  * Resolve a stored photo reference to a displayable URL. S3 keys ("uploads/…")
@@ -47,10 +48,11 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
   const restaurant = await db.restaurant.findUnique({
     where,
     include: {
-      // Owner account, to know whether ordering is enabled for this account
-      // (FEAT-1/D16). Ordering is ON for diners only when BOTH the account and
-      // this restaurant have it enabled.
-      user: { select: { orderingEnabled: true } },
+      // Owner account: ordering flag (FEAT-1/D16) + plan/expiry so we can hide
+      // the public menu once a FREE trial has ended.
+      user: {
+        select: { orderingEnabled: true, plan: true, planRenewsAt: true },
+      },
       // Tables (for the dine-in table picker). Diner-facing: id + label only.
       tables: { select: { id: true, label: true } },
       menus: {
@@ -80,6 +82,13 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
   });
 
   if (!restaurant) return null;
+
+  // The public menu is hidden once the owner's FREE trial has ended (they must
+  // upgrade to keep it live).
+  const trialExpired = isTrialExpired({
+    plan: restaurant.user?.plan ?? null,
+    planRenewsAt: restaurant.user?.planRenewsAt ?? null,
+  });
 
   // Ordering is available to diners only when the account is enabled AND this
   // restaurant has its per-restaurant toggle on (D9 + D16).
@@ -112,6 +121,7 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
 
   return {
     restaurantId: restaurant.id,
+    trialExpired,
     name: restaurant.name,
     address: restaurant.address,
     phone: restaurant.phone,

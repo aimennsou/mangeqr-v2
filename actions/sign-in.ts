@@ -11,6 +11,7 @@ import { db } from '@/lib/db';
 import { SignInSchema } from '@/schemas';
 import { getUserByEmail } from '@/data/user';
 import { isWorkspaceMember } from '@/data/workspace';
+import { isTrialExpired } from '@/lib/plan';
 import { signIn as authSignIn } from '@/auth';
 import { DEFAULT_SIGNIN_REDIRECT } from '@/routes';
 import { getTwoFactorTokenByEmail } from '@/data/two-factor-token';
@@ -133,7 +134,20 @@ export async function signIn(
   } else {
     defaultDestination = DEFAULT_SIGNIN_REDIRECT;
   }
-  const redirectTo = callbackUrl || defaultDestination;
+
+  // FREE-trial gate (at login): a regular owner whose free trial has ended is
+  // routed to their account settings with a flag, where a clear "passez au
+  // forfait Starter" prompt is shown, instead of the normal destination.
+  const trialOver =
+    existingUser.role === 'USER' &&
+    isTrialExpired({
+      plan: existingUser.plan,
+      planRenewsAt: existingUser.planRenewsAt
+    });
+
+  const redirectTo = trialOver
+    ? '/settings'
+    : callbackUrl || defaultDestination;
 
   try {
     await authSignIn('credentials', {
