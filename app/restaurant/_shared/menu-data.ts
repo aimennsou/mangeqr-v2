@@ -51,7 +51,13 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
       // Owner account: ordering flag (FEAT-1/D16) + plan/expiry so we can hide
       // the public menu once a FREE trial has ended.
       user: {
-        select: { orderingEnabled: true, plan: true, planRenewsAt: true },
+        select: {
+          orderingEnabled: true,
+          kioskEnabled: true,
+          tvEnabled: true,
+          plan: true,
+          planRenewsAt: true,
+        },
       },
       // Tables (for the dine-in table picker). Diner-facing: id + label only.
       tables: { select: { id: true, label: true } },
@@ -119,9 +125,15 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
     favoriteGroups.map((g) => [g.dishId, g._count.dishId])
   );
 
+  // Display features (#3), account-level flags gating the /borne + /tv views.
+  const kioskEnabled = restaurant.user?.kioskEnabled ?? false;
+  const tvEnabled = restaurant.user?.tvEnabled ?? false;
+
   return {
     restaurantId: restaurant.id,
     trialExpired,
+    kioskEnabled,
+    tvEnabled,
     name: restaurant.name,
     address: restaurant.address,
     phone: restaurant.phone,

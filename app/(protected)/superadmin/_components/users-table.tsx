@@ -58,6 +58,7 @@ import {
   superadminSetSuspended,
   superadminDeleteUser,
   superadminSetOrderingEnabled,
+  superadminSetFeatureEnabled,
   superadminCancelSubscription
 } from '@/actions/superadmin';
 
@@ -271,6 +272,35 @@ export function UsersTable({
     });
   };
 
+  // ---- Display features enable/disable (#3): kiosk (borne) + TV board ----
+  const toggleFeature = (
+    user: SuperadminUserRow,
+    feature: 'kiosk' | 'tv',
+    enabled: boolean
+  ) => {
+    const key = feature === 'kiosk' ? 'kioskEnabled' : 'tvEnabled';
+    // Optimistically reflect the toggle.
+    setUsers((prev) =>
+      prev.map((u) => (u.id === user.id ? { ...u, [key]: enabled } : u))
+    );
+    startTransition(async () => {
+      const result = await superadminSetFeatureEnabled({
+        userId: user.id,
+        feature,
+        enabled
+      });
+      if (result?.error) {
+        toast.error(result.error);
+        // Revert on failure.
+        setUsers((prev) =>
+          prev.map((u) => (u.id === user.id ? { ...u, [key]: !enabled } : u))
+        );
+        return;
+      }
+      toast.success(result?.success ?? 'Mis à jour.');
+    });
+  };
+
   // ---- Cancel online (Stripe) subscription ----
   const confirmCancelSubscription = () => {
     if (!cancelTarget) return;
@@ -331,6 +361,8 @@ export function UsersTable({
               <TableHead>Restaurants</TableHead>
               <TableHead>État</TableHead>
               <TableHead>Commandes</TableHead>
+              <TableHead>Borne</TableHead>
+              <TableHead>TV</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -338,7 +370,7 @@ export function UsersTable({
             {users.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={8}
+                  colSpan={10}
                   className="h-24 text-center text-muted-foreground"
                 >
                   {busy ? 'Chargement…' : 'Aucun utilisateur.'}
@@ -423,6 +455,35 @@ export function UsersTable({
                           disabled={busy || isSuperadmin}
                           onCheckedChange={(c) => toggleOrdering(user, c)}
                           aria-label="Activer les commandes"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {/* Kiosk (borne) activation (#3). Off by default; members
+                          inherit the owner's account. */}
+                      {user.isMember ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Switch
+                          checked={user.kioskEnabled}
+                          disabled={busy || isSuperadmin}
+                          onCheckedChange={(c) =>
+                            toggleFeature(user, 'kiosk', c)
+                          }
+                          aria-label="Activer la borne"
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {/* TV board activation (#3). */}
+                      {user.isMember ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Switch
+                          checked={user.tvEnabled}
+                          disabled={busy || isSuperadmin}
+                          onCheckedChange={(c) => toggleFeature(user, 'tv', c)}
+                          aria-label="Activer l'affichage TV"
                         />
                       )}
                     </TableCell>

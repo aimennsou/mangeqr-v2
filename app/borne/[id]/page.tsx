@@ -19,6 +19,9 @@ export default async function BorneMenuPage({
   const data = await getPublicMenuData({ id: params.id });
   if (!data) notFound();
   if (data.trialExpired) return <MenuUnavailable name={data.name} />;
+  // Kiosk (borne) must be activated for this account (#3).
+  if (!data.kioskEnabled)
+    return <MenuUnavailable name={data.name} reason="feature" />;
 
   return (
     <BorneKiosk

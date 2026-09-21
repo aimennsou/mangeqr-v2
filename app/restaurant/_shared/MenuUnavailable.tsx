@@ -6,7 +6,18 @@ import { Lock } from 'lucide-react';
  * simply tells the visitor the menu is temporarily unavailable and nudges the
  * owner (who may be looking) to upgrade to the Starter plan.
  */
-export function MenuUnavailable({ name }: { name: string }) {
+export function MenuUnavailable({
+  name,
+  reason = 'trial',
+}: {
+  name: string;
+  /**
+   * Why the view is unavailable. `trial` (default) means the owner's free
+   * trial ended; `feature` means the display feature (borne/TV) is not
+   * activated for this account.
+   */
+  reason?: 'trial' | 'feature';
+}) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#faf7f2] px-6 py-16 dark:bg-neutral-950">
       <div className="w-full max-w-md text-center">
@@ -17,11 +28,14 @@ export function MenuUnavailable({ name }: { name: string }) {
           {name}
         </h1>
         <p className="mt-3 text-base text-muted-foreground">
-          Ce menu n&apos;est pas disponible pour le moment.
+          {reason === 'feature'
+            ? "Cet affichage n'est pas disponible pour le moment."
+            : "Ce menu n'est pas disponible pour le moment."}
         </p>
         <p className="mt-2 text-sm text-muted-foreground">
-          La période d&apos;essai gratuite de ce restaurant est terminée. Pour
-          réactiver ce menu, le restaurateur doit passer au forfait Starter.
+          {reason === 'feature'
+            ? "Cette fonctionnalité n'est pas activée pour ce compte. Contactez MangeQR pour l'activer."
+            : "La période d'essai gratuite de ce restaurant est terminée. Pour réactiver ce menu, le restaurateur doit passer au forfait Starter."}
         </p>
       </div>
     </div>

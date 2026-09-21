@@ -25,6 +25,9 @@ export interface SuperadminUserRow {
   restaurantCount: number;
   /** FEAT-1/D16: whether ordering is enabled for this account. */
   orderingEnabled: boolean;
+  /** Display features (#3): kiosk (borne) and TV board activation. */
+  kioskEnabled: boolean;
+  tvEnabled: boolean;
   /** Stripe linkage — present when the user has an online subscription. */
   stripeCustomerId: string | null;
   stripeSubscriptionId: string | null;
@@ -90,6 +93,8 @@ export async function listUsers({
         planRenewsAt: true,
         suspended: true,
         orderingEnabled: true,
+        kioskEnabled: true,
+        tvEnabled: true,
         stripeCustomerId: true,
         stripeSubscriptionId: true,
         // Membership as a MEMBER (invited into another owner's workspace).
@@ -113,6 +118,8 @@ export async function listUsers({
       suspended: u.suspended,
       restaurantCount: u._count.restaurants,
       orderingEnabled: u.orderingEnabled,
+      kioskEnabled: u.kioskEnabled,
+      tvEnabled: u.tvEnabled,
       stripeCustomerId: u.stripeCustomerId,
       stripeSubscriptionId: u.stripeSubscriptionId,
       isMember: u.memberOf !== null,

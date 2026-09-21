@@ -18,6 +18,9 @@ export default async function TvMenuPage({
   const data = await getPublicMenuData({ id: params.id });
   if (!data) notFound();
   if (data.trialExpired) return <MenuUnavailable name={data.name} />;
+  // TV board must be activated for this account (#3).
+  if (!data.tvEnabled)
+    return <MenuUnavailable name={data.name} reason="feature" />;
 
   return (
     <TvMenuBoard
