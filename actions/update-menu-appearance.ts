@@ -7,14 +7,15 @@ import { db } from '@/lib/db';
 import { MenuAppearanceSchema } from '@/schemas';
 import { currentUser } from '@/lib/authentication';
 import { assertRestaurantOwner } from '@/data/restaurant';
-import { isWorkspaceMember } from '@/data/workspace';
+import { getWorkspaceContext } from '@/data/workspace';
+import { hasPermission } from '@/lib/permissions';
 
 /**
  * Update the diner-menu appearance settings for a restaurant (Requirement 4).
  *
- * Owner-scoped: the authenticated user must own the target restaurant, or the
- * update is rejected. Input is validated with `MenuAppearanceSchema` and
- * persisted to `Restaurant.menuAppearance` via the shared Prisma client.
+ * Scoped to the workspace OWNER's restaurant. Members need the "numerique"
+ * permission (#7). Input is validated with `MenuAppearanceSchema` and persisted
+ * to `Restaurant.menuAppearance` via the shared Prisma client.
  */
 export async function updateMenuAppearance(
   restaurantId: string,
@@ -26,13 +27,14 @@ export async function updateMenuAppearance(
     return { error: 'Unauthorized.' };
   }
 
-  // Owner-only: members cannot change the diner-menu appearance.
-  if (await isWorkspaceMember(user.id)) {
-    return { error: 'Action réservée au propriétaire du compte.' };
+  const { ownerId, role, permissions } = await getWorkspaceContext(user.id);
+  // #7: members need the "numerique" permission to change the menu appearance.
+  if (role === 'MEMBER' && !hasPermission(permissions, 'numerique')) {
+    return { error: "Vous n'avez pas la permission de gérer le menu numérique." };
   }
 
-  // Owner-scoping: reject when the restaurant is not owned by the user.
-  const restaurant = await assertRestaurantOwner(user.id, restaurantId);
+  // Owner-scoping: reject when the restaurant is not owned by the workspace.
+  const restaurant = await assertRestaurantOwner(ownerId, restaurantId);
 
   if (!restaurant) {
     return { error: 'Restaurant not found.' };

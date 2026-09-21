@@ -15,7 +15,10 @@ export type MemberPermission =
   | 'performances' // Mes performances (analytics)
   | 'menus' // Menus + Catégories & plats (create/edit dishes)
   | 'reviews' // Avis clients
-  | 'orders'; // Commandes + Cuisine (order taking / kitchen)
+  | 'orders' // Commandes + Cuisine (order taking / kitchen)
+  | 'tables' // Plan de salle (manage tables)
+  | 'numerique' // Menu numérique : apparence & QR code
+  | 'restaurants'; // Mes restaurants (manage restaurants)
 
 /** All assignable permissions, in display order, with French labels. */
 export const MEMBER_PERMISSIONS: {
@@ -43,6 +46,21 @@ export const MEMBER_PERMISSIONS: {
     label: 'Commandes & cuisine',
     description: 'Prendre les commandes et gérer la vue cuisine.',
   },
+  {
+    key: 'tables',
+    label: 'Plan de salle',
+    description: 'Gérer les tables et le plan de salle.',
+  },
+  {
+    key: 'numerique',
+    label: 'Menu numérique & QR',
+    description: 'Personnaliser l’apparence du menu et le QR code.',
+  },
+  {
+    key: 'restaurants',
+    label: 'Restaurants',
+    description: 'Gérer les informations des restaurants.',
+  },
 ];
 
 export const ALL_PERMISSION_KEYS: MemberPermission[] = MEMBER_PERMISSIONS.map(
@@ -66,6 +84,9 @@ export const PERMISSION_HREFS: Record<MemberPermission, string[]> = {
   menus: ['/menu', '/categories'],
   reviews: ['/reviews'],
   orders: ['/commandes', '/cuisine'],
+  tables: ['/tables'],
+  numerique: ['/numerique'],
+  restaurants: ['/restaurant'],
 };
 
 /**

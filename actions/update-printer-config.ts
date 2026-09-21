@@ -7,15 +7,15 @@ import { db } from '@/lib/db';
 import { PrinterConfigSchema } from '@/schemas';
 import { currentUser } from '@/lib/authentication';
 import { assertRestaurantOwner } from '@/data/restaurant';
-import { isWorkspaceMember } from '@/data/workspace';
+import { getWorkspaceContext } from '@/data/workspace';
+import { hasPermission } from '@/lib/permissions';
 
 /**
  * Update the ticket-printer configuration for a restaurant (FEAT-1 follow-up).
  *
- * Mirrors `updateMenuAppearance`: owner-scoped (members cannot change it), the
- * user must own the target restaurant, input is validated with
- * `PrinterConfigSchema`, and the result is persisted to
- * `Restaurant.printerConfig` (JSON) via the shared Prisma client.
+ * Scoped to the workspace OWNER's restaurant. Members need the "numerique"
+ * permission (#7); input is validated with `PrinterConfigSchema` and persisted
+ * to `Restaurant.printerConfig` (JSON) via the shared Prisma client.
  */
 export async function updatePrinterConfig(
   restaurantId: string,
@@ -27,13 +27,14 @@ export async function updatePrinterConfig(
     return { error: 'Unauthorized.' };
   }
 
-  // Owner-only: members cannot change the printer configuration.
-  if (await isWorkspaceMember(user.id)) {
-    return { error: 'Action réservée au propriétaire du compte.' };
+  const { ownerId, role, permissions } = await getWorkspaceContext(user.id);
+  // #7: members need the "numerique" permission to change the printer config.
+  if (role === 'MEMBER' && !hasPermission(permissions, 'numerique')) {
+    return { error: "Vous n'avez pas la permission de gérer le menu numérique." };
   }
 
-  // Owner-scoping: reject when the restaurant is not owned by the user.
-  const restaurant = await assertRestaurantOwner(user.id, restaurantId);
+  // Owner-scoping: reject when the restaurant is not owned by the workspace.
+  const restaurant = await assertRestaurantOwner(ownerId, restaurantId);
 
   if (!restaurant) {
     return { error: 'Restaurant introuvable.' };

@@ -66,22 +66,6 @@ type Group = {
 /** Workspace role used to gate owner-only navigation entries. */
 export type WorkspaceNavRole = "OWNER" | "MEMBER";
 
-/**
- * Nav hrefs that are OWNER-only (mangeqr-team, T9). MEMBERS act on the owner's
- * menus/categories/dishes but cannot manage restaurants, marketing campaigns or
- * the digital-menu appearance/QR, so those entries are hidden for them. This is
- * UX hiding only — the server routes remain authoritative (T5). Menus and
- * "Catégories & plats" stay visible to members.
- */
-const OWNER_ONLY_HREFS = new Set<string>([
-  "/restaurant",
-  "/marketing",
-  "/numerique",
-  // Managing the floor plan is a restaurant-structure action (FEAT-2). Members
-  // can take/manage orders and use the kitchen board, but not edit tables.
-  "/tables",
-]);
-
 export function getMenuList(
   pathname: string,
   role: WorkspaceNavRole = "OWNER",
@@ -484,16 +468,15 @@ export function getMenuList(
     // Settings stays available to every member regardless of permissions.
     allowedByPermission.add("/settings");
 
+    // A member sees ONLY the entries a granted permission unlocks (plus
+    // Settings). Every area — including what used to be owner-only (restaurants,
+    // tables, numérique, marketing) — is now permission-gated (#7).
     return applyHidden(
       groups
         .map((group) => ({
           ...group,
-          menus: group.menus.filter(
-            (menu) =>
-              // Owner-only areas are always hidden for members…
-              !OWNER_ONLY_HREFS.has(menu.href) &&
-              // …and permission-gated areas require the matching permission.
-              allowedByPermission.has(menu.href)
+          menus: group.menus.filter((menu) =>
+            allowedByPermission.has(menu.href)
           ),
         }))
         .filter((group) => group.menus.length > 0)

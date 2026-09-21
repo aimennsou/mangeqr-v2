@@ -4,6 +4,7 @@ import { db } from '@/lib/db';
 import { getEffectivePlan, getPlanLimits, isTrialExpired } from '@/lib/plan';
 import {
   parsePermissions,
+  hasPermission,
   type MemberPermission,
 } from '@/lib/permissions';
 import type { Invitation, WorkspaceRole } from '@prisma/client';
@@ -78,6 +79,21 @@ export async function getWorkspaceContext(
   }
   // Owners implicitly have every permission.
   return { ownerId: userId, role: 'OWNER', permissions: null };
+}
+
+/**
+ * Authoritative server-side permission check (#7). Owners always pass; a member
+ * passes only when the given permission is in their granted set. Use this in
+ * server actions / API routes that used to be owner-only but are now grantable
+ * to members (restaurants, tables, numérique, marketing).
+ */
+export async function memberCanAccess(
+  userId: string,
+  permission: MemberPermission
+): Promise<boolean> {
+  const ctx = await getWorkspaceContext(userId);
+  if (ctx.role === 'OWNER') return true;
+  return hasPermission(ctx.permissions, permission);
 }
 
 /**

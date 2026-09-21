@@ -6,6 +6,7 @@ import { db } from '@/lib/db';
 import { SaveFloorPlanSchema } from '@/schemas';
 import { currentUserId } from '@/lib/authentication';
 import { getWorkspaceContext } from '@/data/workspace';
+import { hasPermission } from '@/lib/permissions';
 import { assertRestaurantOwned } from '@/data/tables';
 
 type ActionResult =
@@ -28,10 +29,10 @@ export async function saveFloorPlan(
     return { error: 'Non autorisé.' };
   }
 
-  const { ownerId, role } = await getWorkspaceContext(userId);
-  // Owner-only: members cannot edit the restaurant's table layout.
-  if (role === 'MEMBER') {
-    return { error: 'Action réservée au propriétaire du compte.' };
+  const { ownerId, role, permissions } = await getWorkspaceContext(userId);
+  // #7: members need the "tables" permission to edit the floor plan.
+  if (role === 'MEMBER' && !hasPermission(permissions, 'tables')) {
+    return { error: "Vous n'avez pas la permission de gérer le plan de salle." };
   }
 
   const parsed = SaveFloorPlanSchema.safeParse(values);

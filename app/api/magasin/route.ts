@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { buildPathMenuUrl, normalizeSubdomain, validateSubdomain } from '@/lib/subdomain';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
-import { getWorkspaceOwnerId, isWorkspaceMember } from '@/data/workspace';
+import { getWorkspaceOwnerId, memberCanAccess } from '@/data/workspace';
 import { notifyPlanLimitHit } from '@/lib/notifications';
 
 
@@ -25,13 +25,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Owner-only: members cannot create restaurants.
-    if (await isWorkspaceMember(userId)) {
+    // #7: creating restaurants requires the "restaurants" permission (owners
+    // always have it; members need it granted). Restaurants are scoped to the
+    // workspace OWNER so a member creates under the owner's account, not their
+    // own.
+    if (!(await memberCanAccess(userId, 'restaurants'))) {
       return NextResponse.json(
-        { error: "Action réservée au propriétaire du compte." },
+        { error: "Vous n'avez pas la permission de gérer les restaurants." },
         { status: 403 }
       );
     }
+    const ownerId = await getWorkspaceOwnerId(userId);
 
     // Normalize + validate the subdomain (the diner menu access link).
     const normalizedSubdomain = normalizeSubdomain(subdomain ?? "");
@@ -52,8 +56,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Plan/limit/ownership are resolved against the workspace OWNER (a member
+    // acts on the owner's account).
     const user = await db.user.findUnique({
-      where: { id: userId },
+      where: { id: ownerId },
     });
     if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -61,11 +67,13 @@ export async function POST(req: NextRequest) {
 
     // Enforce the plan's restaurant limit (expiry-aware).
     const restaurantLimit = getPlanLimits(getEffectivePlan(user)).restaurants;
-    const restaurantCount = await db.restaurant.count({ where: { userId } });
+    const restaurantCount = await db.restaurant.count({
+      where: { userId: ownerId },
+    });
     if (restaurantCount >= restaurantLimit) {
       // Notify the owner (upgrade nudge) + the back-office (#4).
       await notifyPlanLimitHit({
-        ownerId: userId,
+        ownerId,
         resource: 'restaurants',
         limit: restaurantLimit,
       });
@@ -155,13 +163,14 @@ export async function GET() {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      // Owner-only: members cannot delete restaurants.
-      if (await isWorkspaceMember(userId)) {
+      // #7: deleting restaurants requires the "restaurants" permission.
+      if (!(await memberCanAccess(userId, 'restaurants'))) {
         return NextResponse.json(
-          { error: "Action réservée au propriétaire du compte." },
+          { error: "Vous n'avez pas la permission de gérer les restaurants." },
           { status: 403 }
         );
       }
+      const ownerId = await getWorkspaceOwnerId(userId);
 
       const body = await req.json();
       const { id } = body;
@@ -171,13 +180,13 @@ export async function GET() {
         return NextResponse.json({ error: "Missing required field: id" }, { status: 400 });
       }
 
-      // Scope deletion to restaurants owned by the current user so a user can
+      // Scope deletion to the workspace owner's restaurants so a member can
       // never delete another owner's restaurant by guessing its id.
       const ids = Array.isArray(id) ? id : [id];
       await db.restaurant.deleteMany({
         where: {
           id: { in: ids },
-          userId,
+          userId: ownerId,
         },
       });
 
@@ -197,13 +206,14 @@ export async function GET() {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      // Owner-only: members cannot edit restaurants.
-      if (await isWorkspaceMember(userId)) {
+      // #7: editing restaurants requires the "restaurants" permission.
+      if (!(await memberCanAccess(userId, 'restaurants'))) {
         return NextResponse.json(
-          { error: "Action réservée au propriétaire du compte." },
+          { error: "Vous n'avez pas la permission de gérer les restaurants." },
           { status: 403 }
         );
       }
+      const ownerId = await getWorkspaceOwnerId(userId);
 
       const { id, name, address, phone, currency, subdomain, coverPhoto, wifi, website, instagram, tiktok, google } = await req.json();
   
@@ -212,9 +222,9 @@ export async function GET() {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
 
-      // Ownership check: the restaurant must belong to the current user.
+      // Ownership check: the restaurant must belong to the workspace owner.
       const owned = await db.restaurant.findFirst({
-        where: { id, userId },
+        where: { id, userId: ownerId },
         select: { id: true },
       });
       if (!owned) {

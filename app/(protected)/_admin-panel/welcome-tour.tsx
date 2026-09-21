@@ -5,6 +5,7 @@ import { driver, type DriveStep, type Driver } from "driver.js";
 import "driver.js/dist/driver.css";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
+import { useAppRole, useWorkspaceRole } from "@/hooks/use-workspace-role";
 
 /**
  * FEAT-1 — First-login welcome / introduction guided tour.
@@ -54,8 +55,19 @@ const isMobileViewport = () =>
 
 export function WelcomeTour() {
   const { t } = useI18n();
+  // The guided tour is a restaurateur (owner) onboarding experience. It must
+  // NOT appear for back-office roles (ADMIN / SUPERADMIN / STAFF) or for team
+  // members — its steps point at the restaurateur nav they don't use.
+  const appRole = useAppRole();
+  const workspaceRole = useWorkspaceRole();
+  const isRestaurateurOwner = appRole === "USER" && workspaceRole === "OWNER";
 
   useEffect(() => {
+    // Never auto-start or bind the replay listener for non-restaurateur roles.
+    // `appRole` is null until resolved (fail-closed), so we wait for it.
+    if (appRole === null) return;
+    if (!isRestaurateurOwner) return;
+
     const tr = (key: TranslationKey) => t(key);
 
     // Resolve a selector, preferring the visible mobile Sheet on small screens
@@ -214,7 +226,11 @@ export function WelcomeTour() {
       const d = driver({
         showProgress: true,
         allowClose: true,
-        overlayColor: "rgba(0, 0, 0, 0.6)",
+        // On-brand popover styling (#4) — see `.mangeqr-tour` in globals.css.
+        popoverClass: "mangeqr-tour",
+        overlayColor: "rgba(23, 23, 23, 0.65)",
+        stagePadding: 6,
+        stageRadius: 12,
         nextBtnText: tr("tour.next"),
         prevBtnText: tr("tour.prev"),
         doneBtnText: tr("tour.done"),
@@ -276,10 +292,11 @@ export function WelcomeTour() {
     return () => {
       window.removeEventListener(TOUR_START_EVENT, onReplay);
     };
-    // Run once on mount; translator identity changes with locale but the tour is
-    // a one-shot first-visit experience, so we intentionally don't re-run.
+    // Re-run when the role resolves (appRole starts null). Translator identity
+    // changes with locale but the tour is a one-shot experience, so we don't
+    // re-run on that.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [appRole, isRestaurateurOwner]);
 
   return null;
 }

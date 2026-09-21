@@ -7,24 +7,28 @@ import { db } from '@/lib/db';
 import { TvConfigSchema, BorneConfigSchema } from '@/schemas';
 import { currentUser } from '@/lib/authentication';
 import { assertRestaurantOwner } from '@/data/restaurant';
-import { isWorkspaceMember } from '@/data/workspace';
+import { getWorkspaceContext } from '@/data/workspace';
+import { hasPermission } from '@/lib/permissions';
 
 /**
- * Owner-only actions to edit the public display views:
+ * Actions to edit the public display views:
  *  - TV menu board (/tv/[id])   → Restaurant.tvConfig
  *  - Self-order kiosk (/borne/[id]) → Restaurant.borneConfig
  *
- * Mirrors updatePrinterConfig: owner-scoped (members rejected), the user must
- * own the target restaurant, input validated, persisted as JSON.
+ * Scoped to the workspace OWNER's restaurant. Members need the "numerique"
+ * permission (#7); input validated, persisted as JSON.
  */
 
 async function guard(restaurantId: string) {
   const user = await currentUser();
   if (!user?.id) return { error: 'Unauthorized.' as const };
-  if (await isWorkspaceMember(user.id)) {
-    return { error: 'Action réservée au propriétaire du compte.' as const };
+  const { ownerId, role, permissions } = await getWorkspaceContext(user.id);
+  if (role === 'MEMBER' && !hasPermission(permissions, 'numerique')) {
+    return {
+      error: "Vous n'avez pas la permission de gérer le menu numérique." as const,
+    };
   }
-  const restaurant = await assertRestaurantOwner(user.id, restaurantId);
+  const restaurant = await assertRestaurantOwner(ownerId, restaurantId);
   if (!restaurant) return { error: 'Restaurant introuvable.' as const };
   return { restaurant };
 }

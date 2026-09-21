@@ -15,13 +15,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Owner-only: members do not manage marketing.
+    // Owner-only: marketing is not delegated to members.
     if (await isWorkspaceMember(userId)) {
       return NextResponse.json(
         { error: 'Action réservée au propriétaire du compte.' },
         { status: 403 }
       );
     }
+    const ownerId = userId;
 
     const { name, description, subject, body, restaurantId, recipients } =
       await req.json();
@@ -37,9 +38,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Verify the restaurant belongs to the current user
+    // Verify the restaurant belongs to the workspace owner
     const restaurant = await db.restaurant.findFirst({
-      where: { id: restaurantId, userId },
+      where: { id: restaurantId, userId: ownerId },
     });
 
     if (!restaurant) {
@@ -50,14 +51,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Enforce the plan's campaign limit (expiry-aware), counted across all of
-    // the user's restaurants.
-    const user = await db.user.findUnique({ where: { id: userId } });
+    // the owner's restaurants.
+    const user = await db.user.findUnique({ where: { id: ownerId } });
     const campaignLimit = getPlanLimits(getEffectivePlan(user ?? {})).campaigns;
     const campaignCount = await db.marketingCampaign.count({
-      where: { restaurant: { userId } },
+      where: { restaurant: { userId: ownerId } },
     });
     if (campaignCount >= campaignLimit) {
-      const ownerId = await getWorkspaceOwnerId(userId);
       await notifyPlanLimitHit({
         ownerId,
         resource: 'campagnes',
@@ -147,13 +147,14 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Owner-only: members do not manage marketing.
+    // Owner-only: marketing is not delegated to members.
     if (await isWorkspaceMember(userId)) {
       return NextResponse.json(
         { error: 'Action réservée au propriétaire du compte.' },
         { status: 403 }
       );
     }
+    const ownerId = userId;
 
     const { id, name, description, subject, body, recipients } =
       await req.json();
@@ -165,9 +166,9 @@ export async function PUT(req: NextRequest) {
       );
     }
 
-    // Verify ownership through the campaign's restaurant
+    // Verify ownership through the campaign's restaurant (workspace owner).
     const existing = await db.marketingCampaign.findFirst({
-      where: { id, restaurant: { userId } },
+      where: { id, restaurant: { userId: ownerId } },
     });
 
     if (!existing) {
@@ -230,13 +231,14 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Owner-only: members do not manage marketing.
+    // Owner-only: marketing is not delegated to members.
     if (await isWorkspaceMember(userId)) {
       return NextResponse.json(
         { error: 'Action réservée au propriétaire du compte.' },
         { status: 403 }
       );
     }
+    const ownerId = userId;
 
     const { id, ids } = await req.json();
 
@@ -256,10 +258,10 @@ export async function DELETE(req: NextRequest) {
       );
     }
 
-    // Only delete campaigns owned by the current user.
+    // Only delete campaigns owned by the workspace owner.
     // EmailRecipient rows cascade via schema onDelete: Cascade.
     await db.marketingCampaign.deleteMany({
-      where: { id: { in: targetIds }, restaurant: { userId } },
+      where: { id: { in: targetIds }, restaurant: { userId: ownerId } },
     });
 
     return NextResponse.json(
