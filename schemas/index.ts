@@ -44,6 +44,9 @@ const PermissionKeySchema = z.enum([
   'menus',
   'reviews',
   'orders',
+  'tables',
+  'numerique',
+  'restaurants',
 ]);
 
 /** Owner creates an invite with the invitee's contact prefilled (#13). */
