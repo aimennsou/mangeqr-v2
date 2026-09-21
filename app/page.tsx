@@ -10,6 +10,8 @@ import V2Proof from './v2/_components/V2Proof';
 import V2Features from './v2/_components/V2Features';
 import V2GoogleMaps from './v2/_components/V2GoogleMaps';
 import V2Reach from './v2/_components/V2Reach';
+import V2PrintedMenus from './v2/_components/V2PrintedMenus';
+import V2Reputation from './v2/_components/V2Reputation';
 import V2Pricing from './v2/_components/V2Pricing';
 import V2Kit from './v2/_components/V2Kit';
 import V2Faq from './v2/_components/V2Faq';
@@ -63,9 +65,11 @@ export default async function HomePage() {
         <V2Editor />
         <V2Demo />
         <V2Proof />
+        <V2Reputation />
         <V2Features />
         <V2GoogleMaps />
         <V2Reach />
+        <V2PrintedMenus />
         <V2Pricing />
         <V2Kit />
         <V2Faq />
