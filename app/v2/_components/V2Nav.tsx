@@ -7,6 +7,7 @@ import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
 import { cn } from '@/lib/utils';
+import V2FeaturesMenu from './V2FeaturesMenu';
 
 /**
  * Editorial v2 header. Transparent over the hero, then a hairline border + a
@@ -38,6 +39,7 @@ export default function V2Nav() {
         </Link>
 
         <div className="flex items-center gap-1 sm:gap-2">
+          <V2FeaturesMenu />
           <Link href="/#tarifs">
             <Button variant="ghost" className="hidden sm:inline-flex">
               Tarifs
