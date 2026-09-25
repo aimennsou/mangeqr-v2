@@ -3,7 +3,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 // `qrcode` ships no bundled types and @types/qrcode isn't installed.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import QRCode from "qrcode";
 import { toast } from "sonner";

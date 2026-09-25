@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, useTransition } from 'react';
 // `qrcode` ships no bundled types.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import QRCode from 'qrcode';
 import {

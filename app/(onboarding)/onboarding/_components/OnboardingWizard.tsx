@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 // `qrcode` ships no bundled types.
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import QRCode from 'qrcode';
 import { toast } from 'sonner';
