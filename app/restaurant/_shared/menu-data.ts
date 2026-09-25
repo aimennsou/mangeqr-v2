@@ -2,7 +2,7 @@ import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { getS3Url } from "@/lib/s3";
 import type { MenuAppearance, TvConfig, BorneConfig } from "@/schemas";
-import { currencySymbol } from "@/lib/currency";
+import { currencySymbol, currencyCode } from "@/lib/currency";
 import { isTrialExpired } from "@/lib/plan";
 
 /**
@@ -149,6 +149,9 @@ export async function getPublicMenuData(where: Prisma.RestaurantWhereUniqueInput
     tvConfig: (restaurant.tvConfig as TvConfig | null) ?? null,
     borneConfig: (restaurant.borneConfig as BorneConfig | null) ?? null,
     currency: currencySymbol(restaurant.currency),
+    // ISO code (EUR/USD/DZD) alongside the display symbol — schema.org's
+    // `priceCurrency` requires the code, not the symbol.
+    currencyCode: currencyCode(restaurant.currency),
     // FEAT-1: diner ordering context.
     orderingEnabled,
     tables: tables.map((t) => ({ id: t.id, label: t.label })),

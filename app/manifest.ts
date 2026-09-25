@@ -9,6 +9,9 @@ export default function manifest(): MetadataRoute.Manifest {
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',
-    theme_color: '#34d399', // Tailwind CSS's emerald-400
+    // Brand gold (Tailwind yellow-400) — matches the landing accent, the CTA
+    // buttons and the HolyLoader progress bar. Was emerald-400, which belonged
+    // to no part of the product.
+    theme_color: '#facc15',
   };
 }
