@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import { currentUser } from '@/lib/authentication';
 import { db } from '@/lib/db';
 import { getUserByEmail } from '@/data/user';
+import { sendTeamInvitationEmail } from '@/lib/mail';
 import {
   CreateInviteSchema,
   SignUpAndJoinSchema,
@@ -19,6 +20,7 @@ import {
   updateMemberPermissions,
   isWorkspaceMember,
   consumeInvitationAndCreateMembership,
+  findValidInvitationByCode,
 } from '@/data/workspace';
 
 /**
@@ -57,7 +59,14 @@ function buildRedeemLink(code: string): string {
 export async function generateInvite(
   values?: z.infer<typeof CreateInviteSchema>
 ): Promise<
-  { error: string } | { success: string; code: string; link: string }
+  | { error: string }
+  | {
+      success: string;
+      code: string;
+      link: string;
+      /** True when an invitation email was actually dispatched. */
+      emailed: boolean;
+    }
 > {
   const user = await currentUser();
   if (!user?.id) {
@@ -99,10 +108,33 @@ export async function generateInvite(
       label: parsed.data.label || null,
       permissions: parsed.data.permissions ?? null,
     });
+
+    const link = buildRedeemLink(invitation.code);
+
+    // Email the invitee when the owner supplied an address. `inviteeEmail` was
+    // already being collected and stored but nothing was ever sent — the owner
+    // had to copy the link and share it manually. Sending is best-effort: the
+    // code/link stays valid either way, so a mail failure must not fail the
+    // action, but we DO report which happened rather than implying an email
+    // went out when it didn't.
+    let emailed = false;
+    if (invitation.inviteeEmail) {
+      emailed = await sendTeamInvitationEmail({
+        email: invitation.inviteeEmail,
+        name: invitation.inviteeName,
+        ownerName: user.name ?? null,
+        code: invitation.code,
+        inviteLink: link,
+      });
+    }
+
     return {
-      success: "Code d'invitation généré.",
+      success: emailed
+        ? `Invitation envoyée à ${invitation.inviteeEmail}.`
+        : "Code d'invitation généré. Partagez le lien avec votre collaborateur.",
       code: invitation.code,
-      link: buildRedeemLink(invitation.code),
+      link,
+      emailed,
     };
   } catch {
     return { error: "Impossible de générer le code d'invitation." };
@@ -290,6 +322,14 @@ export async function signUpAndJoin(
 
   const { code, name, email, phone, password } = parsed.data;
 
+  // Check the code BEFORE creating anything. The redeem below re-validates
+  // atomically (this is only a fast path), but without it a mistyped code meant
+  // creating a user row and then deleting it again on every attempt.
+  const invitation = await findValidInvitationByCode(code);
+  if (!invitation) {
+    return { error: redeemReasonToMessage('invalid') };
+  }
+
   const existing = await getUserByEmail(email);
   if (existing) {
     return {
@@ -304,7 +344,7 @@ export async function signUpAndJoin(
   try {
     const created = await db.user.create({
       data: {
-        name: phone ? `${name}` : name,
+        name,
         email,
         password: hashedPassword,
         // Trusted invite flow → verified so they can log in immediately.
@@ -330,6 +370,23 @@ export async function signUpAndJoin(
       // ignore cleanup failure
     }
     return { error: redeemReasonToMessage(result.reason) };
+  }
+
+  // The form asks for a phone number, but `User` has no phone column — it was
+  // previously validated and then silently discarded (the old
+  // `name: phone ? name : name` expression was a no-op). Keep it on the
+  // invitation instead, which is the owner-visible record of this person, and
+  // only when the owner didn't already prefill one. Best-effort: never fail the
+  // join over this.
+  if (phone?.trim() && !invitation.inviteePhone) {
+    try {
+      await db.invitation.updateMany({
+        where: { id: invitation.id, usedByUserId: userId },
+        data: { inviteePhone: phone.trim() },
+      });
+    } catch {
+      // ignore
+    }
   }
 
   return {

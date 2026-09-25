@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { PasswordReset } from '@/components/emails/password-reset';
 import { EmailVerification } from '@/components/emails/email-verification';
 import { TwoFactorAuthentication } from '@/components/emails/two-factor-authentication';
+import { TeamInvitation } from '@/components/emails/team-invitation';
 
 const domain = process.env.AUTH_URL;
 
@@ -70,4 +71,45 @@ export async function sendTwoFactorTokenEmail(
     subject: 'Votre code d\'authentification à deux facteurs',
     react: TwoFactorAuthentication({ name, token })
   });
+}
+
+/**
+ * Email a workspace invitation to the invitee.
+ *
+ * Returns whether the email was actually dispatched, so the caller can tell the
+ * owner "invitation sent" vs "copy this link and share it yourself" instead of
+ * silently implying an email went out. Never throws: a mail failure must not
+ * fail invite creation, since the code/link is still valid and shareable.
+ */
+export async function sendTeamInvitationEmail(args: {
+  email: string;
+  name: string | null;
+  ownerName: string | null;
+  code: string;
+  inviteLink: string;
+}): Promise<boolean> {
+  const resend = getResend();
+  if (!resend) return false;
+
+  try {
+    const { error } = await resend.emails.send({
+      from: 'MangeQR <equipe@mangeqr.com>',
+      to: [args.email],
+      subject: 'Vous êtes invité à rejoindre une équipe sur MangeQR',
+      react: TeamInvitation({
+        name: args.name,
+        ownerName: args.ownerName,
+        code: args.code,
+        inviteLink: args.inviteLink
+      })
+    });
+    if (error) {
+      console.error('[mail] team invitation send failed:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('[mail] team invitation send threw:', err);
+    return false;
+  }
 }

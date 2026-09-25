@@ -67,15 +67,14 @@ export function TwoFactorAuthentication({
             </Section>
 
             <Text className='text-gray-500 text-xs text-center mt-5'>
-              <Link
-                href='https://github.com/salimi-my/next-auth-starter' // Remplacez par un lien pertinent
-                className='text-gray-500 font-semibold'
-              >
+              {/* Was pointing at the next-auth-starter GitHub repo this was
+                  scaffolded from. */}
+              <Link href='' className='text-gray-500 font-semibold'>
                 Tous droits réservés
               </Link>
               ・ {' '}
               <Link
-                href='https://www.mangeqr.com' // Remplacez par l'URL de votre site
+                href='https://www.mangeqr.com'
                 className='underline text-gray-500 underline-offset-2'
               >
                 MangeQR

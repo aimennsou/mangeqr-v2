@@ -20,69 +20,81 @@ interface PasswordResetProps {
   resetLink: string;
 }
 
+/**
+ * Password-reset email.
+ *
+ * This template previously still carried the "VidQA" branding, English copy and
+ * a link to the `next-auth-starter` GitHub repo it was scaffolded from — so
+ * every MangeQR customer who reset their password received an email for a
+ * different product. Rewritten to match `email-verification.tsx`.
+ */
 export function PasswordReset({ name, resetLink }: PasswordResetProps) {
   return (
     <Html>
       <Head>
-        <title>Password Reset</title>
+        <title>Réinitialisation du mot de passe</title>
       </Head>
-      <Preview>Reset your VidQA account password</Preview>
+      <Preview>Réinitialisez le mot de passe de votre compte MangeQR</Preview>
       <Tailwind>
         <Body className='bg-white text-gray-900 font-sans'>
           <Container className='max-w-[480px] my-0 mx-auto pt-5 pb-12 px-0'>
             <Link href={baseUrl} className='flex items-center text-gray-800'>
               <Img
-                src="vidqa.app/images/logo.png"
+                src={`https://mangeqr.com/logo.png`}
                 width='32'
                 height='32'
+                alt='MangeQR'
                 className='mr-1 -ml-1'
-                alt='VidQA'
               />
               <Heading as='h1' className='text-3xl font-bold m-0'>
-                VidQA
+                MangeQR
               </Heading>
             </Link>
 
             <Text className='text-xl'>
-              Hello <strong>{typeof name === 'string' ? name : 'User'}</strong>,  
-              a password reset request has been made for your account.
+              Bonjour{' '}
+              <strong>
+                {typeof name === 'string' ? name : 'Utilisateur'}
+              </strong>
+              , une réinitialisation de mot de passe a été demandée pour votre
+              compte.
             </Text>
 
             <Section className='p-6 border-solid border border-gray-300 rounded-md text-center'>
               <Text className='m-0 mb-3 text-left'>
-                Greetings from <strong>VidQA</strong>!
+                Bonjour de la part de <strong>MangeQR</strong> !
               </Text>
               <Text className='m-0 mb-3 text-left'>
-                Someone recently requested to reset the password for your VidQA account.  
-                If this was you, please click the button below to set a new password.
+                Quelqu&apos;un a récemment demandé la réinitialisation du mot de
+                passe de votre compte MangeQR. Si c&apos;était bien vous,
+                cliquez sur le bouton ci-dessous pour définir un nouveau mot de
+                passe.
               </Text>
 
               <Button
                 href={resetLink}
                 className='text-sm font-semibold bg-gray-900 rounded-md text-white py-2 px-6'
               >
-                Reset Password
+                Réinitialiser mon mot de passe
               </Button>
 
               <Text className='m-0 my-3 text-left'>
-                If you do not wish to change your password or did not make this request,  
-                please ignore and delete this message.
+                Si vous ne souhaitez pas modifier votre mot de passe ou si vous
+                n&apos;êtes pas à l&apos;origine de cette demande, ignorez et
+                supprimez simplement ce message.
               </Text>
             </Section>
 
             <Text className='text-gray-500 text-xs text-center mt-5'>
-              <Link
-                href='https://github.com/salimi-my/next-auth-starter'
-                className='text-gray-500 font-semibold'
-              >
-                All rights reserved
+              <Link href='' className='text-gray-500 font-semibold'>
+                Tous droits réservés
               </Link>
-              ・ {' '}
+              ・{' '}
               <Link
-                href='https://www.vidqa.app'
+                href='https://www.mangeqr.com'
                 className='underline text-gray-500 underline-offset-2'
               >
-                VidQA
+                MangeQR
               </Link>
             </Text>
           </Container>
