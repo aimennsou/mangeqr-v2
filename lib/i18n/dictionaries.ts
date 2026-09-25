@@ -598,6 +598,423 @@ const fr: Dict = {
     "Décochez pour un ticket cuisine sans prix.",
   "printer.testPrint": "Test d'impression",
   "printer.saved": "Configuration de l'imprimante enregistrée.",
+
+  // -------------------------------------------------------------------------
+  // Self-order kiosk (/borne). A PUBLIC, walk-in-facing surface, so it needs its
+  // own language switcher — the diner never signed in and has no cookie yet.
+  // Dish/category names and the owner's welcome title come from borneConfig and
+  // are owner DATA, so they stay untranslated.
+  // -------------------------------------------------------------------------
+  "kiosk.home": "Accueil",
+  "kiosk.back": "Retour",
+  "kiosk.continue": "Continuer",
+  "kiosk.cancel": "Annuler",
+  "kiosk.add": "Ajouter",
+  "kiosk.total": "Total",
+  "kiosk.menuLabel": "Menu",
+  "kiosk.language": "Langue",
+
+  "kiosk.type.title": "Comment souhaitez-vous être servi ?",
+  "kiosk.type.subtitle":
+    "Choisissez ce qui vous arrange — la commande est la même.",
+  "kiosk.type.table": "Service à table",
+  "kiosk.type.tableHint": "On vous apporte votre commande",
+  "kiosk.type.counter": "Retrait au comptoir",
+  "kiosk.type.counterHint": "On appelle votre numéro",
+  "kiosk.type.chooseTable": "Choisissez votre table",
+
+  "kiosk.menu.title": "Choisissez votre plat",
+  "kiosk.menu.subtitle": "Choisissez pour commencer",
+  "kiosk.menu.empty": "Aucun plat.",
+  "kiosk.menu.itemOne": "article",
+  "kiosk.menu.itemMany": "articles",
+  "kiosk.menu.viewOrder": "Voir ma commande",
+
+  "kiosk.item.required": "Requis",
+  "kiosk.item.note": "Remarque (optionnel)",
+  "kiosk.item.notePlaceholder": "Sans oignons, bien cuit…",
+
+  "kiosk.cart.title": "Vérifiez votre commande",
+  "kiosk.cart.subtitle": "Modifiez les quantités puis validez",
+  "kiosk.cart.empty": "Votre panier est vide.",
+  "kiosk.cart.notePlaceholder": "Remarque pour la cuisine (optionnel)",
+  "kiosk.cart.upsell": "Recommandé avec votre commande",
+
+  "kiosk.pay.title": "Mode de paiement",
+  "kiosk.pay.counter": "Payer au comptoir",
+
+  "kiosk.done.thanks": "Merci !",
+  "kiosk.done.sent": "Votre commande a été envoyée en cuisine.",
+  "kiosk.done.orderNumber": "Numéro de commande",
+  "kiosk.done.wait": "Temps d'attente estimé",
+  "kiosk.done.minutes": "min",
+  "kiosk.done.noteNumber": "Notez votre numéro de commande",
+  "kiosk.done.service": "Service",
+  "kiosk.done.payment": "Paiement",
+  "kiosk.done.payAtCounter": "Paiement au comptoir",
+  "kiosk.done.ratingQuestion": "Comment s'est passée votre expérience ?",
+  "kiosk.done.rating": "Note",
+  "kiosk.done.ratingThanks": "Merci pour votre retour !",
+  "kiosk.done.ratingScale": "1 = mauvais · 5 = excellent",
+  "kiosk.done.newOrder": "Nouvelle commande",
+
+  "kiosk.error.generic": "Une erreur est survenue.",
+  "kiosk.error.network": "Une erreur réseau est survenue.",
+
+  // --- Printed ticket / addition (thermal receipt) ---
+  "printer.ticket.title": "Addition",
+  "printer.ticket.order": "Commande",
+  "printer.ticket.dineIn": "Sur place — Table",
+  "printer.ticket.delivery": "Livraison",
+  "printer.ticket.total": "TOTAL",
+  "printer.ticket.paid": "PAYÉ",
+  "printer.ticket.notPaid": "NON PAYÉ",
+  "printer.ticket.restaurant": "Restaurant",
+  "printer.ticket.thanks": "Merci de votre visite !",
+  "printer.ticket.poweredBy": "Propulsé par MangeQR",
+  "printer.ticket.blocked":
+    "Impression impossible : autorisez les fenêtres pop-up pour ce site.",
+
+  // -------------------------------------------------------------------------
+  // Public landing page (app/page.tsx + app/v2/_components/*).
+  //
+  // Marketing copy, so it is split a little differently from the app chrome:
+  // headlines that contain an inline emphasized fragment are stored as
+  // `*Lead` / `*Accent` / `*Rest` parts, because the emphasis has to stay
+  // inside the <h*> for the typography to work and word order differs per
+  // language. Never concatenate these with assumptions about direction —
+  // render them as adjacent JSX nodes and let `dir` do the work.
+  //
+  // Fictional sample data shown inside the phone / print mockups
+  // (demo dish names, "Le Petit Gourmet", monresto.mangeqr.com) is deliberately
+  // NOT translated: it stands in for a real restaurant's own content.
+  // -------------------------------------------------------------------------
+
+  // Nav + footer
+  "landing.nav.pricing": "Tarifs",
+  "landing.nav.account": "Aller à mon compte",
+  "landing.nav.signIn": "Se connecter",
+  "landing.nav.signUp": "Créer un compte",
+  "landing.nav.features": "Fonctionnalités",
+  "landing.nav.useCases": "Cas d'usage",
+  "landing.nav.viewMenu": "Voir un menu",
+
+  // Nav mega-menu — product features
+  "landing.menu.qr.title": "Menu QR code",
+  "landing.menu.qr.desc": "Une carte numérique toujours à jour, sans réimpression.",
+  "landing.menu.reputation.title": "Gestion de réputation",
+  "landing.menu.reputation.desc": "Collectez les avis et dirigez-les vers Google.",
+  "landing.menu.kitchen.title": "Cuisine & caisse (POS)",
+  "landing.menu.kitchen.desc": "Vue cuisine (KDS) et caisse avec impression de tickets.",
+  "landing.menu.delivery.title": "Livraison & livreurs",
+  "landing.menu.delivery.desc": "Suivi des commandes et affectation des livreurs.",
+  "landing.menu.kiosk.title": "Borne de commande",
+  "landing.menu.kiosk.desc": "Commande en libre-service sur écran tactile.",
+  "landing.menu.tv.title": "Affichage TV",
+  "landing.menu.tv.desc": "Présentez votre menu sur les écrans en salle.",
+  "landing.menu.printed.title": "Menu physique",
+  "landing.menu.printed.desc": "Concevez et commandez vos cartes imprimées.",
+  "landing.menu.multi.title": "Multi-établissements",
+  "landing.menu.multi.desc": "Gérez plusieurs restaurants depuis un seul compte.",
+  "landing.menu.team.title": "Équipe multi-membres",
+  "landing.menu.team.desc": "Invitez votre équipe avec des permissions par membre.",
+
+  // Nav mega-menu — use cases by establishment type
+  "landing.menu.upscale.title": "Restaurants haut de gamme",
+  "landing.menu.upscale.desc": "Une carte élégante et une expérience soignée.",
+  "landing.menu.fastfood.title": "Fast-food",
+  "landing.menu.fastfood.desc": "Bornes, cuisine et files réduites aux heures de pointe.",
+  "landing.menu.cafeteria.title": "Cafétérias",
+  "landing.menu.cafeteria.desc": "Menu du jour, QR à table et commande rapide.",
+  "landing.menu.bakery.title": "Boulangeries",
+  "landing.menu.bakery.desc": "Vitrine numérique et commande au comptoir.",
+  "landing.menu.foodtruck.title": "Food trucks",
+  "landing.menu.foodtruck.desc": "Carte mobile via QR, sans installation lourde.",
+
+  // Hero
+  "landing.hero.badge": "Menu numérique par code QR",
+  "landing.hero.titleLead": "Votre carte, prête en",
+  "landing.hero.titleAccent": "deux minutes",
+  "landing.hero.bodyLead": "Créez des menus",
+  "landing.hero.bodyAccent": "numériques et physiques",
+  "landing.hero.bodyRest":
+    ", collectez des avis clients et lancez vos campagnes marketing. Une carte toujours à jour, sans jamais réimprimer.",
+  "landing.hero.cta": "Créer ma carte",
+  "landing.hero.stat1Value": "+22%",
+  "landing.hero.stat1Label": "de clients fidélisés",
+  "landing.hero.stat2Value": "2 pays",
+  "landing.hero.stat2Label": "France & Algérie",
+  "landing.hero.stat3Value": "+50",
+  "landing.hero.stat3Label": "restaurants",
+
+  // Values ("Pourquoi MangeQR")
+  "landing.values.eyebrow": "Pourquoi MangeQR",
+  "landing.values.title": "Trois façons d'améliorer votre activité.",
+  "landing.values.1.title": "Réduisez vos dépenses",
+  "landing.values.1.body":
+    "Fini les réimpressions à chaque changement de prix ou de plat. Vous modifiez, la carte se met à jour partout.",
+  "landing.values.2.title": "Simplifiez vos modifications",
+  "landing.values.2.body":
+    "Une carte synchronisée 24h/24, 7j/7. Un plat épuisé, un nouveau menu du jour : quelques clics depuis votre téléphone.",
+  "landing.values.3.title": "Modernisez votre établissement",
+  "landing.values.3.body":
+    "Une carte soignée rassure au premier regard, améliore l'expérience client et vous démarque de la table d'à côté.",
+
+  // FAQ
+  "landing.faq.title": "Questions fréquentes",
+  "landing.faq.q1": "Est-ce que MangeQR est une application ?",
+  "landing.faq.a1":
+    "Non. MangeQR n'est pas une application à télécharger : vos clients ne passent pas par l'App Store. Dès qu'ils scannent le code QR, ils arrivent sur une page web avec le menu de votre restaurant.",
+  "landing.faq.q2": "Est-il facile de créer un menu QR ?",
+  "landing.faq.a2":
+    "Oui. MangeQR est pensé pour être simple. Vous créez votre restaurant, ajoutez vos menus et vos plats, et sauvegardez. Le menu est aussitôt mis à jour et synchronisé avec le QR code des tables.",
+  "landing.faq.q3": "Puis-je changer les prix ou les plats après coup ?",
+  "landing.faq.a3":
+    "À tout moment. Un plat n'est plus disponible ? Rendez-vous dans votre espace et masquez-le : il apparaît en grisé pour les clients au lieu de les décevoir à table.",
+  "landing.faq.q4": "Comment je reçois mes QR codes ?",
+  "landing.faq.a4":
+    "Vous téléchargez vos QR codes en JPEG ou PDF directement depuis votre espace. En version BETA, nous vous envoyons aussi un échantillon de stand QR code.",
+
+  // Closing CTA band
+  "landing.cta.title": "Votre première carte, en quelques minutes.",
+  "landing.cta.body":
+    "Créez votre compte, ajoutez votre premier restaurant et publiez un menu que vous pourrez modifier en dix secondes.",
+  "landing.cta.button": "Commencer maintenant",
+
+  // Document metadata (<title> / description / OG) for the landing.
+  "landing.meta.title": "MangeQR — Votre carte, en 2 minutes",
+  "landing.meta.description":
+    "Créez des menus numériques et physiques, collectez des avis clients et suivez vos performances. Une carte toujours à jour, sans réimpression.",
+  "landing.meta.ogAlt": "MangeQR — Carte Restaurant Numérique",
+
+  // Interactive editor demo — chrome of the simulated app panel. The phone
+  // preview beside it keeps its French sample content (see PhoneFrame).
+  "landing.editorDemo.panel": "Éditeur",
+  "landing.editorDemo.online": "En ligne",
+  "landing.editorDemo.onlineHint": "Visible par les clients",
+  "landing.editorDemo.dishes": "Plats",
+  "landing.editorDemo.hint":
+    "Réorganisez, modifiez le prix, marquez un plat « épuisé » ou mettez la carte hors ligne — l'aperçu se met à jour instantanément.",
+
+  // Editor section
+  "landing.editor.eyebrow": "Éditeur de la carte",
+  "landing.editor.title": "Modifiez, le client voit. En direct.",
+  "landing.editor.intro":
+    "Essayez : baissez un prix, marquez un plat « épuisé » ou mettez la carte hors ligne. L'aperçu client se met à jour instantanément.",
+  "landing.editor.1.title": "Plusieurs cartes, une seule app.",
+  "landing.editor.1.body":
+    "Quotidien, déjeuner de la semaine, carte du week-end, dégustations saisonnières. Activez-les d'un simple bouton.",
+  "landing.editor.2.title": "Marquez comme épuisé en un clic.",
+  "landing.editor.2.body":
+    "L'article apparaît en grisé pour les clients au lieu de les décevoir à table.",
+  "landing.editor.3.title": "Variantes, suppléments, allergènes.",
+  "landing.editor.3.body":
+    "Tous les détails que vos clients demandent vraiment, gérés une seule fois.",
+  "landing.editor.cta": "Modifier depuis mon téléphone",
+
+  // Demo section
+  "landing.demo.eyebrow": "En action",
+  "landing.demo.title": "Votre carte en ligne, en trois gestes.",
+  "landing.demo.intro":
+    "Pas de configuration compliquée. Créez, remplissez, partagez — voici à quoi ça ressemble.",
+  "landing.demo.1.alt": "Créer un restaurant en un clic",
+  "landing.demo.1.caption": "1 · Créez votre restaurant",
+  "landing.demo.2.alt": "Ajouter une catégorie et un plat",
+  "landing.demo.2.caption": "2 · Ajoutez vos plats",
+  "landing.demo.3.alt": "Générer et télécharger le QR code",
+  "landing.demo.3.caption": "3 · Générez votre QR code",
+
+  // Proof / bento section
+  "landing.proof.eyebrow": "Ce qui fait la différence",
+  "landing.proof.title": "Votre carte est votre meilleur atout marketing.",
+  "landing.proof.intro":
+    "Plus de clients vous découvrent sur Google, vous font confiance au premier coup d'œil et vous suivent sur les réseaux. Et ils reviennent plus souvent.",
+  "landing.proof.1.title": "Plus de couverts, chaque jour",
+  "landing.proof.1.body":
+    "Une carte riche et photographiée sur Google double les chances qu'un passant affamé vous choisisse plutôt que l'établissement d'à côté, avant même de pousser la porte.",
+  "landing.proof.2.title": "Une réputation renforcée",
+  "landing.proof.2.body":
+    "Allergènes, prix clairs et photos honnêtes réduisent les frictions qui génèrent les avis une étoile.",
+  "landing.proof.3.metric": "Coup de foudre",
+  "landing.proof.3.title": "Au premier regard",
+  "landing.proof.3.body":
+    "Les clients jugent votre cuisine avant la première bouchée. Une carte bien structurée transforme un passant curieux en client enthousiaste.",
+  "landing.proof.4.title": "D'abonnés chaque mois",
+  "landing.proof.4.body":
+    "Votre Instagram et votre TikTok mis en avant sur la carte. Les clients vous suivent pendant qu'ils attendent, et reviennent à chaque offre spéciale.",
+
+  // Reputation section
+  "landing.reputation.eyebrow": "Réputation",
+  "landing.reputation.title": "Gérez votre réputation, avis après avis.",
+  "landing.reputation.intro":
+    "Collectez les avis via un simple QR code et orientez-les intelligemment : plus de 5 étoiles sur Google, moins de mauvaises surprises en public.",
+  "landing.reputation.1.title": "Les avis positifs vers Google",
+  "landing.reputation.1.desc":
+    "Les clients satisfaits (4-5★) sont dirigés vers votre fiche Google en un geste — plus d'étoiles, meilleur classement.",
+  "landing.reputation.2.title": "Les retours négatifs en privé",
+  "landing.reputation.2.desc":
+    "Une expérience mitigée est captée en interne, pas publiquement, pour vous laisser la chance de corriger le tir.",
+  "landing.reputation.3.title": "Un canal de contact direct",
+  "landing.reputation.3.desc":
+    "Le client laisse son email ou téléphone : vous le recontactez et transformez un mécontent en habitué.",
+  "landing.reputation.cta": "Collecter plus d'avis",
+  "landing.reputation.card.title": "Laissez un avis",
+  "landing.reputation.card.thanks":
+    "Merci ! Partagez votre expérience sur Google pour soutenir le restaurant.",
+  "landing.reputation.card.button": "Laisser mon avis sur Google",
+  "landing.reputation.card.avgLabel": "Note moyenne",
+
+  // Features index
+  "landing.features.title": "Bien plus qu'un simple menu QR.",
+  "landing.features.1.title": "Personnalisez votre menu",
+  "landing.features.1.body":
+    "Créez une carte qui vous ressemble grâce à des options de personnalisation avancées.",
+  "landing.features.2.title": "Des outils qui font gagner du temps",
+  "landing.features.2.body":
+    "Limitez les modifications répétitives avec des outils pensés pour aller vite.",
+  "landing.features.3.title": "Masquez les plats indisponibles",
+  "landing.features.3.body":
+    "Cachez les plats en rupture pour garder une carte toujours juste.",
+  "landing.features.4.title": "Des menus prêts à imprimer",
+  "landing.features.4.body":
+    "Générez des cartes imprimables, parfaites quand les téléphones ne suffisent pas.",
+  "landing.features.5.title": "Gérez votre réputation",
+  "landing.features.5.body":
+    "Mettez en avant les avis positifs et soignez votre image en ligne.",
+  "landing.features.6.title": "Améliorez votre référencement",
+  "landing.features.6.body":
+    "Progressez sur Google grâce aux avis clients qui renforcent votre crédibilité.",
+  "landing.features.7.title": "Suivez chaque détail",
+  "landing.features.7.body":
+    "Analysez vos performances pour décider en toute simplicité.",
+
+  // Google Maps section
+  "landing.maps.eyebrow": "Soyez trouvé. Soyez choisi.",
+  "landing.maps.titleLead": "Affirmez votre présence sur",
+  "landing.maps.titleAccent": "Google Maps",
+  "landing.maps.titleRest": "et Business.",
+  "landing.maps.body":
+    "MangeQR vous offre un lien de carte clair et partageable que vous collez directement dans votre profil Google Business. Le bouton « Afficher la carte » sur Maps pointe alors vers une page toujours à jour, au lieu d'un PDF cassé ou de rien du tout.",
+  "landing.maps.urlLabel": "Votre propre URL directe",
+  "landing.maps.cta": "Connecter à Google Maps",
+
+  // Reach / link-in-bio section
+  "landing.reach.eyebrow": "Instagram · Lien dans la bio",
+  "landing.reach.title":
+    "Le lien de votre bio devrait montrer le menu du jour, pas un PDF figé.",
+  "landing.reach.body":
+    "Mettez votre lien MangeQR dans votre bio Instagram, TikTok, WhatsApp Business ou Facebook, partout où vos clients vous trouvent. Un seul clic, et ils consultent le menu du jour.",
+  "landing.reach.1.title": "Bio Instagram",
+  "landing.reach.2.title": "Profil TikTok",
+  "landing.reach.3.title": "Réponse WhatsApp Business",
+  "landing.reach.cta": "Obtenez votre lien de menu partageable",
+
+  // Printed menus section
+  "landing.printed.eyebrow": "Menu physique",
+  "landing.printed.title": "Des menus prêts à imprimer, à votre image.",
+  "landing.printed.body":
+    "Choisissez un design, votre carte se met en page automatiquement à partir de vos plats. Téléchargez le PDF ou commandez une impression professionnelle — sans logiciel de mise en page.",
+  "landing.printed.cta": "Concevoir mon menu imprimé",
+
+  // Restaurateur kit (hardware) section
+  "landing.kit.eyebrow": "Kit restaurateur",
+  "landing.kit.title": "Au-delà du logiciel, l'équipement de votre salle.",
+  "landing.kit.body":
+    "En plus de vos menus numériques, nous pouvons équiper votre établissement en matériel pour une expérience complète.",
+  "landing.kit.1.title": "Écrans & TV",
+  "landing.kit.1.desc":
+    "Affichez vos menus et vos promotions sur des écrans en salle. Nous fournissons et installons les TV, votre carte reste synchronisée en temps réel.",
+  "landing.kit.1.alt": "Écran TV affichant le menu du restaurant en salle",
+  "landing.kit.2.title": "Bornes de commande",
+  "landing.kit.2.desc":
+    "Laissez vos clients commander en autonomie sur des bornes tactiles. Moins d'attente, un ticket moyen plus élevé, et vos commandes directement en cuisine.",
+  "landing.kit.2.alt": "Bornes de commande tactiles et caisse (POS) pour restaurant",
+  "landing.kit.footnote":
+    "Écrans TV pour vos menus et bornes de commande sur demande — contactez-nous pour un devis adapté à votre salle.",
+
+  // Pricing section chrome
+  "landing.pricing.eyebrow": "Tarifs",
+  "landing.pricing.title": "Un tarif simple, sans surprise.",
+  "landing.pricing.region": "Région",
+  "landing.pricing.monthly": "mensuel",
+  "landing.pricing.yearly": "annuel",
+  "landing.pricing.popular": "Le plus choisi",
+  "landing.pricing.perMonth": "mois",
+  "landing.pricing.perYear": "an",
+  "landing.pricing.annualWithModule": "/ an avec le module de commande",
+  "landing.pricing.addonTitle":
+    "+ Module gestion de commande sur place + livraison",
+  "landing.pricing.addonBody":
+    "Plan de salle, vue cuisine et caisse (POS) avec impression de tickets.",
+  "landing.pricing.footnote":
+    "Tous les plans incluent les scans illimités, la synchronisation automatique et l'assistance.",
+  "landing.pricing.qrDesignNote": "Commande de designs QR à partir de",
+
+  // Pricing tiers (plan NAMES stay untranslated — they are product names)
+  "landing.tier.cta": "Contactez-nous",
+  "landing.tier.starter.description":
+    "Une solution idéale pour les petits établissements souhaitant démarrer leur digitalisation de manière simple et efficace.",
+  "landing.tier.pro.description":
+    "Une solution parfaite pour les établissements multi-sites cherchant une gestion centralisée et optimisée.",
+  "landing.tier.premium.description":
+    "Une solution complète et avancée pour les grandes structures multi-sites avec des équipes étendues.",
+
+  // Plan feature lines
+  "landing.feature.resto1": "1 restaurant",
+  "landing.feature.resto3": "Jusqu'à 3 restaurants",
+  "landing.feature.restoUnlimited": "Restaurants illimités",
+  "landing.feature.menus7": "7 menus",
+  "landing.feature.menus21": "21 menus",
+  "landing.feature.menusUnlimited": "Menus illimités",
+  "landing.feature.categoriesUnlimited": "Catégories illimitées",
+  "landing.feature.dishesUnlimited": "Plats illimités",
+  "landing.feature.scansUnlimited": "Scans illimités",
+  "landing.feature.qrPerResto": "QR code unique par restaurant",
+  "landing.feature.menuAvailability": "Modification de la disponibilité des menus",
+  "landing.feature.dishAvailability": "Modification de la disponibilité des plats",
+  "landing.feature.stats": "Statistiques de performance et suivi",
+  "landing.feature.photos": "Plats avec photos",
+  "landing.feature.autoSync": "Synchronisation automatique",
+  "landing.feature.freeDelivery": "Livraison des menus gratuite",
+  "landing.feature.noLogo": "Suppression du logo",
+  "landing.feature.customQr": "Conception personnalisée de QR code",
+  "landing.feature.support": "Assistance incluse",
+  // Rendered as "<region price> par table pour la livraison…" so the price is
+  // never string-spliced out of a translated sentence.
+  "landing.feature.perTableDelivery":
+    "par table pour la livraison des QR codes personnalisés menus",
+  "landing.feature.orderingModule":
+    "Module gestion de commande sur place + livraison : plan de salle, vue cuisine & caisse (POS) avec impression de tickets",
+
+  // Quote request dialog
+  "landing.devis.trigger": "Demander un devis",
+  "landing.devis.title": "Demander un devis",
+  "landing.devis.description":
+    "Parlez-nous de votre établissement et de vos besoins en matériel. Notre équipe vous recontacte avec une offre adaptée.",
+  "landing.devis.kind": "Matériel souhaité",
+  "landing.devis.kindBoth": "Bornes + TV",
+  "landing.devis.kindBorne": "Bornes de commande",
+  "landing.devis.kindTv": "Écrans & TV",
+  "landing.devis.name": "Nom complet *",
+  "landing.devis.namePlaceholder": "Votre nom",
+  "landing.devis.phone": "Téléphone *",
+  "landing.devis.phonePlaceholder": "Ex. 06 12 34 56 78",
+  "landing.devis.email": "E-mail",
+  "landing.devis.emailPlaceholder": "vous@exemple.com",
+  "landing.devis.restaurant": "Nom du restaurant",
+  "landing.devis.restaurantPlaceholder": "Votre établissement",
+  "landing.devis.restaurantCount": "Nb. restaurants",
+  "landing.devis.borneCount": "Nb. bornes",
+  "landing.devis.tvCount": "Nb. écrans TV",
+  "landing.devis.team": "Votre équipe",
+  "landing.devis.teamPlaceholder":
+    "Ex. 1 gérant + 5 serveurs, ou franchise multi-sites",
+  "landing.devis.message": "Message (facultatif)",
+  "landing.devis.messagePlaceholder":
+    "Décrivez votre projet ou vos contraintes…",
+  "landing.devis.submit": "Envoyer ma demande",
+  "landing.devis.required": "Nom et téléphone sont requis.",
+  "landing.devis.sent": "Demande envoyée.",
 };
 
 const ar: Dict = {
@@ -1171,6 +1588,399 @@ const ar: Dict = {
   "printer.showPricesHelp": "ألغِ التحديد لتذكرة مطبخ بدون أسعار.",
   "printer.testPrint": "طباعة تجريبية",
   "printer.saved": "تم حفظ إعدادات الطابعة.",
+
+  // --- Self-order kiosk (/borne) ---
+  "kiosk.home": "الرئيسية",
+  "kiosk.back": "رجوع",
+  "kiosk.continue": "متابعة",
+  "kiosk.cancel": "إلغاء",
+  "kiosk.add": "أضف",
+  "kiosk.total": "المجموع",
+  "kiosk.menuLabel": "القائمة",
+  "kiosk.language": "اللغة",
+
+  "kiosk.type.title": "كيف تودّ أن تُخدَم؟",
+  "kiosk.type.subtitle": "اختر ما يناسبك — الطلب هو نفسه.",
+  "kiosk.type.table": "الخدمة على الطاولة",
+  "kiosk.type.tableHint": "نحضر لك طلبك",
+  "kiosk.type.counter": "الاستلام من الواجهة",
+  "kiosk.type.counterHint": "ننادي رقمك",
+  "kiosk.type.chooseTable": "اختر طاولتك",
+
+  "kiosk.menu.title": "اختر طبقك",
+  "kiosk.menu.subtitle": "اختر للبدء",
+  "kiosk.menu.empty": "لا توجد أطباق.",
+  "kiosk.menu.itemOne": "عنصر",
+  "kiosk.menu.itemMany": "عناصر",
+  "kiosk.menu.viewOrder": "عرض طلبي",
+
+  "kiosk.item.required": "مطلوب",
+  "kiosk.item.note": "ملاحظة (اختياري)",
+  "kiosk.item.notePlaceholder": "بدون بصل، مطهو جيدًا…",
+
+  "kiosk.cart.title": "تحقّق من طلبك",
+  "kiosk.cart.subtitle": "عدّل الكميات ثم أكّد",
+  "kiosk.cart.empty": "سلتك فارغة.",
+  "kiosk.cart.notePlaceholder": "ملاحظة للمطبخ (اختياري)",
+  "kiosk.cart.upsell": "مُقترح مع طلبك",
+
+  "kiosk.pay.title": "طريقة الدفع",
+  "kiosk.pay.counter": "الدفع عند الواجهة",
+
+  "kiosk.done.thanks": "شكرًا!",
+  "kiosk.done.sent": "تم إرسال طلبك إلى المطبخ.",
+  "kiosk.done.orderNumber": "رقم الطلب",
+  "kiosk.done.wait": "مدة الانتظار التقديرية",
+  "kiosk.done.minutes": "دقيقة",
+  "kiosk.done.noteNumber": "سجّل رقم طلبك",
+  "kiosk.done.service": "الخدمة",
+  "kiosk.done.payment": "الدفع",
+  "kiosk.done.payAtCounter": "الدفع عند الواجهة",
+  "kiosk.done.ratingQuestion": "كيف كانت تجربتك؟",
+  "kiosk.done.rating": "تقييم",
+  "kiosk.done.ratingThanks": "شكرًا على ملاحظاتك!",
+  "kiosk.done.ratingScale": "1 = سيئ · 5 = ممتاز",
+  "kiosk.done.newOrder": "طلب جديد",
+
+  "kiosk.error.generic": "حدث خطأ.",
+  "kiosk.error.network": "حدث خطأ في الشبكة.",
+
+  // --- Printed ticket / addition ---
+  "printer.ticket.title": "الفاتورة",
+  "printer.ticket.order": "طلب",
+  "printer.ticket.dineIn": "في المكان — طاولة",
+  "printer.ticket.delivery": "توصيل",
+  "printer.ticket.total": "المجموع",
+  "printer.ticket.paid": "مدفوع",
+  "printer.ticket.notPaid": "غير مدفوع",
+  "printer.ticket.restaurant": "مطعم",
+  "printer.ticket.thanks": "شكرًا لزيارتك!",
+  "printer.ticket.poweredBy": "مدعوم بواسطة MangeQR",
+  "printer.ticket.blocked":
+    "تعذّرت الطباعة: يرجى السماح بالنوافذ المنبثقة لهذا الموقع.",
+
+  // --- Public landing page (see the fr block for the key conventions) ---
+
+  // Nav + footer
+  "landing.nav.pricing": "الأسعار",
+  "landing.nav.account": "الذهاب إلى حسابي",
+  "landing.nav.signIn": "تسجيل الدخول",
+  "landing.nav.signUp": "إنشاء حساب",
+  "landing.nav.features": "الميزات",
+  "landing.nav.useCases": "حالات الاستخدام",
+  "landing.nav.viewMenu": "مشاهدة قائمة",
+
+  // Nav mega-menu — product features
+  "landing.menu.qr.title": "قائمة برمز QR",
+  "landing.menu.qr.desc": "قائمة رقمية محدَّثة دائمًا، دون إعادة طباعة.",
+  "landing.menu.reputation.title": "إدارة السمعة",
+  "landing.menu.reputation.desc": "اجمع التقييمات ووجّهها إلى Google.",
+  "landing.menu.kitchen.title": "المطبخ والصندوق (POS)",
+  "landing.menu.kitchen.desc": "شاشة المطبخ (KDS) وصندوق الدفع مع طباعة التذاكر.",
+  "landing.menu.delivery.title": "التوصيل وعمال التوصيل",
+  "landing.menu.delivery.desc": "متابعة الطلبات وتعيين عمال التوصيل.",
+  "landing.menu.kiosk.title": "كشك الطلب",
+  "landing.menu.kiosk.desc": "طلب ذاتي على شاشة تعمل باللمس.",
+  "landing.menu.tv.title": "العرض على التلفاز",
+  "landing.menu.tv.desc": "اعرض قائمتك على الشاشات داخل القاعة.",
+  "landing.menu.printed.title": "القائمة الورقية",
+  "landing.menu.printed.desc": "صمّم قوائمك المطبوعة واطلبها.",
+  "landing.menu.multi.title": "عدة مؤسسات",
+  "landing.menu.multi.desc": "أدِر عدة مطاعم من حساب واحد.",
+  "landing.menu.team.title": "فريق متعدد الأعضاء",
+  "landing.menu.team.desc": "ادعُ فريقك مع صلاحيات لكل عضو.",
+
+  // Nav mega-menu — use cases by establishment type
+  "landing.menu.upscale.title": "المطاعم الراقية",
+  "landing.menu.upscale.desc": "قائمة أنيقة وتجربة مدروسة.",
+  "landing.menu.fastfood.title": "الوجبات السريعة",
+  "landing.menu.fastfood.desc": "أكشاك ومطبخ وطوابير أقصر في أوقات الذروة.",
+  "landing.menu.cafeteria.title": "الكافيتيريا",
+  "landing.menu.cafeteria.desc": "قائمة اليوم، رمز QR على الطاولة وطلب سريع.",
+  "landing.menu.bakery.title": "المخابز",
+  "landing.menu.bakery.desc": "واجهة رقمية وطلب عند الواجهة.",
+  "landing.menu.foodtruck.title": "شاحنات الطعام",
+  "landing.menu.foodtruck.desc": "قائمة متنقلة عبر رمز QR، دون تجهيزات ثقيلة.",
+
+  // Hero
+  "landing.hero.badge": "قائمة رقمية برمز QR",
+  "landing.hero.titleLead": "قائمتك جاهزة في",
+  "landing.hero.titleAccent": "دقيقتين",
+  "landing.hero.bodyLead": "أنشئ قوائم",
+  "landing.hero.bodyAccent": "رقمية وورقية",
+  "landing.hero.bodyRest":
+    "، اجمع تقييمات العملاء وأطلق حملاتك التسويقية. قائمة محدَّثة دائمًا، دون إعادة طباعة أبدًا.",
+  "landing.hero.cta": "إنشاء قائمتي",
+  "landing.hero.stat1Value": "+22%",
+  "landing.hero.stat1Label": "من العملاء الأوفياء",
+  "landing.hero.stat2Value": "بلدان",
+  "landing.hero.stat2Label": "فرنسا والجزائر",
+  "landing.hero.stat3Value": "+50",
+  "landing.hero.stat3Label": "مطعم",
+
+  // Values
+  "landing.values.eyebrow": "لماذا MangeQR",
+  "landing.values.title": "ثلاث طرق لتحسين نشاطك.",
+  "landing.values.1.title": "قلّل نفقاتك",
+  "landing.values.1.body":
+    "لا مزيد من إعادة الطباعة عند كل تغيير في السعر أو الأطباق. تُعدّل، فتتحدّث القائمة في كل مكان.",
+  "landing.values.2.title": "بسّط تعديلاتك",
+  "landing.values.2.body":
+    "قائمة متزامنة 24 ساعة، 7 أيام في الأسبوع. طبق نفد، قائمة يوم جديدة: بضع نقرات من هاتفك.",
+  "landing.values.3.title": "طوّر مؤسستك",
+  "landing.values.3.body":
+    "قائمة أنيقة تطمئن العميل من النظرة الأولى، تحسّن تجربته وتميّزك عن الطاولة المجاورة.",
+
+  // FAQ
+  "landing.faq.title": "أسئلة متكررة",
+  "landing.faq.q1": "هل MangeQR تطبيق؟",
+  "landing.faq.a1":
+    "لا. MangeQR ليس تطبيقًا يتم تنزيله: عملاؤك لا يحتاجون إلى App Store. بمجرد مسح رمز QR يصلون إلى صفحة ويب تحتوي قائمة مطعمك.",
+  "landing.faq.q2": "هل إنشاء قائمة QR سهل؟",
+  "landing.faq.a2":
+    "نعم. MangeQR مصمَّم ليكون بسيطًا. تنشئ مطعمك، تضيف قوائمك وأطباقك، ثم تحفظ. تُحدَّث القائمة فورًا وتتزامن مع رمز QR الموجود على الطاولات.",
+  "landing.faq.q3": "هل يمكنني تغيير الأسعار أو الأطباق لاحقًا؟",
+  "landing.faq.a3":
+    "في أي وقت. طبق لم يعد متوفرًا؟ ادخل إلى مساحتك وأخفِه: يظهر باللون الرمادي للعملاء بدل أن يخيب أملهم على الطاولة.",
+  "landing.faq.q4": "كيف أستلم رموز QR الخاصة بي؟",
+  "landing.faq.a4":
+    "تنزّل رموز QR بصيغة JPEG أو PDF مباشرة من مساحتك. في إصدار البيتا، نرسل لك أيضًا نموذجًا من حامل رمز QR.",
+
+  // Closing CTA band
+  "landing.cta.title": "قائمتك الأولى، في دقائق.",
+  "landing.cta.body":
+    "أنشئ حسابك، أضف مطعمك الأول وانشر قائمة يمكنك تعديلها في عشر ثوانٍ.",
+  "landing.cta.button": "ابدأ الآن",
+
+  // Document metadata
+  "landing.meta.title": "MangeQR — قائمتك في دقيقتين",
+  "landing.meta.description":
+    "أنشئ قوائم رقمية وورقية، اجمع تقييمات العملاء وتابع أداءك. قائمة محدَّثة دائمًا، دون إعادة طباعة.",
+  "landing.meta.ogAlt": "MangeQR — قائمة مطعم رقمية",
+
+  // Interactive editor demo
+  "landing.editorDemo.panel": "المحرّر",
+  "landing.editorDemo.online": "متصل",
+  "landing.editorDemo.onlineHint": "مرئي للعملاء",
+  "landing.editorDemo.dishes": "الأطباق",
+  "landing.editorDemo.hint":
+    "أعد الترتيب، عدّل السعر، ضع علامة «نفد» على طبق أو اجعل القائمة غير متصلة — تتحدّث المعاينة فورًا.",
+
+  // Editor section
+  "landing.editor.eyebrow": "محرّر القائمة",
+  "landing.editor.title": "تُعدّل، فيرى العميل. مباشرةً.",
+  "landing.editor.intro":
+    "جرّب: اخفض سعرًا، ضع علامة «نفد» على طبق أو اجعل القائمة غير متصلة. تتحدّث معاينة العميل فورًا.",
+  "landing.editor.1.title": "عدة قوائم، تطبيق واحد.",
+  "landing.editor.1.body":
+    "قائمة يومية، غداء الأسبوع، قائمة نهاية الأسبوع، أطباق موسمية. فعّلها بزر واحد.",
+  "landing.editor.2.title": "ضع علامة «نفد» بنقرة واحدة.",
+  "landing.editor.2.body":
+    "يظهر الطبق باللون الرمادي للعملاء بدل أن يخيب أملهم على الطاولة.",
+  "landing.editor.3.title": "الأحجام، الإضافات، مسببات الحساسية.",
+  "landing.editor.3.body":
+    "كل التفاصيل التي يسألها عملاؤك فعلًا، تُدار مرة واحدة.",
+  "landing.editor.cta": "التعديل من هاتفي",
+
+  // Demo section
+  "landing.demo.eyebrow": "أثناء العمل",
+  "landing.demo.title": "قائمتك على الإنترنت، بثلاث خطوات.",
+  "landing.demo.intro":
+    "لا إعدادات معقّدة. أنشئ، املأ، شارك — هكذا يبدو الأمر.",
+  "landing.demo.1.alt": "إنشاء مطعم بنقرة واحدة",
+  "landing.demo.1.caption": "1 · أنشئ مطعمك",
+  "landing.demo.2.alt": "إضافة فئة وطبق",
+  "landing.demo.2.caption": "2 · أضف أطباقك",
+  "landing.demo.3.alt": "توليد رمز QR وتنزيله",
+  "landing.demo.3.caption": "3 · ولّد رمز QR",
+
+  // Proof / bento section
+  "landing.proof.eyebrow": "ما يصنع الفرق",
+  "landing.proof.title": "قائمتك هي أفضل أداة تسويقية لديك.",
+  "landing.proof.intro":
+    "عملاء أكثر يكتشفونك على Google، يثقون بك من النظرة الأولى ويتابعونك على الشبكات الاجتماعية. ويعودون أكثر.",
+  "landing.proof.1.title": "أغطية طاولات أكثر، كل يوم",
+  "landing.proof.1.body":
+    "قائمة غنية ومصوّرة على Google تضاعف فرص أن يختارك عابر جائع بدل المؤسسة المجاورة، قبل أن يدفع الباب حتى.",
+  "landing.proof.2.title": "سمعة أقوى",
+  "landing.proof.2.body":
+    "مسببات الحساسية، أسعار واضحة وصور صادقة تقلّل الاحتكاكات التي تولّد تقييمات النجمة الواحدة.",
+  "landing.proof.3.metric": "إعجاب من أول نظرة",
+  "landing.proof.3.title": "من النظرة الأولى",
+  "landing.proof.3.body":
+    "يحكم العملاء على مطبخك قبل أول لقمة. قائمة مُنظَّمة جيدًا تحوّل عابرًا فضوليًا إلى عميل متحمّس.",
+  "landing.proof.4.title": "من المتابعين كل شهر",
+  "landing.proof.4.body":
+    "إنستغرام وتيك توك في مقدمة قائمتك. يتابعك العملاء أثناء انتظارهم، ويعودون مع كل عرض خاص.",
+
+  // Reputation section
+  "landing.reputation.eyebrow": "السمعة",
+  "landing.reputation.title": "أدِر سمعتك، تقييمًا بعد تقييم.",
+  "landing.reputation.intro":
+    "اجمع التقييمات عبر رمز QR بسيط ووجّهها بذكاء: نجوم أكثر على Google، ومفاجآت سيئة أقل أمام الجميع.",
+  "landing.reputation.1.title": "التقييمات الإيجابية إلى Google",
+  "landing.reputation.1.desc":
+    "يُوجَّه العملاء الراضون (4-5★) إلى صفحتك على Google بحركة واحدة — نجوم أكثر وترتيب أفضل.",
+  "landing.reputation.2.title": "الملاحظات السلبية بشكل خاص",
+  "landing.reputation.2.desc":
+    "تُسجَّل التجربة غير المُرضية داخليًا، لا علنًا، لتتيح لك فرصة تصحيح الوضع.",
+  "landing.reputation.3.title": "قناة تواصل مباشرة",
+  "landing.reputation.3.desc":
+    "يترك العميل بريده أو هاتفه: تعاود الاتصال به وتحوّل غير الراضي إلى زبون دائم.",
+  "landing.reputation.cta": "اجمع تقييمات أكثر",
+  "landing.reputation.card.title": "اترك تقييمًا",
+  "landing.reputation.card.thanks":
+    "شكرًا! شارك تجربتك على Google لدعم المطعم.",
+  "landing.reputation.card.button": "ترك تقييمي على Google",
+  "landing.reputation.card.avgLabel": "المعدّل",
+
+  // Features index
+  "landing.features.title": "أكثر بكثير من مجرد قائمة QR.",
+  "landing.features.1.title": "خصّص قائمتك",
+  "landing.features.1.body":
+    "أنشئ قائمة تشبهك بفضل خيارات تخصيص متقدمة.",
+  "landing.features.2.title": "أدوات توفّر الوقت",
+  "landing.features.2.body":
+    "قلّل التعديلات المتكررة بأدوات مصممة للسرعة.",
+  "landing.features.3.title": "أخفِ الأطباق غير المتوفرة",
+  "landing.features.3.body":
+    "أخفِ الأطباق التي نفدت لتبقى قائمتك دقيقة دائمًا.",
+  "landing.features.4.title": "قوائم جاهزة للطباعة",
+  "landing.features.4.body":
+    "ولّد قوائم قابلة للطباعة، مثالية عندما لا تكفي الهواتف.",
+  "landing.features.5.title": "أدِر سمعتك",
+  "landing.features.5.body":
+    "أبرِز التقييمات الإيجابية واعتنِ بصورتك على الإنترنت.",
+  "landing.features.6.title": "حسّن ظهورك في البحث",
+  "landing.features.6.body":
+    "تقدّم على Google بفضل تقييمات العملاء التي تعزّز مصداقيتك.",
+  "landing.features.7.title": "تابع كل التفاصيل",
+  "landing.features.7.body": "حلّل أداءك لتقرّر بكل سهولة.",
+
+  // Google Maps section
+  "landing.maps.eyebrow": "كن مرئيًا. كن الخيار.",
+  "landing.maps.titleLead": "أكّد حضورك على",
+  "landing.maps.titleAccent": "خرائط Google",
+  "landing.maps.titleRest": "و Business.",
+  "landing.maps.body":
+    "يمنحك MangeQR رابط قائمة واضحًا وقابلًا للمشاركة تلصقه مباشرة في ملفك على Google Business. يشير زر «عرض القائمة» على الخرائط حينها إلى صفحة محدَّثة دائمًا، بدل ملف PDF معطوب أو لا شيء.",
+  "landing.maps.urlLabel": "رابطك المباشر الخاص",
+  "landing.maps.cta": "الربط بخرائط Google",
+
+  // Reach / link-in-bio section
+  "landing.reach.eyebrow": "إنستغرام · الرابط في النبذة",
+  "landing.reach.title":
+    "يجب أن يُظهر رابط نبذتك قائمة اليوم، لا ملف PDF ثابتًا.",
+  "landing.reach.body":
+    "ضع رابط MangeQR في نبذتك على إنستغرام، تيك توك، واتساب بيزنس أو فيسبوك، في كل مكان يجدك فيه عملاؤك. نقرة واحدة، ويطّلعون على قائمة اليوم.",
+  "landing.reach.1.title": "نبذة إنستغرام",
+  "landing.reach.2.title": "ملف تيك توك",
+  "landing.reach.3.title": "رد واتساب بيزنس",
+  "landing.reach.cta": "احصل على رابط قائمتك القابل للمشاركة",
+
+  // Printed menus section
+  "landing.printed.eyebrow": "القائمة الورقية",
+  "landing.printed.title": "قوائم جاهزة للطباعة، على صورتك.",
+  "landing.printed.body":
+    "اختر تصميمًا، وتُنسَّق قائمتك تلقائيًا من أطباقك. نزّل ملف PDF أو اطلب طباعة احترافية — دون برامج تنسيق.",
+  "landing.printed.cta": "تصميم قائمتي المطبوعة",
+
+  // Restaurateur kit (hardware) section
+  "landing.kit.eyebrow": "عدّة صاحب المطعم",
+  "landing.kit.title": "إلى جانب البرنامج، تجهيز قاعتك.",
+  "landing.kit.body":
+    "بالإضافة إلى قوائمك الرقمية، يمكننا تجهيز مؤسستك بالمعدات لتجربة كاملة.",
+  "landing.kit.1.title": "الشاشات والتلفاز",
+  "landing.kit.1.desc":
+    "اعرض قوائمك وعروضك على شاشات في القاعة. نوفّر أجهزة التلفاز ونركّبها، وتبقى قائمتك متزامنة في الوقت الفعلي.",
+  "landing.kit.1.alt": "شاشة تلفاز تعرض قائمة المطعم في القاعة",
+  "landing.kit.2.title": "أكشاك الطلب",
+  "landing.kit.2.desc":
+    "دع عملاءك يطلبون بأنفسهم على أكشاك تعمل باللمس. انتظار أقل، فاتورة وسطية أعلى، وطلباتك مباشرة إلى المطبخ.",
+  "landing.kit.2.alt": "أكشاك طلب تعمل باللمس وصندوق دفع (POS) للمطعم",
+  "landing.kit.footnote":
+    "شاشات تلفاز لقوائمك وأكشاك طلب عند الطلب — اتصل بنا للحصول على عرض سعر يناسب قاعتك.",
+
+  // Pricing section chrome
+  "landing.pricing.eyebrow": "الأسعار",
+  "landing.pricing.title": "سعر بسيط، بلا مفاجآت.",
+  "landing.pricing.region": "المنطقة",
+  "landing.pricing.monthly": "شهري",
+  "landing.pricing.yearly": "سنوي",
+  "landing.pricing.popular": "الأكثر اختيارًا",
+  "landing.pricing.perMonth": "شهر",
+  "landing.pricing.perYear": "سنة",
+  "landing.pricing.annualWithModule": "/ سنويًا مع وحدة إدارة الطلبات",
+  "landing.pricing.addonTitle":
+    "+ وحدة إدارة الطلبات في المكان + التوصيل",
+  "landing.pricing.addonBody":
+    "مخطط القاعة، شاشة المطبخ وصندوق الدفع (POS) مع طباعة التذاكر.",
+  "landing.pricing.footnote":
+    "تشمل كل الخطط عمليات مسح غير محدودة، مزامنة تلقائية ودعمًا فنيًا.",
+  "landing.pricing.qrDesignNote": "طلب تصاميم QR بدءًا من",
+
+  // Pricing tiers
+  "landing.tier.cta": "اتصل بنا",
+  "landing.tier.starter.description":
+    "حل مثالي للمؤسسات الصغيرة التي ترغب في بدء رقمنتها بطريقة بسيطة وفعّالة.",
+  "landing.tier.pro.description":
+    "حل مناسب تمامًا للمؤسسات متعددة الفروع التي تبحث عن إدارة مركزية ومُحسَّنة.",
+  "landing.tier.premium.description":
+    "حل كامل ومتقدّم للهياكل الكبيرة متعددة الفروع ذات الفرق الموسّعة.",
+
+  // Plan feature lines
+  "landing.feature.resto1": "مطعم واحد",
+  "landing.feature.resto3": "حتى 3 مطاعم",
+  "landing.feature.restoUnlimited": "مطاعم غير محدودة",
+  "landing.feature.menus7": "7 قوائم",
+  "landing.feature.menus21": "21 قائمة",
+  "landing.feature.menusUnlimited": "قوائم غير محدودة",
+  "landing.feature.categoriesUnlimited": "فئات غير محدودة",
+  "landing.feature.dishesUnlimited": "أطباق غير محدودة",
+  "landing.feature.scansUnlimited": "عمليات مسح غير محدودة",
+  "landing.feature.qrPerResto": "رمز QR خاص لكل مطعم",
+  "landing.feature.menuAvailability": "تعديل توفّر القوائم",
+  "landing.feature.dishAvailability": "تعديل توفّر الأطباق",
+  "landing.feature.stats": "إحصاءات الأداء والمتابعة",
+  "landing.feature.photos": "أطباق مع صور",
+  "landing.feature.autoSync": "مزامنة تلقائية",
+  "landing.feature.freeDelivery": "توصيل القوائم مجانًا",
+  "landing.feature.noLogo": "إزالة الشعار",
+  "landing.feature.customQr": "تصميم مخصّص لرمز QR",
+  "landing.feature.support": "الدعم مشمول",
+  "landing.feature.perTableDelivery":
+    "لكل طاولة مقابل توصيل رموز QR المخصّصة للقوائم",
+  "landing.feature.orderingModule":
+    "وحدة إدارة الطلبات في المكان + التوصيل: مخطط القاعة، شاشة المطبخ وصندوق الدفع (POS) مع طباعة التذاكر",
+
+  // Quote request dialog
+  "landing.devis.trigger": "طلب عرض سعر",
+  "landing.devis.title": "طلب عرض سعر",
+  "landing.devis.description":
+    "أخبرنا عن مؤسستك واحتياجاتك من المعدات. سيعاود فريقنا الاتصال بك بعرض مناسب.",
+  "landing.devis.kind": "المعدات المطلوبة",
+  "landing.devis.kindBoth": "أكشاك + تلفاز",
+  "landing.devis.kindBorne": "أكشاك الطلب",
+  "landing.devis.kindTv": "الشاشات والتلفاز",
+  "landing.devis.name": "الاسم الكامل *",
+  "landing.devis.namePlaceholder": "اسمك",
+  "landing.devis.phone": "الهاتف *",
+  "landing.devis.phonePlaceholder": "مثال 06 12 34 56 78",
+  "landing.devis.email": "البريد الإلكتروني",
+  "landing.devis.emailPlaceholder": "you@example.com",
+  "landing.devis.restaurant": "اسم المطعم",
+  "landing.devis.restaurantPlaceholder": "مؤسستك",
+  "landing.devis.restaurantCount": "عدد المطاعم",
+  "landing.devis.borneCount": "عدد الأكشاك",
+  "landing.devis.tvCount": "عدد شاشات التلفاز",
+  "landing.devis.team": "فريقك",
+  "landing.devis.teamPlaceholder":
+    "مثال: مدير واحد + 5 خدم، أو امتياز متعدد الفروع",
+  "landing.devis.message": "رسالة (اختياري)",
+  "landing.devis.messagePlaceholder": "اشرح مشروعك أو قيودك…",
+  "landing.devis.submit": "إرسال طلبي",
+  "landing.devis.required": "الاسم والهاتف مطلوبان.",
+  "landing.devis.sent": "تم إرسال الطلب.",
 };
 
 const en: Dict = {
@@ -1748,6 +2558,399 @@ const en: Dict = {
   "printer.showPricesHelp": "Uncheck for a kitchen ticket without prices.",
   "printer.testPrint": "Test print",
   "printer.saved": "Printer configuration saved.",
+
+  // --- Self-order kiosk (/borne) ---
+  "kiosk.home": "Home",
+  "kiosk.back": "Back",
+  "kiosk.continue": "Continue",
+  "kiosk.cancel": "Cancel",
+  "kiosk.add": "Add",
+  "kiosk.total": "Total",
+  "kiosk.menuLabel": "Menu",
+  "kiosk.language": "Language",
+
+  "kiosk.type.title": "How would you like to be served?",
+  "kiosk.type.subtitle": "Pick whatever suits you — the order is the same.",
+  "kiosk.type.table": "Table service",
+  "kiosk.type.tableHint": "We bring your order to you",
+  "kiosk.type.counter": "Counter pickup",
+  "kiosk.type.counterHint": "We call your number",
+  "kiosk.type.chooseTable": "Choose your table",
+
+  "kiosk.menu.title": "Choose your dish",
+  "kiosk.menu.subtitle": "Pick something to get started",
+  "kiosk.menu.empty": "No dishes.",
+  "kiosk.menu.itemOne": "item",
+  "kiosk.menu.itemMany": "items",
+  "kiosk.menu.viewOrder": "View my order",
+
+  "kiosk.item.required": "Required",
+  "kiosk.item.note": "Note (optional)",
+  "kiosk.item.notePlaceholder": "No onions, well done…",
+
+  "kiosk.cart.title": "Check your order",
+  "kiosk.cart.subtitle": "Adjust the quantities, then confirm",
+  "kiosk.cart.empty": "Your cart is empty.",
+  "kiosk.cart.notePlaceholder": "Note for the kitchen (optional)",
+  "kiosk.cart.upsell": "Recommended with your order",
+
+  "kiosk.pay.title": "Payment method",
+  "kiosk.pay.counter": "Pay at the counter",
+
+  "kiosk.done.thanks": "Thank you!",
+  "kiosk.done.sent": "Your order has been sent to the kitchen.",
+  "kiosk.done.orderNumber": "Order number",
+  "kiosk.done.wait": "Estimated wait",
+  "kiosk.done.minutes": "min",
+  "kiosk.done.noteNumber": "Make a note of your order number",
+  "kiosk.done.service": "Service",
+  "kiosk.done.payment": "Payment",
+  "kiosk.done.payAtCounter": "Pay at the counter",
+  "kiosk.done.ratingQuestion": "How was your experience?",
+  "kiosk.done.rating": "Rating",
+  "kiosk.done.ratingThanks": "Thanks for your feedback!",
+  "kiosk.done.ratingScale": "1 = poor · 5 = excellent",
+  "kiosk.done.newOrder": "New order",
+
+  "kiosk.error.generic": "Something went wrong.",
+  "kiosk.error.network": "A network error occurred.",
+
+  // --- Printed ticket / addition ---
+  "printer.ticket.title": "Receipt",
+  "printer.ticket.order": "Order",
+  "printer.ticket.dineIn": "Dine-in — Table",
+  "printer.ticket.delivery": "Delivery",
+  "printer.ticket.total": "TOTAL",
+  "printer.ticket.paid": "PAID",
+  "printer.ticket.notPaid": "NOT PAID",
+  "printer.ticket.restaurant": "Restaurant",
+  "printer.ticket.thanks": "Thanks for your visit!",
+  "printer.ticket.poweredBy": "Powered by MangeQR",
+  "printer.ticket.blocked":
+    "Could not print: please allow pop-ups for this site.",
+
+  // --- Public landing page (see the fr block for the key conventions) ---
+
+  // Nav + footer
+  "landing.nav.pricing": "Pricing",
+  "landing.nav.account": "Go to my account",
+  "landing.nav.signIn": "Sign in",
+  "landing.nav.signUp": "Create an account",
+  "landing.nav.features": "Features",
+  "landing.nav.useCases": "Use cases",
+  "landing.nav.viewMenu": "See a menu",
+
+  // Nav mega-menu — product features
+  "landing.menu.qr.title": "QR code menu",
+  "landing.menu.qr.desc": "A digital menu that's always current, with no reprinting.",
+  "landing.menu.reputation.title": "Reputation management",
+  "landing.menu.reputation.desc": "Collect reviews and route them to Google.",
+  "landing.menu.kitchen.title": "Kitchen & POS",
+  "landing.menu.kitchen.desc": "Kitchen display (KDS) and checkout with ticket printing.",
+  "landing.menu.delivery.title": "Delivery & drivers",
+  "landing.menu.delivery.desc": "Order tracking and driver assignment.",
+  "landing.menu.kiosk.title": "Self-order kiosk",
+  "landing.menu.kiosk.desc": "Self-service ordering on a touchscreen.",
+  "landing.menu.tv.title": "TV display",
+  "landing.menu.tv.desc": "Show your menu on screens in the dining room.",
+  "landing.menu.printed.title": "Printed menu",
+  "landing.menu.printed.desc": "Design and order your printed menus.",
+  "landing.menu.multi.title": "Multi-location",
+  "landing.menu.multi.desc": "Manage several restaurants from one account.",
+  "landing.menu.team.title": "Multi-member team",
+  "landing.menu.team.desc": "Invite your team with per-member permissions.",
+
+  // Nav mega-menu — use cases by establishment type
+  "landing.menu.upscale.title": "Fine dining",
+  "landing.menu.upscale.desc": "An elegant menu and a polished experience.",
+  "landing.menu.fastfood.title": "Fast food",
+  "landing.menu.fastfood.desc": "Kiosks, kitchen display and shorter peak-hour queues.",
+  "landing.menu.cafeteria.title": "Cafeterias",
+  "landing.menu.cafeteria.desc": "Daily menu, QR at the table and fast ordering.",
+  "landing.menu.bakery.title": "Bakeries",
+  "landing.menu.bakery.desc": "A digital shopfront and counter ordering.",
+  "landing.menu.foodtruck.title": "Food trucks",
+  "landing.menu.foodtruck.desc": "A mobile menu via QR, with no heavy setup.",
+
+  // Hero
+  "landing.hero.badge": "Digital menu by QR code",
+  "landing.hero.titleLead": "Your menu, ready in",
+  "landing.hero.titleAccent": "two minutes",
+  "landing.hero.bodyLead": "Create",
+  "landing.hero.bodyAccent": "digital and printed menus",
+  "landing.hero.bodyRest":
+    ", collect customer reviews and launch your marketing campaigns. A menu that's always current, with no reprinting.",
+  "landing.hero.cta": "Create my menu",
+  "landing.hero.stat1Value": "+22%",
+  "landing.hero.stat1Label": "returning customers",
+  "landing.hero.stat2Value": "2 countries",
+  "landing.hero.stat2Label": "France & Algeria",
+  "landing.hero.stat3Value": "+50",
+  "landing.hero.stat3Label": "restaurants",
+
+  // Values
+  "landing.values.eyebrow": "Why MangeQR",
+  "landing.values.title": "Three ways to improve your business.",
+  "landing.values.1.title": "Cut your costs",
+  "landing.values.1.body":
+    "No more reprinting every time a price or a dish changes. You edit it once and the menu updates everywhere.",
+  "landing.values.2.title": "Simplify your edits",
+  "landing.values.2.body":
+    "A menu synced 24/7. A sold-out dish, a new daily special: a few taps from your phone.",
+  "landing.values.3.title": "Modernise your venue",
+  "landing.values.3.body":
+    "A well-made menu reassures at first glance, improves the customer experience and sets you apart from the table next door.",
+
+  // FAQ
+  "landing.faq.title": "Frequently asked questions",
+  "landing.faq.q1": "Is MangeQR an app?",
+  "landing.faq.a1":
+    "No. MangeQR isn't an app to download: your customers never go near the App Store. As soon as they scan the QR code they land on a web page with your restaurant's menu.",
+  "landing.faq.q2": "Is it easy to create a QR menu?",
+  "landing.faq.a2":
+    "Yes. MangeQR is designed to be simple. You create your restaurant, add your menus and dishes, and save. The menu updates immediately and syncs with the QR code on the tables.",
+  "landing.faq.q3": "Can I change prices or dishes afterwards?",
+  "landing.faq.a3":
+    "Any time. A dish is no longer available? Go to your dashboard and hide it: it shows greyed out for customers instead of disappointing them at the table.",
+  "landing.faq.q4": "How do I get my QR codes?",
+  "landing.faq.a4":
+    "You download your QR codes as JPEG or PDF straight from your dashboard. During the BETA we also send you a sample QR code stand.",
+
+  // Closing CTA band
+  "landing.cta.title": "Your first menu, in minutes.",
+  "landing.cta.body":
+    "Create your account, add your first restaurant and publish a menu you can edit in ten seconds.",
+  "landing.cta.button": "Get started",
+
+  // Document metadata
+  "landing.meta.title": "MangeQR — Your menu, in 2 minutes",
+  "landing.meta.description":
+    "Create digital and printed menus, collect customer reviews and track your performance. A menu that's always current, with no reprinting.",
+  "landing.meta.ogAlt": "MangeQR — Digital Restaurant Menu",
+
+  // Interactive editor demo
+  "landing.editorDemo.panel": "Editor",
+  "landing.editorDemo.online": "Online",
+  "landing.editorDemo.onlineHint": "Visible to customers",
+  "landing.editorDemo.dishes": "Dishes",
+  "landing.editorDemo.hint":
+    "Reorder, change a price, mark a dish as sold out or take the menu offline — the preview updates instantly.",
+
+  // Editor section
+  "landing.editor.eyebrow": "Menu editor",
+  "landing.editor.title": "You edit it, the customer sees it. Live.",
+  "landing.editor.intro":
+    "Try it: drop a price, mark a dish as sold out, or take the menu offline. The customer preview updates instantly.",
+  "landing.editor.1.title": "Several menus, one app.",
+  "landing.editor.1.body":
+    "Daily, weekday lunch, weekend menu, seasonal tastings. Switch them on with a single button.",
+  "landing.editor.2.title": "Mark as sold out in one click.",
+  "landing.editor.2.body":
+    "The item shows greyed out for customers instead of disappointing them at the table.",
+  "landing.editor.3.title": "Variants, extras, allergens.",
+  "landing.editor.3.body":
+    "Every detail your customers actually ask about, handled once.",
+  "landing.editor.cta": "Edit from my phone",
+
+  // Demo section
+  "landing.demo.eyebrow": "In action",
+  "landing.demo.title": "Your menu online, in three moves.",
+  "landing.demo.intro":
+    "No complicated setup. Create, fill in, share — here's what it looks like.",
+  "landing.demo.1.alt": "Creating a restaurant in one click",
+  "landing.demo.1.caption": "1 · Create your restaurant",
+  "landing.demo.2.alt": "Adding a category and a dish",
+  "landing.demo.2.caption": "2 · Add your dishes",
+  "landing.demo.3.alt": "Generating and downloading the QR code",
+  "landing.demo.3.caption": "3 · Generate your QR code",
+
+  // Proof / bento section
+  "landing.proof.eyebrow": "What makes the difference",
+  "landing.proof.title": "Your menu is your best marketing asset.",
+  "landing.proof.intro":
+    "More customers discover you on Google, trust you at first glance and follow you on social. And they come back more often.",
+  "landing.proof.1.title": "More covers, every day",
+  "landing.proof.1.body":
+    "A rich, photographed menu on Google doubles the odds that a hungry passer-by picks you over the place next door, before they even push the door.",
+  "landing.proof.2.title": "A stronger reputation",
+  "landing.proof.2.body":
+    "Allergens, clear prices and honest photos reduce the friction that generates one-star reviews.",
+  "landing.proof.3.metric": "Love at first sight",
+  "landing.proof.3.title": "At first glance",
+  "landing.proof.3.body":
+    "Customers judge your cooking before the first bite. A well-structured menu turns a curious passer-by into an enthusiastic customer.",
+  "landing.proof.4.title": "Followers every month",
+  "landing.proof.4.body":
+    "Your Instagram and TikTok featured on the menu. Customers follow you while they wait, and come back for every special offer.",
+
+  // Reputation section
+  "landing.reputation.eyebrow": "Reputation",
+  "landing.reputation.title": "Manage your reputation, review by review.",
+  "landing.reputation.intro":
+    "Collect reviews via a simple QR code and route them intelligently: more five-star ratings on Google, fewer nasty surprises in public.",
+  "landing.reputation.1.title": "Positive reviews to Google",
+  "landing.reputation.1.desc":
+    "Happy customers (4-5★) are sent to your Google listing in one tap — more stars, better ranking.",
+  "landing.reputation.2.title": "Negative feedback in private",
+  "landing.reputation.2.desc":
+    "A mixed experience is captured internally rather than publicly, giving you the chance to put it right.",
+  "landing.reputation.3.title": "A direct contact channel",
+  "landing.reputation.3.desc":
+    "The customer leaves their email or phone: you follow up and turn an unhappy diner into a regular.",
+  "landing.reputation.cta": "Collect more reviews",
+  "landing.reputation.card.title": "Leave a review",
+  "landing.reputation.card.thanks":
+    "Thank you! Share your experience on Google to support the restaurant.",
+  "landing.reputation.card.button": "Leave my review on Google",
+  "landing.reputation.card.avgLabel": "Average rating",
+
+  // Features index
+  "landing.features.title": "Far more than just a QR menu.",
+  "landing.features.1.title": "Customise your menu",
+  "landing.features.1.body":
+    "Build a menu that looks like you with advanced customisation options.",
+  "landing.features.2.title": "Tools that save you time",
+  "landing.features.2.body":
+    "Cut down repetitive edits with tools designed to be fast.",
+  "landing.features.3.title": "Hide unavailable dishes",
+  "landing.features.3.body":
+    "Hide sold-out dishes to keep your menu accurate at all times.",
+  "landing.features.4.title": "Print-ready menus",
+  "landing.features.4.body":
+    "Generate printable menus, perfect for when phones aren't enough.",
+  "landing.features.5.title": "Manage your reputation",
+  "landing.features.5.body":
+    "Highlight positive reviews and look after your online image.",
+  "landing.features.6.title": "Improve your search ranking",
+  "landing.features.6.body":
+    "Climb on Google thanks to customer reviews that strengthen your credibility.",
+  "landing.features.7.title": "Track every detail",
+  "landing.features.7.body": "Analyse your performance to decide with ease.",
+
+  // Google Maps section
+  "landing.maps.eyebrow": "Be found. Be chosen.",
+  "landing.maps.titleLead": "Assert your presence on",
+  "landing.maps.titleAccent": "Google Maps",
+  "landing.maps.titleRest": "and Business.",
+  "landing.maps.body":
+    "MangeQR gives you a clear, shareable menu link that you paste straight into your Google Business profile. The \"View menu\" button on Maps then points at a page that's always current, instead of a broken PDF or nothing at all.",
+  "landing.maps.urlLabel": "Your own direct URL",
+  "landing.maps.cta": "Connect to Google Maps",
+
+  // Reach / link-in-bio section
+  "landing.reach.eyebrow": "Instagram · Link in bio",
+  "landing.reach.title":
+    "Your bio link should show today's menu, not a frozen PDF.",
+  "landing.reach.body":
+    "Put your MangeQR link in your Instagram, TikTok, WhatsApp Business or Facebook bio — everywhere your customers find you. One tap, and they're looking at today's menu.",
+  "landing.reach.1.title": "Instagram bio",
+  "landing.reach.2.title": "TikTok profile",
+  "landing.reach.3.title": "WhatsApp Business reply",
+  "landing.reach.cta": "Get your shareable menu link",
+
+  // Printed menus section
+  "landing.printed.eyebrow": "Printed menu",
+  "landing.printed.title": "Print-ready menus, in your style.",
+  "landing.printed.body":
+    "Pick a design and your menu lays itself out automatically from your dishes. Download the PDF or order a professional print run — no layout software needed.",
+  "landing.printed.cta": "Design my printed menu",
+
+  // Restaurateur kit (hardware) section
+  "landing.kit.eyebrow": "Restaurateur kit",
+  "landing.kit.title": "Beyond the software, the kit for your dining room.",
+  "landing.kit.body":
+    "On top of your digital menus, we can equip your venue with hardware for a complete experience.",
+  "landing.kit.1.title": "Screens & TV",
+  "landing.kit.1.desc":
+    "Show your menus and promotions on screens in the dining room. We supply and install the TVs, and your menu stays synced in real time.",
+  "landing.kit.1.alt": "TV screen showing the restaurant menu in the dining room",
+  "landing.kit.2.title": "Self-order kiosks",
+  "landing.kit.2.desc":
+    "Let your customers order on their own on touchscreen kiosks. Less waiting, a higher average ticket, and orders straight to the kitchen.",
+  "landing.kit.2.alt": "Touchscreen self-order kiosks and POS for a restaurant",
+  "landing.kit.footnote":
+    "TV screens for your menus and self-order kiosks on request — get in touch for a quote tailored to your dining room.",
+
+  // Pricing section chrome
+  "landing.pricing.eyebrow": "Pricing",
+  "landing.pricing.title": "Simple pricing, no surprises.",
+  "landing.pricing.region": "Region",
+  "landing.pricing.monthly": "monthly",
+  "landing.pricing.yearly": "yearly",
+  "landing.pricing.popular": "Most popular",
+  "landing.pricing.perMonth": "month",
+  "landing.pricing.perYear": "year",
+  "landing.pricing.annualWithModule": "/ year with the ordering module",
+  "landing.pricing.addonTitle": "+ On-site ordering + delivery module",
+  "landing.pricing.addonBody":
+    "Floor plan, kitchen display and POS with ticket printing.",
+  "landing.pricing.footnote":
+    "Every plan includes unlimited scans, automatic syncing and support.",
+  "landing.pricing.qrDesignNote": "QR design orders from",
+
+  // Pricing tiers
+  "landing.tier.cta": "Contact us",
+  "landing.tier.starter.description":
+    "An ideal solution for small venues wanting to start going digital simply and effectively.",
+  "landing.tier.pro.description":
+    "A perfect fit for multi-site venues looking for centralised, streamlined management.",
+  "landing.tier.premium.description":
+    "A complete, advanced solution for large multi-site operations with extended teams.",
+
+  // Plan feature lines
+  "landing.feature.resto1": "1 restaurant",
+  "landing.feature.resto3": "Up to 3 restaurants",
+  "landing.feature.restoUnlimited": "Unlimited restaurants",
+  "landing.feature.menus7": "7 menus",
+  "landing.feature.menus21": "21 menus",
+  "landing.feature.menusUnlimited": "Unlimited menus",
+  "landing.feature.categoriesUnlimited": "Unlimited categories",
+  "landing.feature.dishesUnlimited": "Unlimited dishes",
+  "landing.feature.scansUnlimited": "Unlimited scans",
+  "landing.feature.qrPerResto": "A unique QR code per restaurant",
+  "landing.feature.menuAvailability": "Edit menu availability",
+  "landing.feature.dishAvailability": "Edit dish availability",
+  "landing.feature.stats": "Performance statistics and tracking",
+  "landing.feature.photos": "Dishes with photos",
+  "landing.feature.autoSync": "Automatic syncing",
+  "landing.feature.freeDelivery": "Free menu delivery",
+  "landing.feature.noLogo": "Logo removal",
+  "landing.feature.customQr": "Custom QR code design",
+  "landing.feature.support": "Support included",
+  "landing.feature.perTableDelivery":
+    "per table for delivery of personalised QR menus",
+  "landing.feature.orderingModule":
+    "On-site ordering + delivery module: floor plan, kitchen display & POS with ticket printing",
+
+  // Quote request dialog
+  "landing.devis.trigger": "Request a quote",
+  "landing.devis.title": "Request a quote",
+  "landing.devis.description":
+    "Tell us about your venue and your hardware needs. Our team will get back to you with a tailored offer.",
+  "landing.devis.kind": "Hardware wanted",
+  "landing.devis.kindBoth": "Kiosks + TV",
+  "landing.devis.kindBorne": "Self-order kiosks",
+  "landing.devis.kindTv": "Screens & TV",
+  "landing.devis.name": "Full name *",
+  "landing.devis.namePlaceholder": "Your name",
+  "landing.devis.phone": "Phone *",
+  "landing.devis.phonePlaceholder": "e.g. 06 12 34 56 78",
+  "landing.devis.email": "Email",
+  "landing.devis.emailPlaceholder": "you@example.com",
+  "landing.devis.restaurant": "Restaurant name",
+  "landing.devis.restaurantPlaceholder": "Your venue",
+  "landing.devis.restaurantCount": "No. of restaurants",
+  "landing.devis.borneCount": "No. of kiosks",
+  "landing.devis.tvCount": "No. of TV screens",
+  "landing.devis.team": "Your team",
+  "landing.devis.teamPlaceholder":
+    "e.g. 1 manager + 5 servers, or a multi-site franchise",
+  "landing.devis.message": "Message (optional)",
+  "landing.devis.messagePlaceholder":
+    "Describe your project or any constraints…",
+  "landing.devis.submit": "Send my request",
+  "landing.devis.required": "Name and phone are required.",
+  "landing.devis.sent": "Request sent.",
 };
 
 export const DICTIONARIES: Record<Locale, Dict> = { fr, ar, en };

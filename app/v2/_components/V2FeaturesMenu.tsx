@@ -22,104 +22,36 @@ import {
 } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n/dictionaries';
 
 interface MenuEntry {
   icon: LucideIcon;
-  title: string;
-  desc: string;
+  /** Dictionary namespace under `landing.menu.*`; `.title` / `.desc` are derived. */
+  key: string;
   href: string;
 }
 
 // Main product features (mirrors what the landing page showcases).
 const FEATURES: MenuEntry[] = [
-  {
-    icon: QrCode,
-    title: 'Menu QR code',
-    desc: 'Une carte numérique toujours à jour, sans réimpression.',
-    href: '/#tarifs',
-  },
-  {
-    icon: Star,
-    title: 'Gestion de réputation',
-    desc: 'Collectez les avis et dirigez-les vers Google.',
-    href: '/#tarifs',
-  },
-  {
-    icon: ChefHat,
-    title: 'Cuisine & caisse (POS)',
-    desc: 'Vue cuisine (KDS) et caisse avec impression de tickets.',
-    href: '/#tarifs',
-  },
-  {
-    icon: Truck,
-    title: 'Livraison & livreurs',
-    desc: 'Suivi des commandes et affectation des livreurs.',
-    href: '/#tarifs',
-  },
-  {
-    icon: MonitorSmartphone,
-    title: 'Borne de commande',
-    desc: 'Commande en libre-service sur écran tactile.',
-    href: '/#kit-restaurateur',
-  },
-  {
-    icon: Tv,
-    title: 'Affichage TV',
-    desc: 'Présentez votre menu sur les écrans en salle.',
-    href: '/#kit-restaurateur',
-  },
-  {
-    icon: FileText,
-    title: 'Menu physique',
-    desc: 'Concevez et commandez vos cartes imprimées.',
-    href: '/#tarifs',
-  },
-  {
-    icon: Building2,
-    title: 'Multi-établissements',
-    desc: 'Gérez plusieurs restaurants depuis un seul compte.',
-    href: '/#tarifs',
-  },
-  {
-    icon: Users,
-    title: 'Équipe multi-membres',
-    desc: 'Invitez votre équipe avec des permissions par membre.',
-    href: '/#tarifs',
-  },
+  { icon: QrCode, key: 'qr', href: '/#tarifs' },
+  { icon: Star, key: 'reputation', href: '/#tarifs' },
+  { icon: ChefHat, key: 'kitchen', href: '/#tarifs' },
+  { icon: Truck, key: 'delivery', href: '/#tarifs' },
+  { icon: MonitorSmartphone, key: 'kiosk', href: '/#kit-restaurateur' },
+  { icon: Tv, key: 'tv', href: '/#kit-restaurateur' },
+  { icon: FileText, key: 'printed', href: '/#tarifs' },
+  { icon: Building2, key: 'multi', href: '/#tarifs' },
+  { icon: Users, key: 'team', href: '/#tarifs' },
 ];
 
 // Use cases by establishment type.
 const USE_CASES: MenuEntry[] = [
-  {
-    icon: Sparkles,
-    title: 'Restaurants haut de gamme',
-    desc: 'Une carte élégante et une expérience soignée.',
-    href: '/go/fr',
-  },
-  {
-    icon: UtensilsCrossed,
-    title: 'Fast-food',
-    desc: 'Bornes, cuisine et files réduites aux heures de pointe.',
-    href: '/go/fr',
-  },
-  {
-    icon: Coffee,
-    title: 'Cafétérias',
-    desc: 'Menu du jour, QR à table et commande rapide.',
-    href: '/go/fr',
-  },
-  {
-    icon: Croissant,
-    title: 'Boulangeries',
-    desc: 'Vitrine numérique et commande au comptoir.',
-    href: '/go/fr',
-  },
-  {
-    icon: Car,
-    title: 'Food trucks',
-    desc: 'Carte mobile via QR, sans installation lourde.',
-    href: '/go/fr',
-  },
+  { icon: Sparkles, key: 'upscale', href: '/go/fr' },
+  { icon: UtensilsCrossed, key: 'fastfood', href: '/go/fr' },
+  { icon: Coffee, key: 'cafeteria', href: '/go/fr' },
+  { icon: Croissant, key: 'bakery', href: '/go/fr' },
+  { icon: Car, key: 'foodtruck', href: '/go/fr' },
 ];
 
 /**
@@ -134,11 +66,14 @@ export default function V2FeaturesMenu({
 }: {
   variant?: 'features' | 'usecases';
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const isFeatures = variant === 'features';
-  const label = isFeatures ? 'Fonctionnalités' : "Cas d'usage";
+  const label = t(
+    isFeatures ? 'landing.nav.features' : 'landing.nav.useCases'
+  );
 
   const openNow = () => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -210,7 +145,7 @@ export default function V2FeaturesMenu({
             >
               {(isFeatures ? FEATURES : USE_CASES).map((entry) => (
                 <MenuItem
-                  key={entry.title}
+                  key={entry.key}
                   entry={entry}
                   onNavigate={() => setOpen(false)}
                 />
@@ -230,6 +165,7 @@ function MenuItem({
   entry: MenuEntry;
   onNavigate: () => void;
 }) {
+  const { t } = useI18n();
   const Icon = entry.icon;
   return (
     <Link
@@ -242,10 +178,10 @@ function MenuItem({
       </span>
       <span className="min-w-0">
         <span className="block text-sm font-semibold text-foreground">
-          {entry.title}
+          {t(`landing.menu.${entry.key}.title` as TranslationKey)}
         </span>
         <span className="block text-xs leading-snug text-muted-foreground">
-          {entry.desc}
+          {t(`landing.menu.${entry.key}.desc` as TranslationKey)}
         </span>
       </span>
     </Link>

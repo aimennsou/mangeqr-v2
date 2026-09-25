@@ -35,7 +35,9 @@ export default function V2Button({
       )}
     >
       {children}
-      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+      {/* The arrow is directional: flip it and its hover nudge under RTL so it
+          still points forward along the reading direction. */}
+      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" />
     </Link>
   );
 }

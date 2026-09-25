@@ -3,9 +3,16 @@ import { Navigation, Phone, Star, MapPin } from "lucide-react";
 // CSS/SVG-rendered stylized Google-Maps-style card: cream map with smooth
 // curved roads, a location pin, a "Propulsé par MangeQR" pill, and a business
 // card overlay with rating + action buttons. No map SDK or image assets.
+//
+// Pinned to `dir="ltr"`: this is an illustration of a Google Maps listing, whose
+// geometry (road curves, city blocks, the park, the pin) is drawn in fixed
+// physical coordinates. Letting it inherit `dir="rtl"` on the Arabic landing
+// would leave the absolutely-positioned decorations where they are while
+// flipping the card overlay around them, which reads as broken rather than
+// localized. The section AROUND it still mirrors normally.
 export default function MapMockup() {
   return (
-    <div className="relative w-full">
+    <div dir="ltr" className="relative w-full">
       {/* Hard offset shadow behind the card (matches the reference's depth). */}
       <div className="absolute inset-0 translate-x-2 translate-y-3 rounded-[1.75rem] bg-neutral-900/90" />
 

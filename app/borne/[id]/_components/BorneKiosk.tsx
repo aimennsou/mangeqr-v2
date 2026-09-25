@@ -18,6 +18,13 @@ import {
 
 import { resolveBorneConfig, type BorneConfig } from '@/schemas';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
+import {
+  LOCALES,
+  LOCALE_LABELS,
+  LOCALE_FLAGS,
+  type Locale,
+} from '@/lib/i18n/config';
 import type {
   AddonGroup,
   CartLine,
@@ -57,6 +64,61 @@ type Screen = 'welcome' | 'type' | 'menu' | 'cart' | 'payment' | 'done';
 // The kiosk step sequence shown in the top stepper. The final node is the
 // payment/confirmation (card icon). `current` is the 1-based active step.
 const KIOSK_STEP_COUNT = 4; // numbered steps before the card node
+
+/**
+ * Kiosk language picker: big flag pills sized for a touch screen.
+ *
+ * The kiosk faces walk-in customers who never signed in, so it needs its own
+ * switcher — without one the whole flow was French-only. `stopPropagation` is
+ * required on the welcome screen, where the entire viewport is a "tap to start"
+ * button and a bare click would advance the screen instead of switching locale.
+ */
+function KioskLangSwitcher({
+  onDark = false,
+  className,
+}: {
+  onDark?: boolean;
+  className?: string;
+}) {
+  const { locale, setLocale, t } = useI18n();
+  return (
+    <div
+      role="group"
+      aria-label={t('kiosk.language')}
+      className={cn('flex items-center gap-2', className)}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {LOCALES.map((l: Locale) => {
+        const active = l === locale;
+        return (
+          <button
+            key={l}
+            type="button"
+            aria-label={LOCALE_LABELS[l]}
+            aria-pressed={active}
+            onClick={(e) => {
+              e.stopPropagation();
+              setLocale(l);
+            }}
+            className={cn(
+              'flex items-center gap-1.5 rounded-full px-3 py-2 text-base font-semibold transition-colors',
+              active
+                ? 'bg-white text-neutral-900 shadow'
+                : onDark
+                  ? 'bg-white/10 text-white/70'
+                  : 'bg-black/5 text-neutral-500'
+            )}
+          >
+            <span aria-hidden className="text-lg leading-none">
+              {LOCALE_FLAGS[l]}
+            </span>
+            <span className="uppercase">{l}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 function KioskSteps({
   current,
@@ -165,6 +227,7 @@ export function BorneKiosk({
   tables,
   borneConfig,
 }: BorneKioskProps) {
+  const { t } = useI18n();
   const cfg = resolveBorneConfig(borneConfig);
   const accent = cfg.accent;
 
@@ -315,6 +378,9 @@ export function BorneKiosk({
       restaurantId,
       // On-site kiosk order (dine-in). Counter pickup has no table.
       type: 'DINE_IN' as const,
+      // Authorizes the order via the account's kiosk flag, so the kiosk keeps
+      // working when menu ordering is disabled for the account/restaurant.
+      source: 'KIOSK' as const,
       tableId: serviceMode === 'table' ? tableId || null : null,
       customerName: '',
       customerPhone: '',
@@ -338,7 +404,9 @@ export function BorneKiosk({
       });
       const data = await res.json();
       if (!res.ok) {
-        setSubmitError(data?.error ?? 'Une erreur est survenue.');
+        // `data.error` comes from the API and is French-only today; the
+        // dictionary value is the fallback.
+        setSubmitError(data?.error ?? t('kiosk.error.generic'));
         return;
       }
       setConfirmation({
@@ -347,7 +415,7 @@ export function BorneKiosk({
       });
       setScreen('done');
     } catch {
-      setSubmitError('Une erreur réseau est survenue.');
+      setSubmitError(t('kiosk.error.network'));
     } finally {
       setSubmitting(false);
     }
@@ -362,6 +430,12 @@ export function BorneKiosk({
         className="relative flex h-screen w-screen flex-col items-center justify-center gap-10 overflow-hidden bg-neutral-950 text-center text-neutral-50"
       >
         <CoverBackdrop coverUrl={coverUrl} />
+        {/* Language picker — the welcome screen is one big tap-to-start button,
+            so the switcher stops propagation to avoid advancing the screen. */}
+        <KioskLangSwitcher
+          onDark
+          className="absolute end-6 top-6 z-20"
+        />
         <span
           className="relative z-10 flex h-32 w-32 items-center justify-center rounded-[2rem] shadow-2xl"
           style={{ backgroundColor: accent, color: '#000' }}
@@ -399,25 +473,25 @@ export function BorneKiosk({
     };
     return (
       <KioskShell
-        title="Comment souhaitez-vous être servi ?"
-        subtitle="Choisissez ce qui vous arrange — la commande est la même."
+        title={t('kiosk.type.title')}
+        subtitle={t('kiosk.type.subtitle')}
         onHome={() => (typeChosen ? setTypeChosen(false) : setScreen('cart'))}
-        homeLabel="Retour"
+        homeLabel={t('kiosk.back')}
         coverUrl={coverUrl}
       >
         {!typeChosen ? (
           <div className="mx-auto grid max-w-3xl gap-6 p-8 sm:grid-cols-2">
             <TypeCard
               emoji="🪧"
-              label="Service à table"
-              subtitle="On vous apporte votre commande"
+              label={t('kiosk.type.table')}
+              subtitle={t('kiosk.type.tableHint')}
               accent={accent}
               onClick={() => pick('table')}
             />
             <TypeCard
               emoji="🔔"
-              label="Retrait au comptoir"
-              subtitle="On appelle votre numéro"
+              label={t('kiosk.type.counter')}
+              subtitle={t('kiosk.type.counterHint')}
               accent={accent}
               onClick={() => pick('counter')}
             />
@@ -426,7 +500,7 @@ export function BorneKiosk({
           /* Dine-in: choose a table, then continue to payment. */
           <div className="mx-auto w-full max-w-2xl rounded-3xl border border-black/10 bg-white p-8 text-neutral-900">
             <p className="mb-4 text-center text-2xl font-bold">
-              Choisissez votre table
+              {t('kiosk.type.chooseTable')}
             </p>
             <div className="flex flex-wrap justify-center gap-3">
               {tables.map((tb) => (
@@ -459,7 +533,7 @@ export function BorneKiosk({
               className="mt-8 w-full rounded-full px-8 py-5 text-2xl font-bold disabled:opacity-40"
               style={{ backgroundColor: accent, color: '#000' }}
             >
-              Continuer
+              {t('kiosk.continue')}
             </button>
           </div>
         )}
@@ -480,9 +554,11 @@ export function BorneKiosk({
           >
             <Check className="h-10 w-10" />
           </span>
-          <h1 className="mt-6 text-4xl font-extrabold tracking-tight">Merci !</h1>
+          <h1 className="mt-6 text-4xl font-extrabold tracking-tight">
+            {t('kiosk.done.thanks')}
+          </h1>
           <p className="mt-2 text-lg text-neutral-500">
-            Votre commande a été envoyée en cuisine.
+            {t('kiosk.done.sent')}
           </p>
 
           {/* Order number ticket */}
@@ -491,7 +567,7 @@ export function BorneKiosk({
             style={{ borderColor: `${accent}80` }}
           >
             <p className="text-sm font-semibold uppercase tracking-widest text-neutral-400">
-              Numéro de commande
+              {t('kiosk.done.orderNumber')}
             </p>
             <p
               className="mt-1 text-7xl font-extrabold tabular-nums"
@@ -500,27 +576,34 @@ export function BorneKiosk({
               #{confirmation.number ?? '—'}
             </p>
             <span className="mt-3 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-4 py-1.5 text-base font-medium text-emerald-700">
-              ⏱️ Temps d&apos;attente estimé ≈ {estMinutes} min
+              ⏱️ {t('kiosk.done.wait')} ≈ {estMinutes}{' '}
+              {t('kiosk.done.minutes')}
             </span>
             <p className="mt-3 text-sm text-neutral-400">
-              Notez votre numéro de commande
+              {t('kiosk.done.noteNumber')}
             </p>
 
             <div className="mt-5 space-y-1 border-t border-black/10 pt-4 text-left text-base">
               <div className="flex items-center justify-between">
-                <span className="text-neutral-500">Service</span>
+                <span className="text-neutral-500">
+                  {t('kiosk.done.service')}
+                </span>
                 <span className="font-medium">
                   {serviceMode === 'table'
-                    ? 'Service à table'
-                    : 'Retrait au comptoir'}
+                    ? t('kiosk.type.table')
+                    : t('kiosk.type.counter')}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-neutral-500">Paiement</span>
-                <span className="font-medium">Paiement au comptoir</span>
+                <span className="text-neutral-500">
+                  {t('kiosk.done.payment')}
+                </span>
+                <span className="font-medium">
+                  {t('kiosk.done.payAtCounter')}
+                </span>
               </div>
               <div className="mt-3 flex items-center justify-between border-t border-black/10 pt-3">
-                <span className="text-xl font-bold">Total</span>
+                <span className="text-xl font-bold">{t('kiosk.total')}</span>
                 <span className="text-xl font-bold" style={{ color: accent }}>
                   {fmt(cartTotal)}
                 </span>
@@ -530,9 +613,7 @@ export function BorneKiosk({
 
           {/* Experience rating */}
           <div className="mt-6 rounded-2xl border border-black/10 bg-white p-5">
-            <p className="font-semibold">
-              Comment s&apos;est passée votre expérience ?
-            </p>
+            <p className="font-semibold">{t('kiosk.done.ratingQuestion')}</p>
             <div className="mt-3 flex items-center justify-center gap-2">
               <span className="text-2xl">😞</span>
               {[1, 2, 3, 4, 5].map((n) => (
@@ -540,7 +621,7 @@ export function BorneKiosk({
                   key={n}
                   type="button"
                   onClick={() => submitRating(n)}
-                  aria-label={`Note ${n}`}
+                  aria-label={`${t('kiosk.done.rating')} ${n}`}
                   className="transition-transform active:scale-90"
                 >
                   <Star
@@ -555,7 +636,9 @@ export function BorneKiosk({
               <span className="text-2xl">😍</span>
             </div>
             <p className="mt-2 text-sm text-neutral-400">
-              {rating > 0 ? 'Merci pour votre retour !' : '1 = mauvais · 5 = excellent'}
+              {rating > 0
+                ? t('kiosk.done.ratingThanks')
+                : t('kiosk.done.ratingScale')}
             </p>
           </div>
 
@@ -565,7 +648,7 @@ export function BorneKiosk({
             className="mt-6 w-full rounded-full px-12 py-5 text-2xl font-semibold"
             style={{ backgroundColor: accent, color: '#fff' }}
           >
-            Nouvelle commande
+            {t('kiosk.done.newOrder')}
           </button>
         </div>
       </div>
@@ -653,17 +736,18 @@ export function BorneKiosk({
           onClick={reset}
           className="flex items-center gap-2 text-base font-medium text-neutral-500"
         >
-          <ArrowLeft className="h-5 w-5" /> Accueil
+          {/* Directional icon: mirror it under RTL. */}
+          <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" /> {t('kiosk.home')}
         </button>
         <span className="text-xl font-bold">{name}</span>
-        <span className="w-24" />
+        <KioskLangSwitcher />
       </header>
 
       {/* Step progress */}
       <KioskSteps
         current={1}
-        title="Choisissez votre plat"
-        subtitle="Choisissez pour commencer"
+        title={t('kiosk.menu.title')}
+        subtitle={t('kiosk.menu.subtitle')}
         accent={accent}
       />
 
@@ -700,7 +784,7 @@ export function BorneKiosk({
         {/* All categories, one scrollable list (dishes of every available menu). */}
         <div ref={scrollRef} className="min-w-0 flex-1 overflow-y-auto p-6">
           {allCategories.length === 0 ? (
-            <p className="text-xl text-neutral-400">Aucun plat.</p>
+            <p className="text-xl text-neutral-400">{t('kiosk.menu.empty')}</p>
           ) : (
             allCategories.map((cat) => (
               <section
@@ -742,9 +826,14 @@ export function BorneKiosk({
             <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black/15">
               <ShoppingBag className="h-5 w-5" />
             </span>
-            {cartCount} article{cartCount > 1 ? 's' : ''}
+            {cartCount}{' '}
+            {cartCount > 1
+              ? t('kiosk.menu.itemMany')
+              : t('kiosk.menu.itemOne')}
           </span>
-          <span>Voir ma commande · {fmt(cartTotal)}</span>
+          <span>
+            {t('kiosk.menu.viewOrder')} · {fmt(cartTotal)}
+          </span>
         </button>
       ) : null}
 
@@ -775,17 +864,19 @@ function KioskShell({
   title,
   subtitle,
   onHome,
-  homeLabel = 'Accueil',
+  homeLabel,
   coverUrl,
   children,
 }: {
   title: string;
   subtitle?: string;
   onHome: () => void;
+  /** Defaults to the localized "Accueil" when omitted. */
   homeLabel?: string;
   coverUrl?: string | null;
   children: React.ReactNode;
 }) {
+  const { t } = useI18n();
   const hasCover = !!coverUrl;
   return (
     <div
@@ -811,8 +902,10 @@ function KioskShell({
             hasCover ? 'text-white/70' : 'text-neutral-500'
           )}
         >
-          <ArrowLeft className="h-5 w-5" /> {homeLabel}
+          <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" />{' '}
+          {homeLabel ?? t('kiosk.home')}
         </button>
+        <KioskLangSwitcher onDark={hasCover} className="ms-auto" />
       </header>
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
         <div className="mb-8 px-6 text-center">
@@ -961,6 +1054,7 @@ function ItemDetail({
   onAdd: (line: CartLine) => void;
   fmt: (n: number) => string;
 }) {
+  const { t } = useI18n();
   const [quantity, setQuantity] = useState(1);
   const [selected, setSelected] = useState<Record<string, Set<string>>>({});
   const [special, setSpecial] = useState('');
@@ -1053,7 +1147,7 @@ function ItemDetail({
                       className="rounded-full px-2 py-0.5 text-xs font-semibold"
                       style={{ backgroundColor: `${accent}22`, color: accent }}
                     >
-                      Requis
+                      {t('kiosk.item.required')}
                     </span>
                   ) : null}
                 </div>
@@ -1101,12 +1195,12 @@ function ItemDetail({
 
             <div className="mt-6">
               <label className="mb-1 block text-lg font-semibold">
-                Remarque (optionnel)
+                {t('kiosk.item.note')}
               </label>
               <input
                 value={special}
                 onChange={(e) => setSpecial(e.target.value)}
-                placeholder="Sans oignons, bien cuit…"
+                placeholder={t('kiosk.item.notePlaceholder')}
                 className="w-full rounded-xl border-2 border-black/10 p-4 text-lg outline-none"
               />
             </div>
@@ -1120,7 +1214,7 @@ function ItemDetail({
             onClick={onClose}
             className="rounded-full px-5 py-4 text-lg font-semibold text-neutral-500"
           >
-            Annuler
+            {t('kiosk.cancel')}
           </button>
           <div className="ml-auto flex items-center gap-2 rounded-full border-2 border-black/10 px-3 py-2">
             <button
@@ -1148,7 +1242,7 @@ function ItemDetail({
             className="rounded-full px-8 py-4 text-xl font-bold disabled:opacity-40"
             style={{ backgroundColor: accent, color: '#000' }}
           >
-            Ajouter · {fmt(unit * quantity)}
+            {t('kiosk.add')} · {fmt(unit * quantity)}
           </button>
         </div>
       </div>
@@ -1187,6 +1281,7 @@ function CartReview({
   onProceed: () => void;
   fmt: (n: number) => string;
 }) {
+  const { t } = useI18n();
   const total = lines.reduce((s, l) => s + lineTotal(l), 0);
 
   const proceed = () => {
@@ -1202,15 +1297,17 @@ function CartReview({
           onClick={onBack}
           className="flex items-center gap-2 text-base font-medium text-neutral-500"
         >
-          <ArrowLeft className="h-5 w-5" /> Menu
+          <ArrowLeft className="h-5 w-5 rtl:-scale-x-100" />{' '}
+          {t('kiosk.menuLabel')}
         </button>
+        <KioskLangSwitcher className="ms-auto" />
       </header>
 
       {/* Step progress */}
       <KioskSteps
         current={2}
-        title="Vérifiez votre commande"
-        subtitle="Modifiez les quantités puis validez"
+        title={t('kiosk.cart.title')}
+        subtitle={t('kiosk.cart.subtitle')}
         accent={accent}
       />
 
@@ -1218,7 +1315,7 @@ function CartReview({
       <div className="mx-auto w-full max-w-2xl flex-1 overflow-y-auto p-6">
         {lines.length === 0 ? (
           <p className="mt-20 text-center text-2xl text-neutral-400">
-            Votre panier est vide.
+            {t('kiosk.cart.empty')}
           </p>
         ) : (
           <div className="space-y-3">
@@ -1286,7 +1383,7 @@ function CartReview({
               <input
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Remarque pour la cuisine (optionnel)"
+                placeholder={t('kiosk.cart.notePlaceholder')}
                 className="w-full rounded-xl border-2 border-black/10 p-4 text-lg outline-none"
               />
             </div>
@@ -1299,7 +1396,7 @@ function CartReview({
               >
                 <p className="mb-3 flex items-center gap-2 text-lg font-bold">
                   <span className="text-xl">✨</span>
-                  Recommandé avec votre commande
+                  {t('kiosk.cart.upsell')}
                 </p>
                 <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {suggestions.map((dish) => (
@@ -1357,7 +1454,7 @@ function CartReview({
         <div className="border-t border-black/10 bg-white p-4">
           <div className="mx-auto flex max-w-2xl items-center justify-between gap-4">
             <div>
-              <p className="text-lg text-neutral-500">Total</p>
+              <p className="text-lg text-neutral-500">{t('kiosk.total')}</p>
               <p className="text-3xl font-bold" style={{ color: accent }}>
                 {fmt(total)}
               </p>
@@ -1368,7 +1465,7 @@ function CartReview({
               className="flex items-center gap-2 rounded-full px-10 py-5 text-2xl font-bold"
               style={{ backgroundColor: accent, color: '#000' }}
             >
-              Continuer
+              {t('kiosk.continue')}
             </button>
           </div>
         </div>
@@ -1400,6 +1497,7 @@ function PaymentStep({
   onBack: () => void;
   onPay: () => void;
 }) {
+  const { t } = useI18n();
   const hasCover = !!coverUrl;
   return (
     <div
@@ -1410,9 +1508,14 @@ function PaymentStep({
     >
       <CoverBackdrop coverUrl={coverUrl} />
 
+      <KioskLangSwitcher
+        onDark={hasCover}
+        className="absolute end-6 top-6 z-20"
+      />
+
       <div className="relative z-10 w-full max-w-xl rounded-3xl border border-black/10 bg-white p-8 text-neutral-900 shadow-xl">
         <p className="text-sm font-semibold uppercase tracking-widest text-neutral-400">
-          Mode de paiement
+          {t('kiosk.pay.title')}
         </p>
         <button
           type="button"
@@ -1427,7 +1530,7 @@ function PaymentStep({
             ) : (
               <span className="text-2xl">💵</span>
             )}
-            Payer au comptoir
+            {t('kiosk.pay.counter')}
           </span>
           <span className="rounded-lg bg-black/15 px-3 py-1 text-xl">
             {fmt(total)}
@@ -1448,7 +1551,14 @@ function PaymentStep({
           hasCover ? 'text-white/70' : 'text-neutral-500'
         )}
       >
-        ← Retour
+        <span aria-hidden className="rtl:hidden">
+          ←{' '}
+        </span>
+        {t('kiosk.back')}
+        <span aria-hidden className="hidden rtl:inline">
+          {' '}
+          →
+        </span>
       </button>
     </div>
   );

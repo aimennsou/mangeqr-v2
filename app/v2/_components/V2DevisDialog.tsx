@@ -18,13 +18,17 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { requestDevis } from '@/actions/devis';
+import { useI18n } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n/dictionaries';
 
 type Kind = 'BORNE' | 'TV' | 'BOTH';
 
-const KIND_OPTIONS: { value: Kind; label: string }[] = [
-  { value: 'BOTH', label: 'Bornes + TV' },
-  { value: 'BORNE', label: 'Bornes de commande' },
-  { value: 'TV', label: 'Écrans & TV' },
+// `value` is the wire format sent to the action and must stay in English; only
+// the label is translated.
+const KIND_OPTIONS: { value: Kind; labelKey: TranslationKey }[] = [
+  { value: 'BOTH', labelKey: 'landing.devis.kindBoth' },
+  { value: 'BORNE', labelKey: 'landing.devis.kindBorne' },
+  { value: 'TV', labelKey: 'landing.devis.kindTv' },
 ];
 
 /**
@@ -33,7 +37,8 @@ const KIND_OPTIONS: { value: Kind; label: string }[] = [
  * restaurants, bornes, TVs, team). Submits to the public `requestDevis` action,
  * which records a DevisRequest and notifies the back-office.
  */
-export default function V2DevisDialog({ label = 'Demander un devis' }: { label?: string }) {
+export default function V2DevisDialog({ label }: { label?: string }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -63,7 +68,7 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
 
   const submit = () => {
     if (!name.trim() || !phone.trim()) {
-      toast.error('Nom et téléphone sont requis.');
+      toast.error(t('landing.devis.required'));
       return;
     }
     startTransition(async () => {
@@ -83,7 +88,10 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
         toast.error(res.error);
         return;
       }
-      toast.success(res.success ?? 'Demande envoyée.');
+      // `res.success` comes from the server action and is French-only today; the
+      // dictionary value is the fallback. Translating server-action messages is
+      // tracked separately (see the i18n follow-up notes).
+      toast.success(res.success ?? t('landing.devis.sent'));
       reset();
       setOpen(false);
     });
@@ -96,24 +104,23 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
           type="button"
           className="group inline-flex items-center justify-center gap-2 rounded-full bg-yellow-400 px-8 py-4 text-lg font-bold text-black shadow-lg shadow-yellow-400/30 transition-transform hover:scale-[1.03]"
         >
-          {label}
-          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
+          {label ?? t('landing.devis.trigger')}
+          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" />
         </button>
       </DialogTrigger>
 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Demander un devis</DialogTitle>
+          <DialogTitle>{t('landing.devis.title')}</DialogTitle>
           <DialogDescription>
-            Parlez-nous de votre établissement et de vos besoins en matériel.
-            Notre équipe vous recontacte avec une offre adaptée.
+            {t('landing.devis.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
           {/* Kind */}
           <div className="space-y-2">
-            <Label>Matériel souhaité</Label>
+            <Label>{t('landing.devis.kind')}</Label>
             <div className="grid grid-cols-3 gap-2">
               {KIND_OPTIONS.map((opt) => (
                 <button
@@ -127,7 +134,7 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
                       : 'border-border text-muted-foreground hover:bg-muted',
                   )}
                 >
-                  {opt.label}
+                  {t(opt.labelKey)}
                 </button>
               ))}
             </div>
@@ -136,43 +143,45 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
           {/* Contact */}
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="devis-name">Nom complet *</Label>
+              <Label htmlFor="devis-name">{t('landing.devis.name')}</Label>
               <Input
                 id="devis-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="Votre nom"
+                placeholder={t('landing.devis.namePlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="devis-phone">Téléphone *</Label>
+              <Label htmlFor="devis-phone">{t('landing.devis.phone')}</Label>
               <Input
                 id="devis-phone"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Ex. 06 12 34 56 78"
+                placeholder={t('landing.devis.phonePlaceholder')}
               />
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="devis-email">E-mail</Label>
+              <Label htmlFor="devis-email">{t('landing.devis.email')}</Label>
               <Input
                 id="devis-email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="vous@exemple.com"
+                placeholder={t('landing.devis.emailPlaceholder')}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="devis-restaurant">Nom du restaurant</Label>
+              <Label htmlFor="devis-restaurant">
+                {t('landing.devis.restaurant')}
+              </Label>
               <Input
                 id="devis-restaurant"
                 value={restaurantName}
                 onChange={(e) => setRestaurantName(e.target.value)}
-                placeholder="Votre établissement"
+                placeholder={t('landing.devis.restaurantPlaceholder')}
               />
             </div>
           </div>
@@ -180,7 +189,9 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
           {/* Sizing */}
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="devis-restaurants">Nb. restaurants</Label>
+              <Label htmlFor="devis-restaurants">
+                {t('landing.devis.restaurantCount')}
+              </Label>
               <Input
                 id="devis-restaurants"
                 type="number"
@@ -191,7 +202,9 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="devis-bornes">Nb. bornes</Label>
+              <Label htmlFor="devis-bornes">
+                {t('landing.devis.borneCount')}
+              </Label>
               <Input
                 id="devis-bornes"
                 type="number"
@@ -202,7 +215,9 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="devis-tvs">Nb. écrans TV</Label>
+              <Label htmlFor="devis-tvs">
+                {t('landing.devis.tvCount')}
+              </Label>
               <Input
                 id="devis-tvs"
                 type="number"
@@ -215,22 +230,24 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="devis-team">Votre équipe</Label>
+            <Label htmlFor="devis-team">{t('landing.devis.team')}</Label>
             <Input
               id="devis-team"
               value={teamType}
               onChange={(e) => setTeamType(e.target.value)}
-              placeholder="Ex. 1 gérant + 5 serveurs, ou franchise multi-sites"
+              placeholder={t('landing.devis.teamPlaceholder')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="devis-message">Message (facultatif)</Label>
+            <Label htmlFor="devis-message">
+              {t('landing.devis.message')}
+            </Label>
             <Textarea
               id="devis-message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Décrivez votre projet ou vos contraintes…"
+              placeholder={t('landing.devis.messagePlaceholder')}
               rows={3}
             />
           </div>
@@ -241,8 +258,8 @@ export default function V2DevisDialog({ label = 'Demander un devis' }: { label?:
             disabled={isPending}
             className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
           >
-            {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Envoyer ma demande
+            {isPending && <Loader2 className="me-2 h-4 w-4 animate-spin" />}
+            {t('landing.devis.submit')}
           </Button>
         </div>
       </DialogContent>

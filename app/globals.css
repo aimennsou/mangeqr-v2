@@ -111,6 +111,35 @@
   font-family: var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* ---------------------------------------------------------------------------
+   Arabic typography, app-wide.
+
+   The body face set on <html> in layout.tsx (Average Sans) only ships a latin
+   subset, so Arabic text fell back to whatever system Arabic face the device
+   happened to have — and the Tajawal variable that IS loaded was only applied
+   by app/lp/layout.tsx. These rules key off the `lang` attribute, which the
+   I18nProvider mutates on <html> when the locale changes, so the face swaps
+   instantly on switching language without a reload.
+
+   A direct rule on `body` beats the font-family inherited from the class on
+   <html>, which is why this works without !important.
+   --------------------------------------------------------------------------- */
+html[lang="ar"] body {
+  font-family: var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Cormorant Garamond (the display serif) has no Arabic coverage, so Arabic
+   headlines would silently fall back to a system serif. Use Tajawal for them and
+   keep the lighter weight that gives the editorial look. */
+html[lang="ar"] .font-serif-display {
+  font-family: var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Tajawal has no true italic; a synthesized oblique looks broken in Arabic. */
+html[lang="ar"] .italic {
+  font-style: normal;
+}
+
 /* Fullscreen board surface (Commandes / Cuisine / Plan de salle).
    When a board element enters the Fullscreen API, the browser gives it a black
    default backdrop. Paint the element AND its ::backdrop with the theme page

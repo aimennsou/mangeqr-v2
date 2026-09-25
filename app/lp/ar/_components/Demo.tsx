@@ -1,5 +1,5 @@
-import PhoneFrame from '@/app/(landing)/_components/ui/PhoneFrame';
-import LiveMenu from '@/app/(landing)/_components/ui/LiveMenu';
+import PhoneFrame from '@/components/mockups/PhoneFrame';
+import LiveMenu from '@/components/mockups/LiveMenu';
 import { CTA } from './CTA';
 
 // 6. DEMONSTRATION — show, don't tell (interactive live menu).

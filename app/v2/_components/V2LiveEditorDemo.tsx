@@ -36,7 +36,8 @@ import {
 import { FaTiktok } from 'react-icons/fa6';
 
 import { cn } from '@/lib/utils';
-import PhoneFrame from '../../(landing)/_components/ui/PhoneFrame';
+import { useI18n } from '@/lib/i18n';
+import PhoneFrame from '@/components/mockups/PhoneFrame';
 
 type Tone = 'green' | 'orange' | 'red' | 'yellow';
 type Dish = {
@@ -201,6 +202,7 @@ function SortableDishRow({
  * no backend.
  */
 export default function V2LiveEditorDemo() {
+  const { t } = useI18n();
   const [online, setOnline] = useState(true);
   const [dishes, setDishes] = useState<Dish[]>(INITIAL);
 
@@ -240,7 +242,9 @@ export default function V2LiveEditorDemo() {
       <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <span className="flex items-center gap-1 text-sm text-muted-foreground">
-            <ChevronLeft className="h-4 w-4" /> Éditeur
+            {/* Back chevron: directional, so mirror it under RTL. */}
+            <ChevronLeft className="h-4 w-4 rtl:-scale-x-100" />{' '}
+            {t('landing.editorDemo.panel')}
           </span>
           <span className="text-sm font-semibold text-foreground">Menu du Midi</span>
           <Settings className="h-4 w-4 text-muted-foreground" />
@@ -250,9 +254,11 @@ export default function V2LiveEditorDemo() {
           {/* Online toggle */}
           <div className="flex items-center justify-between rounded-xl border border-border bg-background p-3">
             <div>
-              <p className="text-sm font-semibold text-foreground">En ligne</p>
+              <p className="text-sm font-semibold text-foreground">
+                {t('landing.editorDemo.online')}
+              </p>
               <p className="text-[11px] text-muted-foreground">
-                Visible par les clients
+                {t('landing.editorDemo.onlineHint')}
               </p>
             </div>
             <button
@@ -275,11 +281,16 @@ export default function V2LiveEditorDemo() {
           </div>
 
           <p className="px-1 pt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Plats
+            {t('landing.editorDemo.dishes')}
           </p>
 
-          {/* Dish rows — drag the grip to reorder; the preview follows. */}
+          {/* Dish rows — drag the grip to reorder; the preview follows.
+              `id` is pinned: without it dnd-kit derives its aria-describedby id
+              from a render counter, which differs between the server and client
+              pass and produced a hydration mismatch warning in the console on
+              every landing page load. */}
           <DndContext
+            id="v2-live-editor-dishes"
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
@@ -302,8 +313,7 @@ export default function V2LiveEditorDemo() {
           </DndContext>
 
           <p className="px-1 pt-1 text-[11px] text-muted-foreground">
-            Réorganisez, modifiez le prix, marquez un plat « épuisé » ou mettez
-            la carte hors ligne — l&apos;aperçu se met à jour instantanément.
+            {t('landing.editorDemo.hint')}
           </p>
         </div>
       </div>

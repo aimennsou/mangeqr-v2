@@ -10,6 +10,8 @@ import {
   REGION_PRICING,
   REGION_LABELS,
   getRegionTierPrice,
+  PRICING_ADDON_FEATURE,
+  PRICING_PER_TABLE_FEATURE,
   type PricingRegion,
 } from '@/config';
 import { Button } from '@/components/ui/button';
@@ -21,23 +23,26 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n/dictionaries';
 import Reveal from './Reveal';
+
+/** How many feature bullets fit on a card before it gets too tall. */
+const MAX_VISIBLE_FEATURES = 7;
 
 /**
  * Editorial pricing. Not three equal cards: Pro (popular) is emphasized with a
  * gold border and a lift, while Starter and Premium sit quieter alongside it,
- * giving the row a clear focal point. Prices + features come from @/config.
+ * giving the row a clear focal point. Prices come from @/config; all copy comes
+ * from the dictionary via the tiers' `descriptionKey` / `featureKeys`.
  */
 export default function V2Pricing() {
+  const { t } = useI18n();
   const [freq, setFreq] = useState<string>(PAYMENT_FREQUENCIES[0]);
   const [region, setRegion] = useState<PricingRegion>('france');
   const pricing = REGION_PRICING[region];
 
-  // Region-aware rewrite of the per-table delivery feature line (Starter/Pro).
-  const localizeFeature = (feat: string): string =>
-    feat.startsWith('+2€ par table')
-      ? feat.replace('+2€', pricing.perTableDelivery)
-      : feat;
+  const isAnnual = freq === 'annuel';
 
   return (
     <section id="tarifs" className="border-t border-border bg-card">
@@ -46,21 +51,24 @@ export default function V2Pricing() {
           <div className="flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-end">
             <div>
               <p className="text-sm font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
-                Tarifs
+                {t('landing.pricing.eyebrow')}
               </p>
               <h2 className="font-serif-display mt-4 max-w-[16ch] text-4xl font-light leading-tight tracking-[-0.02em] text-foreground sm:text-5xl">
-                Un tarif simple, sans surprise.
+                {t('landing.pricing.title')}
               </h2>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               {/* Region selector — switches prices between France (€) and
-                  Algérie (DZD). */}
+                  Algérie (DZD). Region NAMES are places, not copy. */}
               <Select
                 value={region}
                 onValueChange={(v) => setRegion(v as PricingRegion)}
               >
-                <SelectTrigger className="w-[130px]" aria-label="Région">
+                <SelectTrigger
+                  className="w-[130px]"
+                  aria-label={t('landing.pricing.region')}
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -72,7 +80,8 @@ export default function V2Pricing() {
                 </SelectContent>
               </Select>
 
-              {/* Frequency toggle */}
+              {/* Frequency toggle. The VALUE stays 'mensuel'/'annuel' because it
+                  keys into the price tables; only the label is translated. */}
               <div className="inline-flex rounded-lg border border-border bg-background p-1">
                 {PAYMENT_FREQUENCIES.map((f) => (
                   <button
@@ -86,7 +95,11 @@ export default function V2Pricing() {
                         : 'text-muted-foreground hover:text-foreground'
                     )}
                   >
-                    {f}
+                    {t(
+                      f === 'annuel'
+                        ? 'landing.pricing.yearly'
+                        : 'landing.pricing.monthly'
+                    )}
                   </button>
                 ))}
               </div>
@@ -97,6 +110,13 @@ export default function V2Pricing() {
         <div className="mt-14 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
           {TIERS.map((tier, i) => {
             const isPopular = !!tier.popular;
+
+            // The ordering module has its own highlighted block below, so it is
+            // never rendered as a plain bullet.
+            const bullets = tier.featureKeys
+              .filter((k) => k !== PRICING_ADDON_FEATURE)
+              .slice(0, MAX_VISIBLE_FEATURES);
+
             return (
               <Reveal key={tier.id} delay={i * 0.06} className="flex">
                 <article
@@ -113,7 +133,7 @@ export default function V2Pricing() {
                     </h3>
                     {isPopular ? (
                       <span className="rounded-full bg-yellow-400 px-2 py-0.5 text-xs font-semibold text-black">
-                        Le plus choisi
+                        {t('landing.pricing.popular')}
                       </span>
                     ) : null}
                   </div>
@@ -123,21 +143,25 @@ export default function V2Pricing() {
                       {getRegionTierPrice(region, tier.id, freq)}
                     </span>
                     <span className="text-sm text-muted-foreground">
-                      /{freq === 'annuel' ? 'an' : 'mois'}
+                      /
+                      {t(
+                        isAnnual
+                          ? 'landing.pricing.perYear'
+                          : 'landing.pricing.perMonth'
+                      )}
                     </span>
                   </div>
 
                   {/* Annual + ordering-module bundle price (region-specific). */}
-                  {freq === 'annuel' &&
-                  pricing.tiersAnnualWithModule?.[tier.id] ? (
+                  {isAnnual && pricing.tiersAnnualWithModule?.[tier.id] ? (
                     <p className="mt-1.5 text-xs text-muted-foreground">
-                      {pricing.tiersAnnualWithModule[tier.id]} / an avec le
-                      module de commande
+                      {pricing.tiersAnnualWithModule[tier.id]}{' '}
+                      {t('landing.pricing.annualWithModule')}
                     </p>
                   ) : null}
 
                   <p className="mt-4 min-h-[3.5rem] text-sm leading-relaxed text-muted-foreground">
-                    {tier.description}
+                    {t(tier.descriptionKey as TranslationKey)}
                   </p>
 
                   <Link href="/auth/sign-up" className="mt-6 block">
@@ -150,39 +174,45 @@ export default function V2Pricing() {
                       )}
                       variant={isPopular ? 'default' : 'outline'}
                     >
-                      {tier.cta}
+                      {t('landing.tier.cta')}
                     </Button>
                   </Link>
 
                   <ul className="mt-8 space-y-3 border-t border-border pt-6">
-                    {tier.features
-                      .filter((f) => !f.startsWith('Module gestion de commande'))
-                      .slice(0, 7)
-                      .map((feat) => (
-                        <li key={feat} className="flex gap-3 text-sm">
-                          <Check
-                            className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500"
-                            strokeWidth={2.25}
-                          />
-                          <span className="text-foreground/90">
-                            {localizeFeature(feat)}
-                          </span>
-                        </li>
-                      ))}
+                    {bullets.map((key) => (
+                      <li key={key} className="flex gap-3 text-sm">
+                        <Check
+                          className="mt-0.5 h-4 w-4 shrink-0 text-yellow-500"
+                          strokeWidth={2.25}
+                        />
+                        <span className="text-foreground/90">
+                          {/* The per-table line is prefixed with the region's
+                              surcharge instead of splicing a price out of a
+                              translated sentence. */}
+                          {key === PRICING_PER_TABLE_FEATURE ? (
+                            <>
+                              {pricing.perTableDelivery}{' '}
+                              {t(`landing.feature.${key}` as TranslationKey)}
+                            </>
+                          ) : (
+                            t(`landing.feature.${key}` as TranslationKey)
+                          )}
+                        </span>
+                      </li>
+                    ))}
                   </ul>
 
                   {/* Optional add-on: the ordering module, available on every
-                      plan for +5€/mois. */}
+                      plan for the region's monthly price. */}
                   <div className="mt-6 rounded-xl border border-dashed border-yellow-400/60 bg-yellow-400/5 p-3">
                     <p className="text-xs font-semibold text-foreground">
-                      + Module gestion de commande sur place + livraison{' '}
+                      {t('landing.pricing.addonTitle')}{' '}
                       <span className="text-yellow-600 dark:text-yellow-500">
                         {pricing.orderingAddon}
                       </span>
                     </p>
                     <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                      Plan de salle, vue cuisine et caisse (POS) avec impression
-                      de tickets.
+                      {t('landing.pricing.addonBody')}
                     </p>
                   </div>
                 </article>
@@ -193,12 +223,11 @@ export default function V2Pricing() {
 
         <Reveal>
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Tous les plans incluent les scans illimités, la synchronisation
-            automatique et l&apos;assistance.
+            {t('landing.pricing.footnote')}
             {pricing.qrDesignFrom ? (
               <>
                 {' '}
-                Commande de designs QR {pricing.qrDesignFrom}.
+                {t('landing.pricing.qrDesignNote')} {pricing.qrDesignFrom}.
               </>
             ) : null}
           </p>

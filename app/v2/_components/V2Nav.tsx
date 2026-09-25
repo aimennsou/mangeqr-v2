@@ -6,7 +6,9 @@ import { useEffect, useState } from 'react';
 import Logo from '@/components/Logo';
 import { Button } from '@/components/ui/button';
 import { ModeToggle } from '@/components/mode-toggle';
+import { LanguageSwitcher } from '@/components/language-switcher';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n';
 import V2FeaturesMenu from './V2FeaturesMenu';
 
 /**
@@ -20,6 +22,7 @@ export default function V2Nav({
   /** Set when a user is signed in → show a single "Aller à mon compte" button. */
   accountHref?: string | null;
 }) {
+  const { t } = useI18n();
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {
@@ -52,27 +55,31 @@ export default function V2Nav({
         <div className="flex items-center gap-1 sm:gap-2">
           <Link href="/#tarifs">
             <Button variant="ghost" className="hidden sm:inline-flex">
-              Tarifs
+              {t('landing.nav.pricing')}
             </Button>
           </Link>
           {accountHref ? (
             <Link href={accountHref}>
               <Button className="bg-yellow-400 text-black hover:bg-yellow-400/90">
-                Aller à mon compte
+                {t('landing.nav.account')}
               </Button>
             </Link>
           ) : (
             <>
               <Link href="/auth/sign-in">
-                <Button variant="ghost">Se connecter</Button>
+                <Button variant="ghost">{t('landing.nav.signIn')}</Button>
               </Link>
               <Link href="/auth/sign-up">
                 <Button className="bg-yellow-400 text-black hover:bg-yellow-400/90">
-                  Créer un compte
+                  {t('landing.nav.signUp')}
                 </Button>
               </Link>
             </>
           )}
+          {/* Public language switcher: without this, a visitor had no way to
+              reach Arabic without signing in first (it was mounted only in the
+              authenticated dashboard navbar). */}
+          <LanguageSwitcher />
           <ModeToggle />
         </div>
       </div>

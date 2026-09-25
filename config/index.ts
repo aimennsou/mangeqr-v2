@@ -1,15 +1,74 @@
 export const PAYMENT_FREQUENCIES = ["mensuel", "annuel"];
 
+/**
+ * A marketing pricing tier.
+ *
+ * Copy is referenced by DICTIONARY KEY rather than stored as French text, so the
+ * landing can render the plans in fr / ar / en. `title` stays a literal because
+ * Starter / Pro / Premium are product names, not translatable copy.
+ *
+ * This also removed two fragile string-prefix checks in V2Pricing, which used to
+ * find the ordering-module line with `startsWith('Module gestion de commande')`
+ * and splice the per-table price out with `startsWith('+2€ par table')` — both of
+ * which silently stop matching the moment the copy is translated.
+ */
 export interface PricingTier {
-  title: string;
   id: string;
+  /** Product name — intentionally NOT translated. */
+  title: string;
   price: Record<string, number | string>;
-  description: string;
-  features: string[];
-  cta: string;
+  /** Dictionary key, e.g. `landing.tier.starter.description`. */
+  descriptionKey: string;
+  /** Feature keys, resolved against `landing.feature.*`. */
+  featureKeys: PricingFeatureKey[];
   highlighted?: boolean;
   popular?: boolean;
 }
+
+/** Feature identifiers shared across tiers; values live in the dictionary. */
+export type PricingFeatureKey =
+  | 'resto1'
+  | 'resto3'
+  | 'restoUnlimited'
+  | 'menus7'
+  | 'menus21'
+  | 'menusUnlimited'
+  | 'categoriesUnlimited'
+  | 'dishesUnlimited'
+  | 'scansUnlimited'
+  | 'qrPerResto'
+  | 'menuAvailability'
+  | 'dishAvailability'
+  | 'stats'
+  | 'photos'
+  | 'autoSync'
+  | 'freeDelivery'
+  | 'noLogo'
+  | 'customQr'
+  | 'support'
+  | 'perTableDelivery'
+  | 'orderingModule';
+
+/**
+ * Features that are NOT rendered as a plain bullet on the pricing card:
+ *  - `orderingModule` has its own highlighted add-on block,
+ *  - `perTableDelivery` is prefixed with the region's price at render time.
+ */
+export const PRICING_ADDON_FEATURE: PricingFeatureKey = 'orderingModule';
+export const PRICING_PER_TABLE_FEATURE: PricingFeatureKey = 'perTableDelivery';
+
+/** Shared feature block every paid tier includes, in display order. */
+const COMMON_FEATURES: PricingFeatureKey[] = [
+  'categoriesUnlimited',
+  'dishesUnlimited',
+  'scansUnlimited',
+  'qrPerResto',
+  'menuAvailability',
+  'dishAvailability',
+  'stats',
+  'photos',
+  'autoSync',
+];
 
 export const TIERS: PricingTier[] = [
   {
@@ -19,24 +78,15 @@ export const TIERS: PricingTier[] = [
       mensuel: "12€",
       annuel: "120€",
     },
-    description: "Une solution idéale pour les petits établissements souhaitant démarrer leur digitalisation de manière simple et efficace.",
-    features: [
-      "1 restaurant",
-      "7 menus",
-      "Catégories illimitées",
-      "Plats illimités",
-      "Scans illimités",
-      "QR code unique par restaurant",
-      "Modification de la disponibilité des menus",
-      "Modification de la disponibilité des plats",
-      "Statistiques de performance et suivi",
-      "Plats avec photos",
-      "Synchronisation automatique",
-      "+2€ par table pour la livraison des QR codes personnalisés menus",
-      "Module gestion de commande sur place + livraison (+5€/mois) : plan de salle, vue cuisine & caisse (POS) avec impression de tickets",
-      "Assistance incluse",
+    descriptionKey: "landing.tier.starter.description",
+    featureKeys: [
+      "resto1",
+      "menus7",
+      ...COMMON_FEATURES,
+      "perTableDelivery",
+      "orderingModule",
+      "support",
     ],
-    cta: "Contactez-nous",
   },
   {
     id: "pro",
@@ -45,25 +95,16 @@ export const TIERS: PricingTier[] = [
       mensuel: "24€",
       annuel: "240€",
     },
-    description: "Une solution parfaite pour les établissements multi-sites cherchant une gestion centralisée et optimisée.",
-    features: [
-      "Jusqu'à 3 restaurants",
-      "21 menus",
-      "Catégories illimitées",
-      "Plats illimités",
-      "Scans illimités",
-      "QR code unique par restaurant",
-      "Modification de la disponibilité des menus",
-      "Modification de la disponibilité des plats",
-      "Statistiques de performance et suivi",
-      "Plats avec photos",
-      "Synchronisation automatique",
-      "+2€ par table pour la livraison des QR codes personnalisés menus",
-      "Module gestion de commande sur place + livraison (+5€/mois) : plan de salle, vue cuisine & caisse (POS) avec impression de tickets",
-      "Assistance incluse",
+    descriptionKey: "landing.tier.pro.description",
+    featureKeys: [
+      "resto3",
+      "menus21",
+      ...COMMON_FEATURES,
+      "perTableDelivery",
+      "orderingModule",
+      "support",
     ],
-    cta: "Contactez-nous",
-    popular: true, // Ajout de l'attribut "popular" pour le plan Pro
+    popular: true,
   },
   {
     id: "premium",
@@ -72,27 +113,18 @@ export const TIERS: PricingTier[] = [
       mensuel: "37€",
       annuel: "370€",
     },
-    description: "Une solution complète et avancée pour les grandes structures multi-sites avec des équipes étendues.",
-    features: [
-      "Restaurants illimités",
-      "Menus illimités",
-      "Catégories illimitées",
-      "Plats illimités",
-      "Scans illimités",
-      "QR code unique par restaurant",
-      "Modification de la disponibilité des menus",
-      "Modification de la disponibilité des plats",
-      "Statistiques de performance et suivi",
-      "Plats avec photos",
-      "Synchronisation automatique",
-      "Livraison des menus gratuite",
-      "Suppression du logo",
-      "Conception personnalisée de QR code",
-      "Module gestion de commande sur place + livraison (+5€/mois) : plan de salle, vue cuisine & caisse (POS) avec impression de tickets",
-      "Assistance incluse",
+    descriptionKey: "landing.tier.premium.description",
+    featureKeys: [
+      "restoUnlimited",
+      "menusUnlimited",
+      ...COMMON_FEATURES,
+      "freeDelivery",
+      "noLogo",
+      "customQr",
+      "orderingModule",
+      "support",
     ],
-    cta: "Contactez-nous",
-    highlighted: true, // Ajout de l'attribut "highlighted" pour le plan Premium
+    highlighted: true,
   },
 ];
 
@@ -373,7 +405,9 @@ export const REGION_PRICING: Record<PricingRegion, RegionPricing> = {
     },
     perTableDelivery: "+300 DZD",
     orderingAddon: "+700 DZD/mois",
-    qrDesignFrom: "à partir de 150 DZD par design",
+    // Price only — the surrounding sentence comes from the dictionary
+    // (`landing.pricing.qrDesignNote`) so it can be translated.
+    qrDesignFrom: "150 DZD",
   },
 };
 

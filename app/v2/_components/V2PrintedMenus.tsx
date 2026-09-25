@@ -5,6 +5,7 @@ import Link from 'next/link';
 import TemplateThumbnail from '../../(protected)/cartes/_components/TemplateThumbnail';
 import { MENU_TEMPLATES } from '../../(protected)/cartes/_templates/registry';
 import type { PhysicalMenuData } from '../../(protected)/cartes/_templates/types';
+import { useI18n } from '@/lib/i18n';
 import Reveal from './Reveal';
 import V2Button from './V2Button';
 
@@ -52,6 +53,7 @@ const SAMPLE_MENU: PhysicalMenuData = {
 const SHOWCASE_IDS = ['elegant', 'moderne', 'bistro', 'elegant-dore'];
 
 export default function V2PrintedMenus() {
+  const { t } = useI18n();
   const showcase = SHOWCASE_IDS.map((id) =>
     MENU_TEMPLATES.find((t) => t.id === id)
   ).filter((t): t is (typeof MENU_TEMPLATES)[number] => Boolean(t));
@@ -61,15 +63,13 @@ export default function V2PrintedMenus() {
       <div className="mx-auto max-w-6xl px-6 py-24 lg:py-32">
         <Reveal>
           <p className="text-sm font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
-            Menu physique
+            {t('landing.printed.eyebrow')}
           </p>
           <h2 className="font-serif-display mt-4 max-w-[20ch] text-4xl font-light leading-tight tracking-[-0.02em] text-foreground sm:text-5xl">
-            Des menus prêts à imprimer, à votre image.
+            {t('landing.printed.title')}
           </h2>
           <p className="mt-5 max-w-[62ch] text-lg font-light leading-relaxed text-muted-foreground">
-            Choisissez un design, votre carte se met en page automatiquement à
-            partir de vos plats. Téléchargez le PDF ou commandez une impression
-            professionnelle — sans logiciel de mise en page.
+            {t('landing.printed.body')}
           </p>
         </Reveal>
 
@@ -77,7 +77,12 @@ export default function V2PrintedMenus() {
           {showcase.map((tpl, i) => (
             <Reveal key={tpl.id} delay={i * 0.06}>
               <figure className="group flex flex-col">
-                <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl">
+                {/* The thumbnail is a render of a printable French sample menu,
+                    so it keeps its own LTR reading order on the Arabic page. */}
+                <div
+                  dir="ltr"
+                  className="overflow-hidden rounded-xl border border-border bg-white shadow-sm transition-transform duration-300 group-hover:-translate-y-1 group-hover:shadow-xl"
+                >
                   <TemplateThumbnail
                     templateId={tpl.id}
                     data={SAMPLE_MENU}
@@ -100,7 +105,9 @@ export default function V2PrintedMenus() {
 
         <Reveal delay={0.1}>
           <div className="mt-12 flex justify-center">
-            <V2Button href="/auth/sign-up">Concevoir mon menu imprimé</V2Button>
+            <V2Button href="/auth/sign-up">
+              {t('landing.printed.cta')}
+            </V2Button>
           </div>
         </Reveal>
       </div>
