@@ -95,19 +95,26 @@ interface ListOrdersArgs {
   restaurantId?: string;
   /** When true, only active (non-terminal) orders. Default false = all. */
   activeOnly?: boolean;
+  /**
+   * Only orders created at or after this instant. Lets the board default to a
+   * bounded window (today / last 7 days) instead of relying on `take` to
+   * silently truncate an all-time list.
+   */
+  since?: Date;
   take?: number;
 }
 
 /**
  * List orders for the workspace owner's restaurants, newest first. Optionally
- * scoped to one restaurant and/or to active (non-terminal) statuses. The
- * restaurant filter is validated against the owner so a member/owner can't read
- * another workspace's orders.
+ * scoped to one restaurant, to active (non-terminal) statuses, and/or to a
+ * created-at window. The restaurant filter is validated against the owner so a
+ * member/owner can't read another workspace's orders.
  */
 export async function listOrders({
   ownerId,
   restaurantId,
   activeOnly = false,
+  since,
   take = 200
 }: ListOrdersArgs): Promise<OrderView[]> {
   try {
@@ -115,7 +122,8 @@ export async function listOrders({
       where: {
         restaurant: { userId: ownerId },
         ...(restaurantId ? { restaurantId } : {}),
-        ...(activeOnly ? { status: { in: ACTIVE_ORDER_STATUSES } } : {})
+        ...(activeOnly ? { status: { in: ACTIVE_ORDER_STATUSES } } : {}),
+        ...(since ? { createdAt: { gte: since } } : {})
       },
       orderBy: { createdAt: 'desc' },
       take,
@@ -134,17 +142,18 @@ export async function listOrders({
 
 /**
  * Confirm an order belongs to the given workspace owner (via its restaurant).
- * Returns the order's id + type when owned, else null. Used to scope status
- * updates.
+ * Returns the order's id, type and CURRENT status when owned, else null. The
+ * current status is needed to validate the requested transition server-side
+ * (see `lib/order-flow.ts`), not just the target status.
  */
 export async function assertOrderOwned(
   orderId: string,
   ownerId: string
-): Promise<{ id: string; type: OrderType } | null> {
+): Promise<{ id: string; type: OrderType; status: OrderStatus } | null> {
   try {
     const order = await db.order.findFirst({
       where: { id: orderId, restaurant: { userId: ownerId } },
-      select: { id: true, type: true }
+      select: { id: true, type: true, status: true }
     });
     return order ?? null;
   } catch {

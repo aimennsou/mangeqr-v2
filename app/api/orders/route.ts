@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Prisma } from '@prisma/client';
 
 import { db } from '@/lib/db';
 import { CreateOrderSchema } from '@/schemas';
@@ -8,7 +9,12 @@ import { CreateOrderSchema } from '@/schemas';
  *
  * Security / integrity:
  *  - Ordering must be enabled for BOTH the account (User.orderingEnabled) and
- *    the restaurant (Restaurant.orderingEnabled); otherwise 403.
+ *    the restaurant (Restaurant.orderingEnabled); otherwise 403. EXCEPTION:
+ *    orders submitted by the kiosk (`source: 'KIOSK'`) are authorized by the
+ *    account's `kioskEnabled` flag alone, because the kiosk is a paid on-site
+ *    ordering surface — the owner is told it "active automatiquement la prise de
+ *    commande" (numerique → DisplaysSection). Without this the kiosk walked the
+ *    diner through the whole flow and then failed at submit with a 403.
  *  - All prices are recomputed from the DB — the client's prices are ignored.
  *  - Dish ids must be ACTIVE dishes of the restaurant; add-on option ids must
  *    belong to the corresponding dish's groups.
@@ -34,6 +40,7 @@ export async function POST(req: NextRequest) {
   const {
     restaurantId,
     type,
+    source,
     tableId,
     customerName,
     customerPhone,
@@ -44,21 +51,27 @@ export async function POST(req: NextRequest) {
     items
   } = parsed.data;
 
-  // Load the restaurant + owner ordering flags + currency.
+  // Load the restaurant + owner ordering/kiosk flags.
   const restaurant = await db.restaurant.findUnique({
     where: { id: restaurantId },
     select: {
       id: true,
       orderingEnabled: true,
-      user: { select: { orderingEnabled: true } }
+      user: { select: { orderingEnabled: true, kioskEnabled: true } }
     }
   });
   if (!restaurant) {
     return NextResponse.json({ error: 'Restaurant introuvable.' }, { status: 404 });
   }
-  const orderingEnabled =
+  // Diner-menu ordering needs both the account flag and the per-restaurant one.
+  const menuOrderingEnabled =
     (restaurant.user?.orderingEnabled ?? false) && restaurant.orderingEnabled;
-  if (!orderingEnabled) {
+  // The kiosk is self-authorizing via the account's kiosk feature flag — the
+  // same flag that gates the /borne page itself.
+  const kioskEnabled = restaurant.user?.kioskEnabled ?? false;
+  const authorized =
+    source === 'KIOSK' ? kioskEnabled : menuOrderingEnabled;
+  if (!authorized) {
     return NextResponse.json(
       { error: "La commande n'est pas disponible pour ce restaurant." },
       { status: 403 }
@@ -195,53 +208,81 @@ export async function POST(req: NextRequest) {
 
   const total = builtItems.reduce((s, i) => s + i.lineTotal, 0);
 
-  try {
-    const created = await db.$transaction(async (tx) => {
-      // Allocate the next per-restaurant order number.
-      const last = await tx.order.findFirst({
-        where: { restaurantId },
-        orderBy: { orderNumber: 'desc' },
-        select: { orderNumber: true }
-      });
-      const orderNumber = (last?.orderNumber ?? 0) + 1;
+  const orderData = {
+    restaurantId,
+    type,
+    status: 'RECEIVED' as const,
+    tableId: type === 'DINE_IN' ? tableId ?? null : null,
+    tableLabel,
+    customerName: type === 'DELIVERY' ? customerName || null : null,
+    customerPhone: type === 'DELIVERY' ? customerPhone || null : null,
+    address: type === 'DELIVERY' ? address || null : null,
+    latitude: type === 'DELIVERY' ? latitude ?? null : null,
+    longitude: type === 'DELIVERY' ? longitude ?? null : null,
+    note: note || null,
+    total,
+    items: {
+      create: builtItems.map((i) => ({
+        dishId: i.dishId,
+        dishName: i.dishName,
+        unitPrice: i.unitPrice,
+        quantity: i.quantity,
+        addons: i.addons,
+        specialRequest: i.specialRequest,
+        lineTotal: i.lineTotal
+      }))
+    }
+  };
 
-      return tx.order.create({
-        data: {
-          restaurantId,
-          orderNumber,
-          type,
-          status: 'RECEIVED',
-          tableId: type === 'DINE_IN' ? tableId ?? null : null,
-          tableLabel,
-          customerName: type === 'DELIVERY' ? customerName || null : null,
-          customerPhone: type === 'DELIVERY' ? customerPhone || null : null,
-          address: type === 'DELIVERY' ? address || null : null,
-          latitude: type === 'DELIVERY' ? latitude ?? null : null,
-          longitude: type === 'DELIVERY' ? longitude ?? null : null,
-          note: note || null,
-          total,
-          items: {
-            create: builtItems.map((i) => ({
-              dishId: i.dishId,
-              dishName: i.dishName,
-              unitPrice: i.unitPrice,
-              quantity: i.quantity,
-              addons: i.addons,
-              specialRequest: i.specialRequest,
-              lineTotal: i.lineTotal
-            }))
-          }
-        },
-        select: { id: true, orderNumber: true }
-      });
-    });
+  // `orderNumber` is a per-restaurant sequence derived from max()+1, which is
+  // racy under concurrent submissions (diner menu + kiosk at the same moment):
+  // both reads see the same max and the second insert violates
+  // @@unique([restaurantId, orderNumber]). Retry on that specific conflict
+  // (Prisma P2002) instead of surfacing a generic 500 to the diner.
+  const MAX_ATTEMPTS = 6;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      const created = await db.$transaction(async (tx) => {
+        const last = await tx.order.findFirst({
+          where: { restaurantId },
+          orderBy: { orderNumber: 'desc' },
+          select: { orderNumber: true }
+        });
+        const orderNumber = (last?.orderNumber ?? 0) + 1;
 
-    return NextResponse.json(created, { status: 201 });
-  } catch (error) {
-    console.error('Error creating order:', error);
-    return NextResponse.json(
-      { error: 'Une erreur est survenue lors de la commande.' },
-      { status: 500 }
-    );
+        return tx.order.create({
+          data: { ...orderData, orderNumber },
+          select: { id: true, orderNumber: true }
+        });
+      });
+
+      return NextResponse.json(created, { status: 201 });
+    } catch (error) {
+      const isNumberConflict =
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002' &&
+        // The only unique constraint on Order is [restaurantId, orderNumber].
+        String((error.meta as { target?: string | string[] })?.target ?? '').includes(
+          'orderNumber'
+        );
+
+      if (isNumberConflict && attempt < MAX_ATTEMPTS) {
+        // Small jittered backoff so simultaneous submitters don't re-collide.
+        await new Promise((r) => setTimeout(r, 15 * attempt + Math.random() * 25));
+        continue;
+      }
+
+      console.error('Error creating order:', error);
+      return NextResponse.json(
+        { error: 'Une erreur est survenue lors de la commande.' },
+        { status: 500 }
+      );
+    }
   }
+
+  // Unreachable in practice: the loop either returns a 201 or a 500.
+  return NextResponse.json(
+    { error: 'Une erreur est survenue lors de la commande.' },
+    { status: 500 }
+  );
 }

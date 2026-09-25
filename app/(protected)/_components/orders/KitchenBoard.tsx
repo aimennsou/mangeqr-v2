@@ -17,10 +17,12 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { resolvePrinterConfig, type PrinterConfig } from '@/schemas';
 import { useOrdersPoll } from './useOrdersPoll';
+import { usePrinterConfigs } from './usePrinterConfigs';
+import { useTicketOptions } from './useTicketStrings';
 import { OrderCard } from './OrderCard';
 import { printOrderTicket } from './print-ticket';
+import { claimAutoPrint } from './print-dedupe';
 import { playNewOrderChime } from './notify';
 import { ORDER_STATUS_LABEL, statusBadgeClass } from './order-status';
 import FullscreenButton from '../FullscreenButton';
@@ -37,51 +39,51 @@ const COLUMNS: OrderStatus[] = [
   'OUT_FOR_DELIVERY'
 ];
 
+// Handed off to the floor / the driver: still "active" for the order feed, but
+// the kitchen has nothing left to do on them. They used to be folded into the
+// READY column, so served dine-in orders piled up under "Prête" until somebody
+// pressed "Terminer".
+const HANDED_OFF: OrderStatus[] = ['SERVED', 'DELIVERED'];
+
 /**
  * FEAT-1 Kitchen board (D17). Active orders laid out in status columns for a
  * quick station view. Owner + members. Polls + chimes on new orders.
  */
 export function KitchenBoard() {
-  const [restaurants, setRestaurants] = useState<any[]>([]);
   const [restaurantId, setRestaurantId] = useState<string>(ALL);
   const [soundOn, setSoundOn] = useState(true);
-  const soundRef = useState({ current: true })[0];
-  soundRef.current = soundOn;
 
-  // Map restaurantId -> saved printer config (drives per-ticket layout +
-  // auto-print on new orders).
-  const printerConfigs = useMemo(() => {
-    const m = new Map<string, PrinterConfig>();
-    for (const r of restaurants) {
-      if (r?.id) m.set(r.id, resolvePrinterConfig(r.printerConfig ?? null));
-    }
-    return m;
-  }, [restaurants]);
-  const printerConfigsRef = useRef(printerConfigs);
-  printerConfigsRef.current = printerConfigs;
+  // Keep the latest sound preference reachable from the poll callback without
+  // re-subscribing the interval on every toggle.
+  const soundRef = useRef(soundOn);
+  useEffect(() => {
+    soundRef.current = soundOn;
+  }, [soundOn]);
+
+  const { restaurants, printerConfigs, printerConfigsRef } =
+    usePrinterConfigs();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
+  // Held in a ref so the poll callback always prints with the current locale.
+  const ticketOptions = useTicketOptions();
+  const ticketOptionsRef = useRef(ticketOptions);
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/magasin');
-        const data = res.ok ? await res.json() : [];
-        setRestaurants(Array.isArray(data) ? data : []);
-      } catch {
-        setRestaurants([]);
-      }
-    })();
-  }, []);
+    ticketOptionsRef.current = ticketOptions;
+  }, [ticketOptions]);
 
   const { orders, loading, newIds, refresh, clearNew } = useOrdersPoll({
     restaurantId: restaurantId === ALL ? undefined : restaurantId,
     activeOnly: true,
+    // The kitchen only ever cares about the current service.
+    days: 1,
     intervalMs: 6000,
     onNewOrder: (o) => {
       if (soundRef.current) playNewOrderChime();
       toast.info(`Nouvelle commande #${o.orderNumber}`);
       const cfg = printerConfigsRef.current.get(o.restaurantId);
-      if (cfg?.autoPrint) printOrderTicket(o, cfg);
+      if (cfg?.autoPrint && claimAutoPrint(o.id)) {
+        printOrderTicket(o, cfg, ticketOptionsRef.current);
+      }
     }
   });
 
@@ -89,10 +91,10 @@ export function KitchenBoard() {
     const map = new Map<OrderStatus, typeof orders>();
     COLUMNS.forEach((c) => map.set(c, []));
     for (const o of orders) {
-      // SERVED/DELIVERED are active-but-done-in-kitchen; fold them into READY's
-      // column tail is unnecessary — activeOnly still returns them, so bucket
-      // any status not in COLUMNS under READY for visibility.
-      const col = map.has(o.status) ? o.status : 'READY';
+      // Already served / delivered: out of the kitchen's hands, so it leaves the
+      // board rather than sitting in a column forever.
+      if (HANDED_OFF.includes(o.status)) continue;
+      const col = map.has(o.status) ? o.status : 'RECEIVED';
       map.get(col)!.push(o);
     }
     return map;

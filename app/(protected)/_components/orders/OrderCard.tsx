@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useEffect, useTransition } from 'react';
 import { toast } from 'sonner';
 import {
   BadgeCheck,
@@ -24,6 +24,8 @@ import {
   statusBadgeClass
 } from './order-status';
 import { printOrderTicket } from './print-ticket';
+import { useTicketOptions } from './useTicketStrings';
+import { useI18n } from '@/lib/i18n';
 import type { PrinterConfig } from '@/schemas';
 
 interface OrderCardProps {
@@ -34,6 +36,13 @@ interface OrderCardProps {
   /** Per-restaurant ticket-printer config that drives "Imprimer l'addition". */
   printerConfig?: PrinterConfig | null;
 }
+
+/**
+ * How long a new-order highlight survives without any staff interaction. Bounds
+ * the "N nouvelles" badge so it can't accumulate across a whole service on an
+ * unattended kitchen display.
+ */
+const NEW_HIGHLIGHT_MS = 60_000;
 
 function fmt(n: number, currency: string) {
   return (Number.isInteger(n) ? n.toString() : n.toFixed(2)) + ' ' + currency;
@@ -62,6 +71,22 @@ export function OrderCard({
   printerConfig
 }: OrderCardProps) {
   const [isPending, startTransition] = useTransition();
+  const { t } = useI18n();
+  const ticketOptions = useTicketOptions();
+
+  // Acknowledging a new order used to be bound to onMouseEnter only, so on the
+  // touch screens these boards are designed for the pulsing ring and the
+  // "N nouvelles" badge never cleared. Auto-expire the highlight as a backstop
+  // for an unattended screen (the chime has already alerted by then).
+  useEffect(() => {
+    if (!isNew) return;
+    const timer = setTimeout(() => onSeen?.(order.id), NEW_HIGHLIGHT_MS);
+    return () => clearTimeout(timer);
+  }, [isNew, onSeen, order.id]);
+
+  const acknowledge = () => {
+    if (isNew) onSeen?.(order.id);
+  };
 
   const advanceTo = nextStatus(order.type, order.status);
 
@@ -98,7 +123,10 @@ export function OrderCard({
         'rounded-xl border border-border bg-card p-4 shadow-none transition-colors hover:border-yellow-400/60',
         isNew && 'ring-2 ring-yellow-400 animate-pulse'
       )}
-      onMouseEnter={() => isNew && onSeen?.(order.id)}
+      // pointerdown covers touch and pen as well as mouse, so tapping a card on
+      // a tablet acknowledges it just like hovering does with a mouse.
+      onMouseEnter={acknowledge}
+      onPointerDown={acknowledge}
     >
       <div className="flex items-start justify-between gap-2">
         <div>
@@ -252,7 +280,14 @@ export function OrderCard({
         <Button
           size="sm"
           variant="outline"
-          onClick={() => printOrderTicket(order, printerConfig)}
+          onClick={() => {
+            // Surface a failed print: a blocked/unavailable print path used to
+            // fail silently, which is indistinguishable from a paper jam.
+            const result = printOrderTicket(order, printerConfig, ticketOptions);
+            if (result !== 'printed') {
+              toast.error(t('printer.ticket.blocked'));
+            }
+          }}
         >
           <Printer className="mr-1 h-4 w-4" />
           Imprimer l&apos;addition

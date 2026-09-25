@@ -1,14 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bell, Loader2, Volume2, VolumeX } from 'lucide-react';
+import type { OrderStatus } from '@prisma/client';
+import { Bell, Loader2, Search, Volume2, VolumeX, X } from 'lucide-react';
 import { toast } from 'sonner';
 import type { OrderView } from '@/data/orders';
-import { resolvePrinterConfig, type PrinterConfig } from '@/schemas';
 import { printOrderTicket } from './print-ticket';
+import { claimAutoPrint } from './print-dedupe';
 import FullscreenButton from '../FullscreenButton';
 
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import {
@@ -21,10 +23,36 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import { useOrdersPoll } from './useOrdersPoll';
+import { usePrinterConfigs } from './usePrinterConfigs';
+import { useTicketOptions } from './useTicketStrings';
 import { OrderCard } from './OrderCard';
 import { playNewOrderChime } from './notify';
+import { ORDER_STATUS_LABEL } from './order-status';
 
 const ALL = '__all__';
+
+/**
+ * Rolling time windows for the feed. Defaults to today so the board shows a
+ * bounded, meaningful list — it used to request every order ever placed and let
+ * the server's `take: 200` truncate it silently.
+ */
+const SCOPES = [
+  { value: '1', labelKey: "Aujourd'hui" },
+  { value: '7', labelKey: '7 derniers jours' },
+  { value: '30', labelKey: '30 derniers jours' },
+  { value: ALL, labelKey: 'Tout' }
+] as const;
+
+const STATUS_OPTIONS: OrderStatus[] = [
+  'RECEIVED',
+  'IN_PREPARATION',
+  'READY',
+  'SERVED',
+  'OUT_FOR_DELIVERY',
+  'DELIVERED',
+  'COMPLETED',
+  'CANCELLED'
+];
 
 /**
  * FEAT-1 Commandes board. Polls the owner order feed, groups dine-in orders by
@@ -32,41 +60,36 @@ const ALL = '__all__';
  * orders play a chime (toggleable) and highlight until seen.
  */
 export function OrdersBoard() {
-  const [restaurants, setRestaurants] = useState<any[]>([]);
   const [restaurantId, setRestaurantId] = useState<string>(ALL);
+  const [scope, setScope] = useState<string>('1');
+  const [statusFilter, setStatusFilter] = useState<string>(ALL);
+  const [query, setQuery] = useState('');
   const [showCompleted, setShowCompleted] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
-  const soundOnRef = useState({ current: true })[0];
-  soundOnRef.current = soundOn;
 
-  // Map restaurantId -> saved printer config so each ticket prints with its
-  // restaurant's layout, and new orders can auto-print when enabled.
-  const printerConfigs = useMemo(() => {
-    const m = new Map<string, PrinterConfig>();
-    for (const r of restaurants) {
-      if (r?.id) m.set(r.id, resolvePrinterConfig(r.printerConfig ?? null));
-    }
-    return m;
-  }, [restaurants]);
-  const printerConfigsRef = useRef(printerConfigs);
-  printerConfigsRef.current = printerConfigs;
+  // Keep the latest sound preference reachable from the poll callback without
+  // re-subscribing the interval on every toggle.
+  const soundOnRef = useRef(soundOn);
+  useEffect(() => {
+    soundOnRef.current = soundOn;
+  }, [soundOn]);
+
+  const { restaurants, printerConfigs, printerConfigsRef } =
+    usePrinterConfigs();
   const rootRef = useRef<HTMLDivElement | null>(null);
 
+  // Held in a ref so the poll callback always prints with the current locale
+  // without re-subscribing the interval.
+  const ticketOptions = useTicketOptions();
+  const ticketOptionsRef = useRef(ticketOptions);
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('/api/magasin');
-        const data = res.ok ? await res.json() : [];
-        setRestaurants(Array.isArray(data) ? data : []);
-      } catch {
-        setRestaurants([]);
-      }
-    })();
-  }, []);
+    ticketOptionsRef.current = ticketOptions;
+  }, [ticketOptions]);
 
   const { orders, loading, newIds, refresh, clearNew } = useOrdersPoll({
     restaurantId: restaurantId === ALL ? undefined : restaurantId,
     activeOnly: false,
+    days: scope === ALL ? undefined : Number(scope),
     intervalMs: 8000,
     onNewOrder: (o) => {
       if (soundOnRef.current) playNewOrderChime();
@@ -75,22 +98,42 @@ export function OrdersBoard() {
           o.type === 'DINE_IN' ? `Table ${o.tableLabel ?? ''}` : 'Livraison'
         }`
       );
-      // Auto-print the ticket when the restaurant has enabled it.
+      // Auto-print the ticket when the restaurant has enabled it, but only once
+      // per order across all open boards/tabs.
       const cfg = printerConfigsRef.current.get(o.restaurantId);
-      if (cfg?.autoPrint) printOrderTicket(o, cfg);
+      if (cfg?.autoPrint && claimAutoPrint(o.id)) {
+        printOrderTicket(o, cfg, ticketOptionsRef.current);
+      }
     }
   });
 
-  // Visible orders (optionally hiding terminal ones).
-  const visible = useMemo(
-    () =>
-      showCompleted
-        ? orders
-        : orders.filter(
-            (o) => o.status !== 'COMPLETED' && o.status !== 'CANCELLED'
-          ),
-    [orders, showCompleted]
-  );
+  // Visible orders: terminal-state toggle, explicit status filter, then search.
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return orders.filter((o) => {
+      if (statusFilter !== ALL) {
+        if (o.status !== statusFilter) return false;
+      } else if (
+        !showCompleted &&
+        (o.status === 'COMPLETED' || o.status === 'CANCELLED')
+      ) {
+        return false;
+      }
+
+      if (!needle) return true;
+      // Order number, table, and delivery contact are what staff search by.
+      const haystack = [
+        String(o.orderNumber),
+        `#${o.orderNumber}`,
+        o.tableLabel ?? '',
+        o.customerName ?? '',
+        o.customerPhone ?? ''
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(needle);
+    });
+  }, [orders, showCompleted, statusFilter, query]);
 
   // Group: dine-in by table label, delivery in one group.
   const { tableGroups, delivery } = useMemo(() => {
@@ -120,35 +163,99 @@ export function OrdersBoard() {
   }, [visible]);
 
   const newCount = newIds.size;
+  const filtered =
+    statusFilter !== ALL || query.trim().length > 0;
 
   return (
-    <div
-      ref={rootRef}
-      className="fs-surface space-y-6"
-    >
+    <div ref={rootRef} className="fs-surface space-y-6">
       {/* Controls */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-end">
-        <div className="grid w-full gap-2 md:max-w-xs">
-          <Label>Restaurant</Label>
-          <Select value={restaurantId} onValueChange={setRestaurantId}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Restaurant</SelectLabel>
-                <SelectItem value={ALL}>Tous les restaurants</SelectItem>
-                {restaurants.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>
-                    {r.name}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+      <div className="space-y-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2">
+            <Label>Restaurant</Label>
+            <Select value={restaurantId} onValueChange={setRestaurantId}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Restaurant</SelectLabel>
+                  <SelectItem value={ALL}>Tous les restaurants</SelectItem>
+                  {restaurants.map((r) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Période</Label>
+            <Select value={scope} onValueChange={setScope}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Période</SelectLabel>
+                  {SCOPES.map((s) => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.labelKey}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label>Statut</Label>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Statut</SelectLabel>
+                  <SelectItem value={ALL}>Tous les statuts</SelectItem>
+                  {STATUS_OPTIONS.map((s) => (
+                    <SelectItem key={s} value={s}>
+                      {ORDER_STATUS_LABEL[s]}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="orders-search">Rechercher</Label>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="orders-search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="N°, table, client, téléphone"
+                className="pl-8 pr-8"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  aria-label="Effacer la recherche"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4 md:ml-auto">
+        <div className="flex flex-wrap items-center gap-4">
           {newCount > 0 ? (
             <span className="flex items-center gap-1 rounded-full bg-yellow-400 px-3 py-1 text-sm font-semibold text-black">
               <Bell className="h-4 w-4" />
@@ -156,22 +263,31 @@ export function OrdersBoard() {
             </span>
           ) : null}
           <label className="flex items-center gap-2 text-sm">
-            <Switch checked={showCompleted} onCheckedChange={setShowCompleted} />
+            <Switch
+              checked={showCompleted}
+              onCheckedChange={setShowCompleted}
+              disabled={statusFilter !== ALL}
+            />
             Afficher terminées
           </label>
-          <Button
-            variant="outline"
-            size="icon"
-            title={soundOn ? 'Couper le son' : 'Activer le son'}
-            onClick={() => setSoundOn((s) => !s)}
-          >
-            {soundOn ? (
-              <Volume2 className="h-4 w-4" />
-            ) : (
-              <VolumeX className="h-4 w-4" />
-            )}
-          </Button>
-          <FullscreenButton target={rootRef} />
+          <span className="text-sm text-muted-foreground">
+            {visible.length} commande{visible.length > 1 ? 's' : ''}
+          </span>
+          <div className="flex items-center gap-2 md:ml-auto">
+            <Button
+              variant="outline"
+              size="icon"
+              title={soundOn ? 'Couper le son' : 'Activer le son'}
+              onClick={() => setSoundOn((s) => !s)}
+            >
+              {soundOn ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeX className="h-4 w-4" />
+              )}
+            </Button>
+            <FullscreenButton target={rootRef} />
+          </div>
         </div>
       </div>
 
@@ -181,9 +297,15 @@ export function OrdersBoard() {
         </div>
       ) : visible.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
-          <p className="text-lg font-semibold text-foreground">Aucune commande en cours.</p>
+          <p className="text-lg font-semibold text-foreground">
+            {filtered
+              ? 'Aucune commande ne correspond aux filtres.'
+              : 'Aucune commande en cours.'}
+          </p>
           <p className="mt-2">
-            Les nouvelles commandes des clients apparaîtront ici.
+            {filtered
+              ? 'Modifiez la période, le statut ou la recherche.'
+              : 'Les nouvelles commandes des clients apparaîtront ici.'}
           </p>
         </div>
       ) : (

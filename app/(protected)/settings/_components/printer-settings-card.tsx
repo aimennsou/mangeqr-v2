@@ -27,6 +27,7 @@ import {
 } from '@/schemas';
 import { updatePrinterConfig } from '@/actions/update-printer-config';
 import { printOrderTicket } from '../../_components/orders/print-ticket';
+import { useTicketOptions } from '../../_components/orders/useTicketStrings';
 import type { OrderView } from '@/data/orders';
 
 /** A fake but complete order used only by the "Test print" button. */
@@ -120,6 +121,8 @@ export default function PrinterSettingsCard() {
     [restaurants, selectedId]
   );
 
+  const ticketOptions = useTicketOptions();
+
   // The ticket printer is only meaningful when the ordering module is enabled
   // for the selected restaurant. When it's off, the settings are grayed out.
   const orderingOff = !!selected && !selected.orderingEnabled;
@@ -155,7 +158,16 @@ export default function PrinterSettingsCard() {
   };
 
   const testPrint = () => {
-    printOrderTicket(sampleOrder(selected), draft);
+    // Prints the UNSAVED draft, so the owner can try a paper width / copy count
+    // before committing it. Reports failure instead of doing nothing visible.
+    const result = printOrderTicket(
+      sampleOrder(selected),
+      draft,
+      ticketOptions
+    );
+    if (result !== 'printed') {
+      toast.error(t('printer.ticket.blocked'));
+    }
   };
 
   return (

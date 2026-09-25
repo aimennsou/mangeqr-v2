@@ -807,6 +807,11 @@ export const CreateOrderSchema = z
   .object({
     restaurantId: z.string().uuid({ message: 'Restaurant invalide.' }),
     type: z.enum(['DINE_IN', 'DELIVERY']),
+    // Which surface submitted the order. The kiosk (`/borne`) is a paid display
+    // feature that implies on-site order taking, so it is authorized by
+    // `User.kioskEnabled` even when menu ordering is off for the account or the
+    // restaurant (see POST /api/orders). Defaults to the diner menu.
+    source: z.enum(['MENU', 'KIOSK']).default('MENU'),
     tableId: z.string().uuid().nullable().optional(),
     customerName: z.string().trim().max(120).optional().or(z.literal('')),
     customerPhone: z.string().trim().max(40).optional().or(z.literal('')),

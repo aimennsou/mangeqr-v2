@@ -5,6 +5,7 @@ import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react';
 
 import { useI18n } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n/dictionaries';
+import { DINE_IN_FLOW, DELIVERY_FLOW } from '@/lib/order-flow';
 
 type OrderStatus =
   | 'RECEIVED'
@@ -35,22 +36,8 @@ interface OrderData {
   }[];
 }
 
-// The status flow per order type — used to render a progress stepper.
-const DINE_IN_FLOW: OrderStatus[] = [
-  'RECEIVED',
-  'IN_PREPARATION',
-  'READY',
-  'SERVED',
-  'COMPLETED'
-];
-const DELIVERY_FLOW: OrderStatus[] = [
-  'RECEIVED',
-  'IN_PREPARATION',
-  'READY',
-  'OUT_FOR_DELIVERY',
-  'DELIVERED',
-  'COMPLETED'
-];
+// The status flow per order type (shared with the owner boards and the server
+// authorization in actions/orders.ts) — used to render a progress stepper.
 
 /**
  * Diner live order-tracking view (FEAT-1). Polls GET /api/orders/[id] every 8s

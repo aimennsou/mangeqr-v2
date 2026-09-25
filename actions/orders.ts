@@ -1,49 +1,37 @@
 'use server';
 
 import * as z from 'zod';
-import type { OrderStatus, OrderType } from '@prisma/client';
+import { revalidatePath } from 'next/cache';
 
 import { db } from '@/lib/db';
 import { SetOrderStatusSchema, SetOrderPaidSchema } from '@/schemas';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getWorkspaceContext, memberCanAccess } from '@/data/workspace';
 import { assertOrderOwned } from '@/data/orders';
+import { isTransitionAllowed } from '@/lib/order-flow';
 
 type ActionResult =
   | { error: string; success?: undefined }
   | { success: string; error?: undefined };
 
-// Allowed status sets per order type (D13b). CANCELLED is allowed from any
-// non-terminal state.
-const DINE_IN_STATUSES: OrderStatus[] = [
-  'RECEIVED',
-  'IN_PREPARATION',
-  'READY',
-  'SERVED',
-  'COMPLETED',
-  'CANCELLED'
-];
-const DELIVERY_STATUSES: OrderStatus[] = [
-  'RECEIVED',
-  'IN_PREPARATION',
-  'READY',
-  'OUT_FOR_DELIVERY',
-  'DELIVERED',
-  'COMPLETED',
-  'CANCELLED'
-];
+/**
+ * Pages and server-rendered views that read order data. Revalidated after every
+ * order mutation so anything not driven by the boards' own polling (performance
+ * KPIs, table occupancy) doesn't serve a stale cache.
+ */
+const ORDER_PATHS = ['/commandes', '/cuisine', '/tables', '/performances'];
 
-function isStatusValidForType(type: OrderType, status: OrderStatus): boolean {
-  return (type === 'DELIVERY' ? DELIVERY_STATUSES : DINE_IN_STATUSES).includes(
-    status
-  );
+function revalidateOrderViews() {
+  for (const path of ORDER_PATHS) {
+    revalidatePath(path);
+  }
 }
 
 /**
- * Update an order's status (FEAT-1). Allowed for the workspace OWNER and its
- * MEMBERS (staff/kitchen, D6). The order must belong to the caller's workspace,
- * and the target status must be valid for the order's type (dine-in vs
- * delivery). Never trust the client — everything is re-checked server-side.
+ * Update an order's status (FEAT-1). Allowed for the workspace OWNER and for
+ * MEMBERS granted the `orders` permission (staff/kitchen, D6). The order must
+ * belong to the caller's workspace and the transition must be legal for the
+ * order's type. Never trust the client — everything is re-checked server-side.
  */
 export async function setOrderStatus(
   values: z.infer<typeof SetOrderStatusSchema>
@@ -60,15 +48,20 @@ export async function setOrderStatus(
 
   const { orderId, status } = parsed.data;
 
-  // Scope to the caller's workspace owner (members resolve to their owner).
-  const ownerId = await getWorkspaceOwnerId(userId);
+  // Scope to the caller's workspace owner (members resolve to their owner) and
+  // require the `orders` permission for members.
+  const { ownerId } = await getWorkspaceContext(userId);
+  if (!(await memberCanAccess(userId, 'orders'))) {
+    return { error: 'Accès non autorisé à la prise de commande.' };
+  }
+
   const owned = await assertOrderOwned(orderId, ownerId);
   if (!owned) {
     return { error: 'Commande introuvable.' };
   }
 
-  if (!isStatusValidForType(owned.type, status)) {
-    return { error: 'Statut invalide pour ce type de commande.' };
+  if (!isTransitionAllowed(owned.type, owned.status, status)) {
+    return { error: 'Changement de statut non autorisé.' };
   }
 
   try {
@@ -81,14 +74,16 @@ export async function setOrderStatus(
     return { error: 'Impossible de mettre à jour la commande.' };
   }
 
+  revalidateOrderViews();
   return { success: 'Statut mis à jour.' };
 }
 
 
 /**
  * Mark an order as paid / not paid (FEAT-1, pay-in-person). Allowed for the
- * workspace OWNER and its MEMBERS. Stamps `paidAt` when marking paid, clears it
- * when un-marking. Scoped to the caller's workspace.
+ * workspace OWNER and for MEMBERS granted the `orders` permission. Stamps
+ * `paidAt` when marking paid, clears it when un-marking. Scoped to the caller's
+ * workspace.
  */
 export async function setOrderPaid(
   values: z.infer<typeof SetOrderPaidSchema>
@@ -105,7 +100,11 @@ export async function setOrderPaid(
 
   const { orderId, paid } = parsed.data;
 
-  const ownerId = await getWorkspaceOwnerId(userId);
+  const { ownerId } = await getWorkspaceContext(userId);
+  if (!(await memberCanAccess(userId, 'orders'))) {
+    return { error: 'Accès non autorisé à la prise de commande.' };
+  }
+
   const owned = await assertOrderOwned(orderId, ownerId);
   if (!owned) {
     return { error: 'Commande introuvable.' };
@@ -121,5 +120,6 @@ export async function setOrderPaid(
     return { error: 'Impossible de mettre à jour le paiement.' };
   }
 
+  revalidateOrderViews();
   return { success: paid ? 'Commande marquée payée.' : 'Paiement annulé.' };
 }

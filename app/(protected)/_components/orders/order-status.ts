@@ -1,9 +1,22 @@
-import type { OrderStatus, OrderType } from '@prisma/client';
+import type { OrderStatus } from '@prisma/client';
 
 /**
- * Shared client-side order-status helpers for the owner Commandes + Kitchen
- * views (FEAT-1). French labels + the per-type status flow + badge styling.
+ * Presentation-only order-status helpers for the owner Commandes + Kitchen
+ * views (FEAT-1): French labels + badge styling.
+ *
+ * The lifecycle itself (flows, next step, transition legality) lives in
+ * `@/lib/order-flow` and is re-exported here so existing imports keep working
+ * while there is only one definition of the flow.
  */
+
+export {
+  DINE_IN_FLOW,
+  DELIVERY_FLOW,
+  flowForType,
+  nextStatus,
+  isTerminal,
+  isTransitionAllowed
+} from '@/lib/order-flow';
 
 export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   RECEIVED: 'Reçue',
@@ -15,38 +28,6 @@ export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
   COMPLETED: 'Terminée',
   CANCELLED: 'Annulée'
 };
-
-// Ordered status pipeline per type (used to render the "advance" action).
-export const DINE_IN_FLOW: OrderStatus[] = [
-  'RECEIVED',
-  'IN_PREPARATION',
-  'READY',
-  'SERVED',
-  'COMPLETED'
-];
-export const DELIVERY_FLOW: OrderStatus[] = [
-  'RECEIVED',
-  'IN_PREPARATION',
-  'READY',
-  'OUT_FOR_DELIVERY',
-  'DELIVERED',
-  'COMPLETED'
-];
-
-export function flowForType(type: OrderType): OrderStatus[] {
-  return type === 'DELIVERY' ? DELIVERY_FLOW : DINE_IN_FLOW;
-}
-
-/** The next status in the flow after `status`, or null if terminal/unknown. */
-export function nextStatus(
-  type: OrderType,
-  status: OrderStatus
-): OrderStatus | null {
-  const flow = flowForType(type);
-  const idx = flow.indexOf(status);
-  if (idx < 0 || idx >= flow.length - 1) return null;
-  return flow[idx + 1];
-}
 
 export function statusBadgeClass(status: OrderStatus): string {
   switch (status) {

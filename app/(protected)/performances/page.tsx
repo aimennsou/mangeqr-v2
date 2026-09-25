@@ -107,7 +107,14 @@ export default function PerformancesPage() {
       const response = await fetch("/api/order-metrics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shopId, startDate, endDate }),
+        body: JSON.stringify({
+          shopId,
+          startDate,
+          endDate,
+          // Let the server bucket the daily series by the viewer's local day
+          // instead of UTC, so a late-evening order isn't counted on tomorrow.
+          tzOffsetMinutes: new Date().getTimezoneOffset(),
+        }),
       });
       if (!response.ok) {
         setOrderMetrics(null);

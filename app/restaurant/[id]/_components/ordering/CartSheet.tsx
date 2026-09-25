@@ -130,6 +130,8 @@ export function CartSheet({
     const payload = {
       restaurantId,
       type,
+      // Diner menu order — gated by orderingEnabled (account + restaurant).
+      source: 'MENU' as const,
       tableId: type === 'DINE_IN' ? tableId : null,
       customerName: type === 'DELIVERY' ? name.trim() : '',
       customerPhone: type === 'DELIVERY' ? phone.trim() : '',

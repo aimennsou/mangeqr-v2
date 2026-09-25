@@ -13,10 +13,18 @@ import type { OrderView } from '@/data/orders';
 export function useOrdersPoll(opts: {
   restaurantId?: string;
   activeOnly?: boolean;
+  /** Rolling window in days (1 = last 24h). Undefined = no time bound. */
+  days?: number;
   intervalMs?: number;
   onNewOrder?: (order: OrderView) => void;
 }) {
-  const { restaurantId, activeOnly = false, intervalMs = 8000, onNewOrder } = opts;
+  const {
+    restaurantId,
+    activeOnly = false,
+    days,
+    intervalMs = 8000,
+    onNewOrder
+  } = opts;
   const [orders, setOrders] = useState<OrderView[]>([]);
   const [loading, setLoading] = useState(true);
   // Ids of newly-arrived orders (since mount), so the UI can highlight them.
@@ -32,6 +40,7 @@ export function useOrdersPoll(opts: {
       const params = new URLSearchParams();
       if (restaurantId) params.set('restaurantId', restaurantId);
       if (activeOnly) params.set('activeOnly', '1');
+      if (days != null) params.set('days', String(days));
       const res = await fetch(`/api/owner-orders?${params.toString()}`, {
         cache: 'no-store'
       });
@@ -61,7 +70,7 @@ export function useOrdersPoll(opts: {
     } finally {
       setLoading(false);
     }
-  }, [restaurantId, activeOnly]);
+  }, [restaurantId, activeOnly, days]);
 
   useEffect(() => {
     // Reset detection state when the scope changes.
