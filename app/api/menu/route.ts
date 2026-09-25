@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
 import { getWorkspaceOwnerId } from '@/data/workspace';
-import { blockIfTrialExpired } from '@/lib/trial-guard';
+import { blockIfTrialExpired, blockIfNoPermission } from '@/lib/trial-guard';
 import { notifyPlanLimitHit } from '@/lib/notifications';
 
 
@@ -15,6 +15,8 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
     if (blocked) return blocked;
     // Resolve the workspace owner so members act on the owner's data.
@@ -115,6 +117,8 @@ export async function PUT(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
     if (blocked) return blocked;
     const ownerId = await getWorkspaceOwnerId(userId);
@@ -192,6 +196,8 @@ export async function DELETE(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
     if (blocked) return blocked;
     const ownerId = await getWorkspaceOwnerId(userId);
@@ -245,6 +251,9 @@ export async function GET(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
 
     // Resolve the workspace owner so a member sees the OWNER's menus.
     const ownerId = await getWorkspaceOwnerId(userId);

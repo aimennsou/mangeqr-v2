@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-import { isWorkspaceTrialExpired } from '@/data/workspace';
+import { isWorkspaceTrialExpired, memberCanAccess } from '@/data/workspace';
+import type { MemberPermission } from '@/lib/permissions';
 
 /**
  * Server-side hard gate for owner-scoped MUTATIONS during an expired FREE trial.
@@ -20,6 +21,32 @@ export async function blockIfTrialExpired(
         error:
           "Votre essai gratuit est terminé. Passez au forfait Starter pour continuer.",
       },
+      { status: 403 },
+    );
+  }
+  return null;
+}
+
+/**
+ * Server-side gate for the granular per-member permissions (see
+ * `lib/permissions.ts`).
+ *
+ * Returns a 403 NextResponse when the caller is a workspace MEMBER who has NOT
+ * been granted `permission`, otherwise `null` (proceed). Owners always pass.
+ *
+ * Use this in owner-scoped API routes alongside `blockIfTrialExpired`. Resolving
+ * the workspace owner (`getWorkspaceOwnerId`) is NOT an authorization check — it
+ * only decides whose data is being touched, so a member with the `orders`
+ * permission alone could otherwise still create, edit and delete menus,
+ * categories and dishes by calling those endpoints directly.
+ */
+export async function blockIfNoPermission(
+  userId: string,
+  permission: MemberPermission,
+): Promise<NextResponse | null> {
+  if (!(await memberCanAccess(userId, permission))) {
+    return NextResponse.json(
+      { error: "Vous n'avez pas la permission d'effectuer cette action." },
       { status: 403 },
     );
   }

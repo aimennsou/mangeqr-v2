@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
 import { getWorkspaceOwnerId, logMemberActivity } from '@/data/workspace';
-import { blockIfTrialExpired } from '@/lib/trial-guard';
+import { blockIfTrialExpired, blockIfNoPermission } from '@/lib/trial-guard';
 
 
 export async function POST(req: NextRequest) {
@@ -14,6 +14,8 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
     if (blocked) return blocked;
     const ownerId = await getWorkspaceOwnerId(userId);
@@ -85,7 +87,9 @@ export async function PUT(req: NextRequest) {
       if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const blocked = await blockIfTrialExpired(userId);
+      const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
+    const blocked = await blockIfTrialExpired(userId);
       if (blocked) return blocked;
       const ownerId = await getWorkspaceOwnerId(userId);
 
@@ -147,7 +151,9 @@ export async function DELETE(req: NextRequest) {
       if (!userId) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      const blocked = await blockIfTrialExpired(userId);
+      const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
+    const blocked = await blockIfTrialExpired(userId);
       if (blocked) return blocked;
       const ownerId = await getWorkspaceOwnerId(userId);
 
@@ -199,6 +205,9 @@ export async function GET() {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
+
     // Resolve the workspace owner so a member sees the OWNER's dishes and no
     // cross-workspace dishes leak out.
     const ownerId = await getWorkspaceOwnerId(userId);

@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
 import { getWorkspaceOwnerId } from '@/data/workspace';
+import { blockIfNoPermission } from '@/lib/trial-guard';
 
 /**
  * POST — create a review. Called publicly from the diner-facing menu, so it is
@@ -62,6 +63,11 @@ export async function GET() {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Only the GET is gated: POST on this route is PUBLIC (a diner submitting a
+    // review from the QR menu — see publicRoutePrefixes in routes.ts).
+    const denied = await blockIfNoPermission(userId, 'reviews');
+    if (denied) return denied;
 
     const ownerId = await getWorkspaceOwnerId(userId);
 
