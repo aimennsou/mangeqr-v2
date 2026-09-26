@@ -296,6 +296,11 @@ const DishCard: React.FC<DishCardProps> = ({
         <div className="flex-shrink-0">
 
         <div className="w-24 h-24 justify-center">
+        {/* Deliberately a plain <img>: the onError handler below reassigns
+            `img.src` to a placeholder when a dish photo 404s. next/image owns
+            its underlying element and that fallback cannot be expressed through
+            it, so converting this would lose the broken-image recovery. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={resolveImageSrc(imageUrl)}
           alt={name}

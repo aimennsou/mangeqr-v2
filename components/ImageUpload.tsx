@@ -88,6 +88,11 @@ const ImageUpload: React.FC<FileUploadProps> = ({ setFileKey }) => {
         </div>
         {imagePreview && (
           <div className="mt-4 flex justify-center">
+            {/* Deliberately a plain <img>: `imagePreview` is a FileReader
+                `data:` URL for the file the user just picked, which the Next.js
+                image optimizer cannot process. next/image would need
+                `unoptimized`, making it a plain <img> with extra steps. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={imagePreview}
               alt="Uploaded Preview"

@@ -238,6 +238,13 @@ export function PublicMenu({
     return () => observer.disconnect();
   }, [restaurantId, previewMode, track, activeMenu?.id]);
 
+  // Hoisted out of the effect below so it can be a precise dependency. The
+  // effect only ever needs the FIRST category's id (to seed the sticky bar), and
+  // depending on `categories.length` was subtly wrong: swapping the categories
+  // for a different array of the same length left the seeded id stale. This also
+  // clears the exhaustive-deps warning honestly instead of silencing it.
+  const firstCategoryId = activeMenu?.categories?.[0]?.id;
+
   // Sticky-header tracking: keep `activeCategoryId` set to whichever category
   // section currently occupies the top of the viewport, so the sticky bar shows
   // the right title as the diner scrolls. Independent of impression tracking.
@@ -281,12 +288,12 @@ export function PublicMenu({
     sections.forEach((s) => observer.observe(s));
 
     // Seed with the first category so the bar shows immediately.
-    if (activeMenu?.categories?.length) {
-      setActiveCategoryId(activeMenu.categories[0].id);
+    if (firstCategoryId) {
+      setActiveCategoryId(firstCategoryId);
     }
 
     return () => observer.disconnect();
-  }, [activeMenu?.id, activeMenu?.categories?.length]);
+  }, [activeMenu?.id, firstCategoryId]);
 
   const openDishDetail = useCallback(
     (dish: Dish) => {

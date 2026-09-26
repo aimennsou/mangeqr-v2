@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Select,
   SelectContent,
@@ -32,6 +32,13 @@ interface DrawerDialogDemoProps {
 
 const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu, defaultRestaurantId }) => {
   const { t } = useI18n();
+  // `t` is a new closure on every locale change, so putting it in the fetch
+  // effect's deps below would re-fetch the restaurant list every time the user
+  // switches language. Reading it through a ref keeps the effect mount-only AND
+  // fixes the stale-closure bug the lint rule was pointing at: the error toast
+  // now uses the CURRENT locale rather than whatever it was at mount.
+  const tRef = useRef(t);
+  tRef.current = t;
   const [name, setName] = useState("");
   const [restaurantId, setShopId] = useState(defaultRestaurantId ?? "");
   const [availability, setAvailability] = useState<string[]>([]);
@@ -122,9 +129,7 @@ const MenuDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddMenu, defa
       } catch (error) {
         console.error("Error fetching shops:", error);
 
-        toast.error(t("menus.toast.loadRestaurantsError")); 
-
-
+        toast.error(tRef.current("menus.toast.loadRestaurantsError"));
       }
     };
 
