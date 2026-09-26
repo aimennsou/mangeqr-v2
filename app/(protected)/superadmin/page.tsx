@@ -75,7 +75,7 @@ export default async function SuperadminPage() {
       </Breadcrumb>
 
       <Card className="rounded-lg border-none mt-6">
-        <CardContent className="space-y-10 p-6">
+        <CardContent className="space-y-10 p-4 sm:p-6 lg:p-8">
           {/* Editorial header */}
           <div className="border-b border-border pb-6">
             <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">

@@ -3,7 +3,15 @@
  * These routes does not require authentication
  * @type {string[]}
  */
-export const publicRoutes: string[] = ['/', '/v2', '/auth/email-verification', '/lp/ar'];
+export const publicRoutes: string[] = [
+  '/',
+  '/v2',
+  '/auth/email-verification',
+  '/lp/ar',
+  // Legal pages must be reachable without a session — the cookie banner links
+  // here, and a consent notice behind a login wall is worthless.
+  '/cgu'
+];
 
 /**
  * Route prefixes that are publicly accessible.

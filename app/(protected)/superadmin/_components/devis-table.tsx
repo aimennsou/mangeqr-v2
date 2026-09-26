@@ -46,6 +46,8 @@ const KIND_LABEL: Record<DevisKind, string> = {
   BORNE: 'Bornes',
   TV: 'Affichage TV',
   BOTH: 'Bornes + TV',
+  // Subscription enquiry from a pricing card, not a hardware quote.
+  PLAN: 'Abonnement',
 };
 
 function statusClass(s: DevisStatus): string {

@@ -9,6 +9,7 @@ import {
   PAYMENT_FREQUENCIES,
   REGION_PRICING,
   REGION_LABELS,
+  defaultPricingRegion,
   getRegionTierPrice,
   PRICING_ADDON_FEATURE,
   PRICING_PER_TABLE_FEATURE,
@@ -26,6 +27,7 @@ import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import type { TranslationKey } from '@/lib/i18n/dictionaries';
 import Reveal from './Reveal';
+import V2DevisDialog from './V2DevisDialog';
 
 /** How many feature bullets fit on a card before it gets too tall. */
 const MAX_VISIBLE_FEATURES = 7;
@@ -37,9 +39,22 @@ const MAX_VISIBLE_FEATURES = 7;
  * from the dictionary via the tiers' `descriptionKey` / `featureKeys`.
  */
 export default function V2Pricing() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [freq, setFreq] = useState<string>(PAYMENT_FREQUENCIES[0]);
-  const [region, setRegion] = useState<PricingRegion>('france');
+  /** Tier whose "Contactez-nous" was clicked; drives the contact dialog. */
+  const [contactPlan, setContactPlan] = useState<string | null>(null);
+  /**
+   * Region is DERIVED from the locale until the visitor picks one explicitly.
+   *
+   * It used to be plain `useState('france')`, so an Arabic visitor — i.e. the
+   * Algerian market — landed on euro prices. Storing only the override (rather
+   * than seeding state from the locale) means the default keeps following a
+   * language switch, while an explicit choice sticks for the rest of the visit.
+   */
+  const [regionOverride, setRegionOverride] = useState<PricingRegion | null>(
+    null
+  );
+  const region = regionOverride ?? defaultPricingRegion(locale);
   const pricing = REGION_PRICING[region];
 
   const isAnnual = freq === 'annuel';
@@ -63,7 +78,7 @@ export default function V2Pricing() {
                   Algérie (DZD). Region NAMES are places, not copy. */}
               <Select
                 value={region}
-                onValueChange={(v) => setRegion(v as PricingRegion)}
+                onValueChange={(v) => setRegionOverride(v as PricingRegion)}
               >
                 <SelectTrigger
                   className="w-[130px]"
@@ -164,19 +179,21 @@ export default function V2Pricing() {
                     {t(tier.descriptionKey as TranslationKey)}
                   </p>
 
-                  <Link href="/auth/sign-up" className="mt-6 block">
-                    <Button
-                      className={cn(
-                        'w-full',
-                        isPopular
-                          ? 'bg-yellow-400 text-black hover:bg-yellow-400/90'
-                          : ''
-                      )}
-                      variant={isPopular ? 'default' : 'outline'}
-                    >
-                      {t('landing.tier.cta')}
-                    </Button>
-                  </Link>
+                  {/* Opens the contact dialog rather than linking to sign-up.
+                      "Contactez-nous" that silently dropped you on a
+                      registration form reached nobody. */}
+                  <Button
+                    onClick={() => setContactPlan(tier.title)}
+                    className={cn(
+                      'mt-6 w-full',
+                      isPopular
+                        ? 'bg-yellow-400 text-black hover:bg-yellow-400/90'
+                        : ''
+                    )}
+                    variant={isPopular ? 'default' : 'outline'}
+                  >
+                    {t('landing.tier.cta')}
+                  </Button>
 
                   <ul className="mt-8 space-y-3 border-t border-border pt-6">
                     {bullets.map((key) => (
@@ -233,6 +250,21 @@ export default function V2Pricing() {
           </p>
         </Reveal>
       </div>
+
+      {/* One controlled dialog for the whole section, keyed on the plan so the
+          form resets between tiers. `hideTrigger` because the cards' own buttons
+          open it. */}
+      {contactPlan ? (
+        <V2DevisDialog
+          key={contactPlan}
+          plan={contactPlan}
+          open
+          hideTrigger
+          onOpenChange={(next) => {
+            if (!next) setContactPlan(null);
+          }}
+        />
+      ) : null}
     </section>
   );
 }

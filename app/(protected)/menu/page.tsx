@@ -187,7 +187,7 @@ export default function MenusPage() {
       </Breadcrumb>
 
       <Card className="rounded-lg border-none mt-6">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6 lg:p-8">
           <div className="space-y-8">
             {/* Editorial header */}
             <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">

@@ -379,6 +379,18 @@ export const REGION_LABELS: Record<PricingRegion, string> = {
   algerie: "Algérie",
 };
 
+/**
+ * Which pricing region a visitor most likely wants, inferred from the UI
+ * language. An Arabic visitor is the Algerian market, so the landing page
+ * defaults to DZD instead of showing euros and making them find the region
+ * selector. French and English keep the France/EUR default.
+ *
+ * Only a DEFAULT: an explicit choice in the region selector always wins.
+ */
+export function defaultPricingRegion(locale: string): PricingRegion {
+  return locale === "ar" ? "algerie" : "france";
+}
+
 export const REGION_PRICING: Record<PricingRegion, RegionPricing> = {
   france: {
     symbol: "€",
@@ -482,3 +494,11 @@ export function getPlanPriceLabel(
  * re-enable everywhere in one place.
  */
 export const MARKETING_ENABLED = false;
+
+/**
+ * Support phone shown in the dashboard footer.
+ *
+ * Here rather than inline in the footer so it lives with the rest of the
+ * customer-facing config and can be changed in one place.
+ */
+export const SUPPORT_PHONE = "0752052024";

@@ -100,9 +100,10 @@ export default function RestaurantsPage() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <Card className="rounded-lg border-none  mt-6">
-      <CardContent className="p-6">
-      <div className="mt-6 space-y-8">
+      <Card className="rounded-lg border-none mt-6">
+      <CardContent className="p-4 sm:p-6 lg:p-8">
+      {/* No `mt-6` here: the card already pads its content. */}
+      <div className="space-y-8">
 
         {/* Editorial header: serif title + subtitle left, add button right,
             hairline beneath. */}

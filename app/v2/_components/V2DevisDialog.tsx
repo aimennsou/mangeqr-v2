@@ -37,11 +37,40 @@ const KIND_OPTIONS: { value: Kind; labelKey: TranslationKey }[] = [
  * restaurants, bornes, TVs, team). Submits to the public `requestDevis` action,
  * which records a DevisRequest and notifies the back-office.
  */
-export default function V2DevisDialog({ label }: { label?: string }) {
+export default function V2DevisDialog({
+  label,
+  plan,
+  open: openProp,
+  onOpenChange,
+  hideTrigger = false
+}: {
+  label?: string;
+  /**
+   * Pricing tier name. When set, the dialog switches to SUBSCRIPTION ENQUIRY
+   * mode: kind is forced to PLAN, the hardware kind picker and the borne/TV
+   * counts are hidden, and the tier is shown as a badge. Used by the pricing
+   * cards' "Contactez-nous", which previously just linked to /auth/sign-up and
+   * never reached anyone.
+   */
+  plan?: string;
+  /** Controlled open state, for callers that render their own trigger. */
+  open?: boolean;
+  onOpenChange?: (next: boolean) => void;
+  hideTrigger?: boolean;
+}) {
   const { t } = useI18n();
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  // Controlled when the caller passes `open`, otherwise self-managed.
+  const isControlled = openProp !== undefined;
+  const open = isControlled ? openProp : openState;
+  const setOpen = (next: boolean) => {
+    if (!isControlled) setOpenState(next);
+    onOpenChange?.(next);
+  };
+
+  const planMode = !!plan;
   const [kind, setKind] = useState<Kind>('BOTH');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -73,7 +102,8 @@ export default function V2DevisDialog({ label }: { label?: string }) {
     }
     startTransition(async () => {
       const res = await requestDevis({
-        kind,
+        kind: planMode ? 'PLAN' : kind,
+        plan: plan ?? '',
         name,
         phone,
         email,
@@ -99,46 +129,62 @@ export default function V2DevisDialog({ label }: { label?: string }) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="group inline-flex items-center justify-center gap-2 rounded-full bg-yellow-400 px-8 py-4 text-lg font-bold text-black shadow-lg shadow-yellow-400/30 transition-transform hover:scale-[1.03]"
-        >
-          {label ?? t('landing.devis.trigger')}
-          <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" />
-        </button>
-      </DialogTrigger>
+      {hideTrigger ? null : (
+        <DialogTrigger asChild>
+          <button
+            type="button"
+            className="group inline-flex items-center justify-center gap-2 rounded-full bg-yellow-400 px-8 py-4 text-lg font-bold text-black shadow-lg shadow-yellow-400/30 transition-transform hover:scale-[1.03]"
+          >
+            {label ?? t('landing.devis.trigger')}
+            <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1 rtl:-scale-x-100 rtl:group-hover:-translate-x-1" />
+          </button>
+        </DialogTrigger>
+      )}
 
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t('landing.devis.title')}</DialogTitle>
+          <DialogTitle>
+            {planMode ? t('landing.pricing.contactTitle') : t('landing.devis.title')}
+          </DialogTitle>
           <DialogDescription>
-            {t('landing.devis.description')}
+            {planMode
+              ? t('landing.pricing.contactDesc')
+              : t('landing.devis.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Kind */}
-          <div className="space-y-2">
-            <Label>{t('landing.devis.kind')}</Label>
-            <div className="grid grid-cols-3 gap-2">
-              {KIND_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => setKind(opt.value)}
-                  className={cn(
-                    'rounded-lg border px-2 py-2 text-xs font-medium transition-colors',
-                    kind === opt.value
-                      ? 'border-yellow-400 bg-yellow-400/10 text-foreground'
-                      : 'border-border text-muted-foreground hover:bg-muted',
-                  )}
-                >
-                  {t(opt.labelKey)}
-                </button>
-              ))}
+          {planMode ? (
+            /* Which tier they clicked. Read-only: they chose it by clicking. */
+            <div className="space-y-2">
+              <Label>{t('landing.pricing.contactPlan')}</Label>
+              <p className="inline-flex items-center rounded-full bg-yellow-400/15 px-3 py-1 text-sm font-semibold text-yellow-700 dark:text-yellow-400">
+                {plan}
+              </p>
             </div>
-          </div>
+          ) : (
+            /* Kind — hardware quotes only. */
+            <div className="space-y-2">
+              <Label>{t('landing.devis.kind')}</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {KIND_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setKind(opt.value)}
+                    className={cn(
+                      'rounded-lg border px-2 py-2 text-xs font-medium transition-colors',
+                      kind === opt.value
+                        ? 'border-yellow-400 bg-yellow-400/10 text-foreground'
+                        : 'border-border text-muted-foreground hover:bg-muted',
+                    )}
+                  >
+                    {t(opt.labelKey)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Contact */}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -186,8 +232,15 @@ export default function V2DevisDialog({ label }: { label?: string }) {
             </div>
           </div>
 
-          {/* Sizing */}
-          <div className="grid gap-4 sm:grid-cols-3">
+          {/* Sizing. In plan mode only the restaurant count is relevant — asking
+              a subscription prospect how many kiosks and TV screens they want is
+              noise that would suppress replies. */}
+          <div
+            className={cn(
+              'grid gap-4',
+              planMode ? 'sm:grid-cols-1' : 'sm:grid-cols-3'
+            )}
+          >
             <div className="space-y-2">
               <Label htmlFor="devis-restaurants">
                 {t('landing.devis.restaurantCount')}
@@ -201,32 +254,36 @@ export default function V2DevisDialog({ label }: { label?: string }) {
                 placeholder="1"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="devis-bornes">
-                {t('landing.devis.borneCount')}
-              </Label>
-              <Input
-                id="devis-bornes"
-                type="number"
-                min={0}
-                value={borneCount}
-                onChange={(e) => setBorneCount(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="devis-tvs">
-                {t('landing.devis.tvCount')}
-              </Label>
-              <Input
-                id="devis-tvs"
-                type="number"
-                min={0}
-                value={tvCount}
-                onChange={(e) => setTvCount(e.target.value)}
-                placeholder="0"
-              />
-            </div>
+            {planMode ? null : (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="devis-bornes">
+                    {t('landing.devis.borneCount')}
+                  </Label>
+                  <Input
+                    id="devis-bornes"
+                    type="number"
+                    min={0}
+                    value={borneCount}
+                    onChange={(e) => setBorneCount(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="devis-tvs">
+                    {t('landing.devis.tvCount')}
+                  </Label>
+                  <Input
+                    id="devis-tvs"
+                    type="number"
+                    min={0}
+                    value={tvCount}
+                    onChange={(e) => setTvCount(e.target.value)}
+                    placeholder="0"
+                  />
+                </div>
+              </>
+            )}
           </div>
 
           <div className="space-y-2">

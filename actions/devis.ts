@@ -22,6 +22,7 @@ export async function requestDevis(
 
   const {
     kind,
+    plan,
     name,
     phone,
     email,
@@ -42,6 +43,7 @@ export async function requestDevis(
       data: {
         userId,
         kind,
+        plan: plan || null,
         name,
         phone,
         email: email || null,
@@ -61,7 +63,9 @@ export async function requestDevis(
         ? 'Bornes'
         : kind === 'TV'
           ? 'Affichage TV'
-          : 'Bornes + TV';
+          : kind === 'PLAN'
+            ? `Abonnement${plan ? ` ${plan}` : ''}`
+            : 'Bornes + TV';
     const admins = await db.user.findMany({
       where: { role: 'SUPERADMIN' },
       select: { id: true },
@@ -71,7 +75,10 @@ export async function requestDevis(
         createNotification({
           userId: a.id,
           type: 'ORDER_STATUS',
-          title: 'Nouvelle demande de devis',
+          title:
+            kind === 'PLAN'
+              ? 'Nouvelle demande de contact (abonnement)'
+              : 'Nouvelle demande de devis',
           body: `${name} (${phone}) — ${kindLabel}.`,
           link: '/superadmin/devis',
           entityId: request.id,

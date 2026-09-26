@@ -70,7 +70,7 @@ export default async function SuperadminDesignOrdersPage() {
       </Breadcrumb>
 
       <Card className="rounded-lg border-none mt-6">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6 lg:p-8">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-foreground">
               Suivi des commandes de designs

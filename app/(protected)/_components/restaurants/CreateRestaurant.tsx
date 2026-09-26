@@ -169,7 +169,9 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
             {errors.phone ? <p className="text-xs text-red-500">{errors.phone}</p> : null}
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="subdomain">{t("restaurants.field.subdomain")}</Label>
+            <Label htmlFor="subdomain">
+              {t("restaurants.field.subdomain")} <span className="text-red-500">*</span>
+            </Label>
             <div className="flex">
               <Input id="subdomain" name="subdomain" placeholder="artisto" className="rounded-e-none" />
               <span className="inline-flex items-center rounded-e-lg border border-input bg-muted px-3 text-sm text-muted-foreground">
@@ -178,7 +180,9 @@ const RestoDrawerDialogDemo: React.FC<DrawerDialogDemoProps> = ({ onAddRestauran
             </div>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="currency">{t("restaurants.field.currency")}</Label>
+            <Label htmlFor="currency">
+              {t("restaurants.field.currency")} <span className="text-red-500">*</span>
+            </Label>
             <ToggleGroup value={currency} onValueChange={setCurrency} type="single" className="grid grid-cols-3">
               <ToggleGroupItem value="EURO">
                 <Euro className="w-4 h-4 mr-2" /> Euro

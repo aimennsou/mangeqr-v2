@@ -534,9 +534,10 @@ export default function CategoriesPage() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <Card className="rounded-lg border-none  mt-6">
-        <CardContent className="p-6">
-          <div className="mt-6">
+      <Card className="rounded-lg border-none mt-6">
+        <CardContent className="p-4 sm:p-6 lg:p-8">
+          {/* No `mt-6` here: the card already pads its content. */}
+          <div>
             {/* Editorial header: serif title + subtitle, hairline beneath. */}
             <div className="mb-8 border-b border-border pb-6">
               <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">

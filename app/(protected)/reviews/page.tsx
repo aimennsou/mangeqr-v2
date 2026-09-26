@@ -115,9 +115,11 @@ export default function ReviewsPage() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <Card className="rounded-lg border-none  mt-6">
-      <CardContent className="p-6">
-      <div className="mt-6">
+      <Card className="rounded-lg border-none mt-6">
+      <CardContent className="p-4 sm:p-6 lg:p-8">
+      {/* No `mt-6` here: the card already pads its content. The extra margin
+          pushed this page's header 24px lower than every other page's. */}
+      <div>
 
       {loading ? (
         // While loading, the WHOLE page (top selector + badge + table) shows a

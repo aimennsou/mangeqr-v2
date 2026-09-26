@@ -62,7 +62,7 @@ export default async function SuperadminRestaurantsPage() {
       </Breadcrumb>
 
       <Card className="rounded-lg border-none mt-6">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6 lg:p-8">
           <div className="mb-6 border-b border-border pb-6">
             <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
               Restaurants

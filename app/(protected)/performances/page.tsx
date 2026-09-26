@@ -372,9 +372,10 @@ export default function PerformancesPage() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <Card className="rounded-lg border-none  mt-6">
-      <CardContent className="p-6">
-      <div className="mt-6">
+      <Card className="rounded-lg border-none mt-6">
+      <CardContent className="p-4 sm:p-6 lg:p-8">
+      {/* No `mt-6` here: the card already pads its content. */}
+      <div>
       {loading ? (
         <PerformancesSkeleton />
       ) : shops.length === 0 ? (

@@ -262,7 +262,7 @@ export default function MarketingPage() {
       </Breadcrumb>
 
       <Card className="rounded-lg border-none mt-6">
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6 lg:p-8">
           <div className="flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-semibold">{t("marketing.heading")}</h2>

@@ -98,6 +98,12 @@ export default function CookieConsent({
                                     <span className="font-medium opacity-80">{t("cookies.accept")}</span>
                                     {t("cookies.noteRest")}
                                 </span>
+                                <br />
+                                {/* Restored now that /cgu exists — this link used
+                                    to 404, so it was removed. */}
+                                <a href="/cgu" className="text-xs underline">
+                                    {t("cookies.learnMore")}
+                                </a>
                             </p>
                         </div>
                         <div className="flex gap-2 p-4 py-5 border-t border-border dark:bg-background/20">
