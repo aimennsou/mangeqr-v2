@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
-import { getWorkspaceOwnerId, getRestaurantScope } from '@/data/workspace';
+import { getRestaurantScope, assertRestaurantInScope } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 import { blockIfTrialExpired, blockIfNoPermission } from '@/lib/trial-guard';
 import { notifyPlanLimitHit } from '@/lib/notifications';
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
     const blocked = await blockIfTrialExpired(userId);
     if (blocked) return blocked;
     // Resolve the workspace owner so members act on the owner's data.
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const { name, availability, state, restaurantId } = await req.json();
 
@@ -121,7 +122,7 @@ export async function PUT(req: NextRequest) {
     if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
     if (blocked) return blocked;
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const { id, restaurantId, state, name, availability } = await req.json();
 
@@ -133,20 +134,18 @@ export async function PUT(req: NextRequest) {
     // Workspace ownership: the menu being updated must belong to the caller's
     // workspace owner (via its restaurant). Blocks cross-workspace edits.
     const ownedMenu = await db.menu.findFirst({
-      where: { id, restaurant: { userId: ownerId } },
+      where: { id, restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
       select: { id: true },
     });
     if (!ownedMenu) {
       return NextResponse.json({ error: "Menu introuvable" }, { status: 404 });
     }
 
-    // Check if restaurantId exists and belongs to the workspace owner
+    // The target restaurant must belong to the workspace owner AND be in the
+    // caller's scope — otherwise a member assigned to one branch could MOVE a
+    // menu into a branch they don't work in by passing its id.
     if (restaurantId) {
-      const shopExists = await db.restaurant.findFirst({
-        where: { id: restaurantId, userId: ownerId },
-      });
-
-      if (!shopExists) {
+      if (!(await assertRestaurantInScope(userId, restaurantId))) {
         return NextResponse.json({ error: "restaurant not found" }, { status: 400 });
       }
     }
@@ -200,7 +199,7 @@ export async function DELETE(req: NextRequest) {
     if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
     if (blocked) return blocked;
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const body = await req.json();
 
@@ -219,7 +218,7 @@ export async function DELETE(req: NextRequest) {
     await db.menu.deleteMany({
       where: {
         id: { in: targetIds },
-        restaurant: { userId: ownerId },
+        restaurant: scopedRestaurantWhere(ownerId, restaurantIds),
       },
     });
 

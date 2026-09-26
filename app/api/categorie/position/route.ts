@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getRestaurantScope } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const updatedCategories = await req.json();
 
@@ -34,7 +35,7 @@ export async function POST(req: NextRequest) {
       new Set(updatedCategories.map((c) => c.menuId as string))
     );
     const ownedMenus = await db.menu.findMany({
-      where: { id: { in: targetMenuIds }, restaurant: { userId: ownerId } },
+      where: { id: { in: targetMenuIds }, restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
       select: { id: true },
     });
     const ownedMenuIds = new Set(ownedMenus.map((m) => m.id));
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
           db.menuCategory.updateMany({
             where: {
               id: category.categoryId,
-              menu: { restaurant: { userId: ownerId } },
+              menu: { restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
             },
             data: { position: category.position, menuId: category.menuId },
           })

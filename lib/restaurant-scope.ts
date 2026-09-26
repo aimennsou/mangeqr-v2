@@ -94,3 +94,29 @@ export function restaurantFkFilter(
   if (scope === null) return {};
   return { restaurantId: { in: scope } };
 }
+
+/**
+ * The full `restaurant: { … }` relation filter — owner AND scope in one object.
+ *
+ * This is the workhorse for records that reach a Restaurant through a RELATION
+ * rather than holding its id. Most of the app authorizes that way:
+ *
+ *   Menu          -> restaurant: { userId }
+ *   MenuCategory  -> menu: { restaurant: { userId } }
+ *   Dish          -> category: { menu: { restaurant: { userId } } }
+ *
+ * Adding the scope is then a one-line change at each site — swap
+ * `{ userId: ownerId }` for `scopedRestaurantWhere(ownerId, scope)` — which
+ * keeps the owner check and the scope check impossible to apply separately, and
+ * therefore impossible to half-apply:
+ *
+ *   where: { id, menu: { restaurant: scopedRestaurantWhere(ownerId, scope) } }
+ *
+ * Unscoped callers get exactly `{ userId: ownerId }`, i.e. the original query.
+ */
+export function scopedRestaurantWhere(
+  ownerId: string,
+  scope: string[] | null
+): { userId: string; id?: { in: string[] } } {
+  return { userId: ownerId, ...restaurantIdFilter(scope) };
+}

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getRestaurantScope } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 
 export async function POST(req: NextRequest) {
   try {
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const updatedMenus = await req.json();
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
     await db.$transaction(
       updatedMenus.map((menu) =>
         db.menu.updateMany({
-          where: { id: menu.menuId, restaurant: { userId: ownerId } },
+          where: { id: menu.menuId, restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
           data: { position: menu.position },
         })
       )

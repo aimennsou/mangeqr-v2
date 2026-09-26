@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { currentUserId } from '@/lib/authentication';
 import { db } from '@/lib/db';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
-import { getWorkspaceOwnerId, isWorkspaceMember } from '@/data/workspace';
+import { getRestaurantScope, isWorkspaceMember } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 import { notifyPlanLimitHit } from '@/lib/notifications';
 
 // Create a MarketingCampaign
@@ -54,6 +55,9 @@ export async function POST(req: NextRequest) {
     // the owner's restaurants.
     const user = await db.user.findUnique({ where: { id: ownerId } });
     const campaignLimit = getPlanLimits(getEffectivePlan(user ?? {})).campaigns;
+    // No restaurant scope here: this verb is OWNER-ONLY (members are rejected
+    // above), and an owner is never scoped. The plan limit also has to count
+    // across ALL of the owner's restaurants to be correct.
     const campaignCount = await db.marketingCampaign.count({
       where: { restaurant: { userId: ownerId } },
     });
@@ -117,10 +121,10 @@ export async function GET() {
 
     // Read access: scope to the workspace owner so a member viewing the page
     // sees the owner's campaigns read-only (mutations are owner-only).
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const campaigns = await db.marketingCampaign.findMany({
-      where: { restaurant: { userId: ownerId } },
+      where: { restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
       include: {
         restaurant: { select: { id: true, name: true } },
         emailRecipients: true,
@@ -167,6 +171,7 @@ export async function PUT(req: NextRequest) {
     }
 
     // Verify ownership through the campaign's restaurant (workspace owner).
+    // Owner-only verb (see the member rejection above), so no scope applies.
     const existing = await db.marketingCampaign.findFirst({
       where: { id, restaurant: { userId: ownerId } },
     });
@@ -260,6 +265,7 @@ export async function DELETE(req: NextRequest) {
 
     // Only delete campaigns owned by the workspace owner.
     // EmailRecipient rows cascade via schema onDelete: Cascade.
+    // Owner-only verb (see the member rejection above), so no scope applies.
     await db.marketingCampaign.deleteMany({
       where: { id: { in: targetIds }, restaurant: { userId: ownerId } },
     });

@@ -5,7 +5,7 @@ import * as z from 'zod';
 import { db } from '@/lib/db';
 import { DesignOrderSchema } from '@/schemas';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { assertRestaurantInScope } from '@/data/workspace';
 import { getDesignProduct, getDeliveryOptions } from '@/config';
 
 /**
@@ -51,7 +51,12 @@ export async function createDesignOrder(
   }
 
   // Workspace scoping: the target restaurant must belong to the caller's owner.
-  const ownerId = await getWorkspaceOwnerId(userId);
+  // Ownership AND per-restaurant scope: a member assigned to one branch must not
+  // be able to order printed cards for a branch they don't work in.
+  const ownerId = await assertRestaurantInScope(userId, restaurantId);
+  if (!ownerId) {
+    return { error: 'Restaurant introuvable.' };
+  }
   const ownedRestaurant = await db.restaurant.findFirst({
     where: { id: restaurantId, userId: ownerId },
     select: { id: true, currency: true }

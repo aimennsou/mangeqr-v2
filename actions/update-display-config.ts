@@ -22,13 +22,20 @@ import { hasPermission } from '@/lib/permissions';
 async function guard(restaurantId: string) {
   const user = await currentUser();
   if (!user?.id) return { error: 'Unauthorized.' as const };
-  const { ownerId, role, permissions } = await getWorkspaceContext(user.id);
+  const { ownerId, role, permissions, restaurantIds } =
+    await getWorkspaceContext(user.id);
   if (role === 'MEMBER' && !hasPermission(permissions, 'numerique')) {
     return {
       error: "Vous n'avez pas la permission de gérer le menu numérique." as const,
     };
   }
-  const restaurant = await assertRestaurantOwner(ownerId, restaurantId);
+  // Scope-aware: a member assigned to one branch must not be able to change
+  // another branch’s display config by passing its id.
+  const restaurant = await assertRestaurantOwner(
+    ownerId,
+    restaurantId,
+    restaurantIds
+  );
   if (!restaurant) return { error: 'Restaurant introuvable.' as const };
   return { restaurant };
 }

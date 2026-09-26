@@ -3,7 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getRestaurantScope } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 import { blockIfNoPermission } from '@/lib/trial-guard';
 import { PUBLIC_LIMITS, blockIfRateLimited } from '@/lib/rate-limit';
 
@@ -82,7 +83,7 @@ export async function GET() {
     const denied = await blockIfNoPermission(userId, 'reviews');
     if (denied) return denied;
 
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const reviews = await db.review.findMany({
       where: {

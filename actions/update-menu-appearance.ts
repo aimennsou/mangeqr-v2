@@ -27,14 +27,20 @@ export async function updateMenuAppearance(
     return { error: 'Unauthorized.' };
   }
 
-  const { ownerId, role, permissions } = await getWorkspaceContext(user.id);
+  const { ownerId, role, permissions, restaurantIds } =
+    await getWorkspaceContext(user.id);
   // #7: members need the "numerique" permission to change the menu appearance.
   if (role === 'MEMBER' && !hasPermission(permissions, 'numerique')) {
     return { error: "Vous n'avez pas la permission de gérer le menu numérique." };
   }
 
-  // Owner-scoping: reject when the restaurant is not owned by the workspace.
-  const restaurant = await assertRestaurantOwner(ownerId, restaurantId);
+  // Owner-scoping + per-restaurant scope: reject when the restaurant is not
+  // owned by the workspace, or not one this member is assigned to.
+  const restaurant = await assertRestaurantOwner(
+    ownerId,
+    restaurantId,
+    restaurantIds
+  );
 
   if (!restaurant) {
     return { error: 'Restaurant not found.' };

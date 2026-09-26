@@ -3,7 +3,8 @@ import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';  // shared Prisma client
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getRestaurantScope } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 import { v4 as uuidv4 } from 'uuid';  // For generating new UUIDs
 
 
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const body = await req.json(); // Extract the JSON body
     const { platId } = body; // The ID of the plat (dish) to duplicate
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
     const ownedDish = await db.dish.findFirst({
       where: {
         id: platId,
-        category: { menu: { restaurant: { userId: ownerId } } },
+        category: { menu: { restaurant: scopedRestaurantWhere(ownerId, restaurantIds) } },
       },
       select: { id: true },
     });

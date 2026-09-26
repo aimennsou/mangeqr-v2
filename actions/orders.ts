@@ -50,12 +50,14 @@ export async function setOrderStatus(
 
   // Scope to the caller's workspace owner (members resolve to their owner) and
   // require the `orders` permission for members.
-  const { ownerId } = await getWorkspaceContext(userId);
+  const { ownerId, restaurantIds } = await getWorkspaceContext(userId);
   if (!(await memberCanAccess(userId, 'orders'))) {
     return { error: 'Accès non autorisé à la prise de commande.' };
   }
 
-  const owned = await assertOrderOwned(orderId, ownerId);
+  // Scope-aware: a member assigned to one branch must not be able to act on
+  // another branch's order, even with a valid order id.
+  const owned = await assertOrderOwned(orderId, ownerId, restaurantIds);
   if (!owned) {
     return { error: 'Commande introuvable.' };
   }
@@ -100,12 +102,14 @@ export async function setOrderPaid(
 
   const { orderId, paid } = parsed.data;
 
-  const { ownerId } = await getWorkspaceContext(userId);
+  const { ownerId, restaurantIds } = await getWorkspaceContext(userId);
   if (!(await memberCanAccess(userId, 'orders'))) {
     return { error: 'Accès non autorisé à la prise de commande.' };
   }
 
-  const owned = await assertOrderOwned(orderId, ownerId);
+  // Scope-aware: a member assigned to one branch must not be able to act on
+  // another branch's order, even with a valid order id.
+  const owned = await assertOrderOwned(orderId, ownerId, restaurantIds);
   if (!owned) {
     return { error: 'Commande introuvable.' };
   }

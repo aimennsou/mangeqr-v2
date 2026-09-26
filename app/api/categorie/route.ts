@@ -4,7 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId, logMemberActivity } from '@/data/workspace';
+import { getRestaurantScope, logMemberActivity } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 import { blockIfTrialExpired, blockIfNoPermission } from '@/lib/trial-guard';
 
 
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
     if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
     if (blocked) return blocked;
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const body = await req.json(); // Extract the JSON body
 
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
 
     // Workspace ownership: the parent menu must belong to the caller's owner.
     const ownedMenu = await db.menu.findFirst({
-      where: { id: menuId, restaurant: { userId: ownerId } },
+      where: { id: menuId, restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
       select: { id: true },
     });
     if (!ownedMenu) {
@@ -94,7 +95,7 @@ export async function PUT(req: NextRequest) {
     if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
       if (blocked) return blocked;
-      const ownerId = await getWorkspaceOwnerId(userId);
+      const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
       const { id, name, logo , state,
         position } = await req.json();
@@ -107,7 +108,7 @@ export async function PUT(req: NextRequest) {
       // Workspace ownership: the category must belong to the caller's owner
       // (via its menu → restaurant). Blocks cross-workspace edits.
       const ownedCategory = await db.menuCategory.findFirst({
-        where: { id, menu: { restaurant: { userId: ownerId } } },
+        where: { id, menu: { restaurant: scopedRestaurantWhere(ownerId, restaurantIds) } },
         select: { id: true },
       });
       if (!ownedCategory) {
@@ -150,7 +151,7 @@ export async function DELETE(req: NextRequest) {
     if (denied) return denied;
     const blocked = await blockIfTrialExpired(userId);
       if (blocked) return blocked;
-      const ownerId = await getWorkspaceOwnerId(userId);
+      const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
       const { id, ids } = await req.json();
   
@@ -165,7 +166,7 @@ export async function DELETE(req: NextRequest) {
       const del = await db.menuCategory.deleteMany({
         where: {
           id: { in: targetIds },
-          menu: { restaurant: { userId: ownerId } },
+          menu: { restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
         },
       });
 
@@ -206,7 +207,7 @@ export async function GET(req: NextRequest) {
     if (denied) return denied;
 
     // Resolve the workspace owner so a member sees the OWNER's categories.
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     // Optional server-side scoping: `?menuId=` limits the result to a single
     // menu's categories instead of returning the whole workspace catalog (with

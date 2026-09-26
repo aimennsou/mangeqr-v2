@@ -29,14 +29,23 @@ export interface RestaurantFloorPlan {
 }
 
 /**
- * Confirm a restaurant belongs to the given workspace owner. Returns the
- * restaurant id when owned, otherwise null. Used to scope every table/zone
+ * Confirm a restaurant belongs to the given workspace owner and, when a member's
+ * restaurant scope is supplied, that it is one they are assigned to. Returns the
+ * restaurant id when both hold, otherwise null. Used to scope every table/zone
  * mutation to the caller's workspace.
+ *
+ * `scope` is optional so owner-only callers are unaffected (omitted =
+ * unscoped, always correct for an owner). Pass the scope from
+ * `getRestaurantScope` whenever the caller may be a MEMBER.
  */
 export async function assertRestaurantOwned(
   restaurantId: string,
-  ownerId: string
+  ownerId: string,
+  scope?: string[] | null
 ): Promise<string | null> {
+  // Out of scope is an immediate no, without touching the database.
+  if (scope && !scope.includes(restaurantId)) return null;
+
   try {
     const r = await db.restaurant.findFirst({
       where: { id: restaurantId, userId: ownerId },

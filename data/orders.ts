@@ -185,11 +185,22 @@ export async function listOrders({
  */
 export async function assertOrderOwned(
   orderId: string,
-  ownerId: string
+  ownerId: string,
+  /**
+   * The caller's per-restaurant scope. Optional so owner-only callers are
+   * unaffected (omitted = unscoped). Pass it whenever the caller may be a
+   * MEMBER, otherwise a member assigned to one branch could advance or cancel
+   * another branch's orders with a valid order id.
+   */
+  scope?: string[] | null
 ): Promise<{ id: string; type: OrderType; status: OrderStatus } | null> {
   try {
     const order = await db.order.findFirst({
-      where: { id: orderId, restaurant: { userId: ownerId } },
+      where: {
+        id: orderId,
+        restaurant: { userId: ownerId },
+        ...restaurantFkFilter(scope ?? null)
+      },
       select: { id: true, type: true, status: true }
     });
     return order ?? null;
@@ -218,13 +229,16 @@ export async function assertOrderOwned(
 export async function claimTicketPrint(args: {
   orderId: string;
   ownerId: string;
+  /** Caller's per-restaurant scope; omitted/null = unscoped (owners). */
+  restaurantIds?: string[] | null;
 }): Promise<boolean> {
   try {
     const { count } = await db.order.updateMany({
       where: {
         id: args.orderId,
         ticketPrintedAt: null,
-        restaurant: { userId: args.ownerId }
+        restaurant: { userId: args.ownerId },
+        ...restaurantFkFilter(args.restaurantIds ?? null)
       },
       data: { ticketPrintedAt: new Date() }
     });

@@ -29,7 +29,8 @@ export async function saveFloorPlan(
     return { error: 'Non autorisé.' };
   }
 
-  const { ownerId, role, permissions } = await getWorkspaceContext(userId);
+  const { ownerId, role, permissions, restaurantIds } =
+    await getWorkspaceContext(userId);
   // #7: members need the "tables" permission to edit the floor plan.
   if (role === 'MEMBER' && !hasPermission(permissions, 'tables')) {
     return { error: "Vous n'avez pas la permission de gérer le plan de salle." };
@@ -42,8 +43,13 @@ export async function saveFloorPlan(
 
   const { restaurantId, zones, tables } = parsed.data;
 
-  // Scope to the workspace owner's restaurant.
-  const owned = await assertRestaurantOwned(restaurantId, ownerId);
+  // Workspace owner AND per-restaurant scope: a member assigned to one branch
+  // must not be able to rewrite another branch’s floor plan.
+  const owned = await assertRestaurantOwned(
+    restaurantId,
+    ownerId,
+    restaurantIds
+  );
   if (!owned) {
     return { error: 'Restaurant introuvable.' };
   }

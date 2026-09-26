@@ -23,10 +23,24 @@ export async function getRestaurantById(id: string) {
 }
 
 /**
- * Verify that a restaurant belongs to the given user.
- * Returns the restaurant when the user owns it, otherwise null.
+ * Verify that a restaurant belongs to the given OWNER, and — when a member's
+ * restaurant scope is supplied — that it is one they are assigned to.
+ * Returns the restaurant when both hold, otherwise null.
+ *
+ * `scope` is optional so existing owner-only callers are unaffected: omitting it
+ * means "unscoped", which is always correct for an owner. Callers acting on
+ * behalf of a possible MEMBER must pass the scope from `getRestaurantScope`,
+ * otherwise a member assigned to one branch can act on another branch just by
+ * sending its id.
  */
-export async function assertRestaurantOwner(userId: string, restaurantId: string) {
+export async function assertRestaurantOwner(
+  userId: string,
+  restaurantId: string,
+  scope?: string[] | null
+) {
+  // A scope that does not include the target is an immediate no, without a query.
+  if (scope && !scope.includes(restaurantId)) return null;
+
   return db.restaurant.findFirst({
     where: { id: restaurantId, userId },
   });

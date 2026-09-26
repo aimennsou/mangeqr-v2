@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getRestaurantScope } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 
 import { v4 as uuidv4 } from 'uuid';
 // Function to get a new name for the duplicated menu
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const ownerId = await getWorkspaceOwnerId(userId);
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
     const body = await req.json();
     const { menuId } = body;

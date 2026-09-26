@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId, memberCanAccess } from '@/data/workspace';
+import { getRestaurantScope, memberCanAccess } from '@/data/workspace';
 import { claimTicketPrint } from '@/data/orders';
 
 /**
@@ -40,8 +40,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'orderId is required' }, { status: 400 });
   }
 
-  const ownerId = await getWorkspaceOwnerId(userId);
-  const claimed = await claimTicketPrint({ orderId, ownerId });
+  // Scope-aware: a member assigned to one branch must not be able to burn
+  // another branch's print claim (which would suppress that branch's ticket).
+  const { ownerId, restaurantIds } = await getRestaurantScope(userId);
+  const claimed = await claimTicketPrint({ orderId, ownerId, restaurantIds });
 
   return NextResponse.json({ claimed }, { status: 200 });
 }
