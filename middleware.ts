@@ -3,8 +3,7 @@ import { NextResponse } from 'next/server';
 
 import {
   authRoutes,
-  publicRoutes,
-  publicRoutePrefixes,
+  isPublicPath,
   apiAuthPrefix,
   DEFAULT_SIGNIN_REDIRECT
 } from '@/routes';
@@ -53,11 +52,11 @@ export default auth((req: { auth?: any; nextUrl?: any; headers?: any }) => {
   // Standard auth flow (app host).
   // -------------------------------------------------------------------------
   const isApiAuthRoute = nextUrl.pathname.startsWith(apiAuthPrefix);
-  const isPublicRoute =
-    publicRoutes.includes(nextUrl.pathname) ||
-    publicRoutePrefixes.some((prefix: string) =>
-      nextUrl.pathname.startsWith(prefix)
-    );
+  // Segment-boundary matching lives in routes.ts so the rule is stated once.
+  // A bare startsWith here previously made /menu and /marketing public (both
+  // start with the '/m' lead-menu prefix) and exposed the private /restaurant
+  // owner list (public only as /restaurant/[id]).
+  const isPublicRoute = isPublicPath(nextUrl.pathname);
   const isAuthRoute = authRoutes.includes(nextUrl.pathname);
 
   if (isApiAuthRoute) {

@@ -90,6 +90,30 @@ export const PERMISSION_HREFS: Record<MemberPermission, string[]> = {
 };
 
 /**
+ * Resolve the landing route for a MEMBER from their granted permissions: the
+ * first area they can reach (in MEMBER_PERMISSIONS display order), else
+ * `/settings`, which lib/menu-list.ts keeps available to every member
+ * regardless of permissions.
+ *
+ * Route guards must redirect here rather than to DEFAULT_SIGNIN_REDIRECT.
+ * That constant is `/performances`, so a guard on /performances that redirected
+ * to it would loop forever for a member without the `performances` permission.
+ *
+ * Mirrors adminLandingHref in lib/admin-permissions.ts.
+ */
+export function memberLandingHref(
+  permissions: MemberPermission[] | null | undefined,
+): string {
+  const perms = permissions ?? DEFAULT_MEMBER_PERMISSIONS;
+  for (const { key } of MEMBER_PERMISSIONS) {
+    if (perms.includes(key)) {
+      return PERMISSION_HREFS[key][0];
+    }
+  }
+  return '/settings';
+}
+
+/**
  * Normalize an unknown JSON value (from the DB) into a valid permission list.
  * `null`/invalid => the default set (backwards compatible with members created
  * before permissions existed).
