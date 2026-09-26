@@ -95,7 +95,7 @@ export async function PUT(req: NextRequest) {
       const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
       const { id, name, description, photo,  state,
-        position, price } = await req.json();
+        position, price, allergenes } = await req.json();
   
       // Validate required field
       if (!id) {
@@ -124,6 +124,15 @@ export async function PUT(req: NextRequest) {
       if (price !== undefined) data.price = price;
       if (position !== undefined) data.position = position;
       if (state !== undefined) data.state = state;
+      // Allergens + diet tags share this one column. Guarded by Array.isArray
+      // rather than a plain !== undefined so a malformed body cannot write a
+      // non-array into a String[] column; clearing every toggle legitimately
+      // sends [], which must still be written.
+      if (Array.isArray(allergenes)) {
+        data.allergenes = allergenes.filter(
+          (a: unknown): a is string => typeof a === 'string'
+        );
+      }
 
       const updatedDish = await db.dish.update({
         where: { id },

@@ -20,7 +20,15 @@ import type { MenuAppearance } from '@/schemas';
 export const DEFAULT_MENU_APPEARANCE: Required<MenuAppearance> = {
   fontFamily: 'Inter',
   primaryColor: '#111827',
-  backgroundColor: '#FFFFFF',
+  // A warm off-white rather than pure #FFFFFF. Stark white made the menu column
+  // read as a hard-edged white sheet pasted onto the cream page behind it — the
+  // "vertical lines" down both sides of the menu were just that contrast, not
+  // actual borders. It also lifts every derived value: `surface` becomes a warm
+  // tint instead of flat grey, so cards separate without needing an outline.
+  //
+  // Only affects restaurants that never customised their look. Anyone who
+  // explicitly saved #FFFFFF keeps it.
+  backgroundColor: '#FAF8F4',
   showAddress: true,
   showPhone: true,
   showWifi: true,
@@ -184,10 +192,25 @@ export interface AppearanceTheme {
   text: string;
   /** Secondary text — `text` at reduced alpha so it always contrasts. */
   muted: string;
-  /** Divider / card border — a low-alpha version of `text`. */
+  /**
+   * Hairline for the few places that still need a real outline (the dish
+   * dialog). Kept deliberately faint — cards and bars use `elevation` instead,
+   * because 1px dividers at a visible alpha made the menu look boxed-in.
+   */
   border: string;
   /** Subtle raised panel (chips, dish cards, review box, tab bar, placeholders). */
   surface: string;
+  /**
+   * Ambient shadow that replaces card outlines. Derived from `text`, so it works
+   * on a dark menu background where a black shadow would be invisible.
+   */
+  elevation: string;
+  /**
+   * Downward-only shadow for the sticky header and category rail. Separates them
+   * from content scrolling underneath without drawing a hard rule across the
+   * full width.
+   */
+  elevationSticky: string;
   /** Owner primary color, reused for headings / price / active affordances. */
   accent: string;
   /** Readable label color to place ON the accent (active tab, buttons). */
@@ -214,10 +237,14 @@ export function appearanceTheme(
     text,
     // Secondary text as translucent `text` → always contrasts on the bg.
     muted: rgba(text, 0.65),
-    // Dividers/cards: faint `text` so they show on any bg.
-    border: rgba(text, 0.15),
+    // Was 0.15, which rendered as a clearly visible grey hairline and made every
+    // card and bar look outlined. Now only a whisper, for the one surface (the
+    // dish dialog) that still needs a defined edge.
+    border: rgba(text, 0.07),
     // Raised panel: nudge the bg ~8% toward the text color for a subtle tint.
     surface: mix(background, text, 0.08),
+    elevation: `0 1px 2px ${rgba(text, 0.04)}, 0 8px 24px -12px ${rgba(text, 0.16)}`,
+    elevationSticky: `0 10px 20px -16px ${rgba(text, 0.35)}`,
     accent,
     // Label color for text placed on top of the accent (active tab / buttons).
     onAccent: readableTextOn(accent),

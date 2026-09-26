@@ -23,7 +23,13 @@ interface AddToCartDialogProps {
     required: string;
     close: string;
   };
-  previewMode?: boolean;
+  /**
+   * The menu is inside a phone frame (owner preview, or the diner menu on
+   * desktop), so position against that container instead of the viewport.
+   * Renamed from `previewMode`: the diner menu is framed too now, and the old
+   * name implied a preview-only behaviour this flag never had.
+   */
+  contained?: boolean;
   container?: HTMLElement | null;
   onOpenChange: (open: boolean) => void;
   onAdd: (line: CartLine) => void;
@@ -41,7 +47,7 @@ export function AddToCartDialog({
   theme,
   accent,
   labels,
-  previewMode = false,
+  contained = false,
   container,
   onOpenChange,
   onAdd
@@ -142,13 +148,13 @@ export function AddToCartDialog({
   const fmt = (n: number) =>
     (Number.isInteger(n) ? n.toString() : n.toFixed(2)) + ' ' + currency;
 
-  const positionClass = previewMode ? 'absolute' : 'fixed';
+  const positionClass = contained ? 'absolute' : 'fixed';
 
   return (
     <Dialog open={dish !== null} onOpenChange={onOpenChange}>
       {dish ? (
-        <DialogPortal container={previewMode ? container ?? undefined : undefined}>
-          <DialogOverlay className={cn(previewMode && 'absolute')} />
+        <DialogPortal container={contained ? container ?? undefined : undefined}>
+          <DialogOverlay className={cn(contained && 'absolute')} />
           <DialogPrimitive.Content
             className={cn(
               positionClass,

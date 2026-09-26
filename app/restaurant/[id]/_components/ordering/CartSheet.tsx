@@ -21,6 +21,20 @@ interface CartSheetProps {
   theme: AppearanceTheme;
   accent: { color: string };
   labels: CartLabels;
+  /**
+   * Inside a phone frame (owner preview, or the diner menu on desktop) — affects
+   * positioning and the portal target only.
+   *
+   * Kept SEPARATE from `previewMode` on purpose. This sheet also uses
+   * `previewMode` to decide whether to navigate to the live order page after
+   * checkout, so folding the two together would have left a real diner who
+   * ordered from a framed desktop menu stranded on the menu with no status page.
+   */
+  contained?: boolean;
+  /**
+   * Owner-facing preview: suppress the post-checkout redirect to `/order/[id]`.
+   * NOT about layout — see `contained`.
+   */
   previewMode?: boolean;
   container?: HTMLElement | null;
   onChangeQty: (lineId: string, qty: number) => void;
@@ -64,6 +78,7 @@ export function CartSheet({
   theme,
   accent,
   labels,
+  contained = false,
   previewMode = false,
   container,
   onChangeQty,
@@ -173,12 +188,12 @@ export function CartSheet({
     }
   };
 
-  const positionClass = previewMode ? 'absolute' : 'fixed';
+  const positionClass = contained ? 'absolute' : 'fixed';
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogPortal container={previewMode ? container ?? undefined : undefined}>
-        <DialogOverlay className={cn(previewMode && 'absolute')} />
+      <DialogPortal container={contained ? container ?? undefined : undefined}>
+        <DialogOverlay className={cn(contained && 'absolute')} />
         <DialogPrimitive.Content
           className={cn(
             positionClass,

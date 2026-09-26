@@ -715,6 +715,7 @@ export default function CategoriesPage() {
                                             priceValue={dish.price}
                                             photoValue={dish.photo}
                                             allergenes={(dish.allergenes || []).join(", ")}
+                                            allergenesValue={dish.allergenes || []}
                                             state={dish.state}
                                             currencySymbol={symbol}
                                             onChanged={fetchCategories}

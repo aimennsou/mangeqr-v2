@@ -18,6 +18,13 @@ import CoverImageUpload from "@/components/CoverImageUpload";
 import { useOrderingEnabled } from "@/hooks/use-workspace-role";
 import { DishAddonsDialog } from "./DishAddonsDialog";
 import { useI18n } from "@/lib/i18n";
+import { DishTagGroup } from "./CreatePlat";
+import {
+  ALLERGEN_OPTIONS,
+  DIET_TAG_OPTIONS,
+  mergeDishTags,
+  splitDishTags,
+} from "@/lib/dish-tags";
 
 interface DishCardProps {
   id: string;
@@ -29,7 +36,14 @@ interface DishCardProps {
   priceValue?: number;
   /** Raw photo key (S3 file_key), used to prefill/edit the dish image. */
   photoValue?: string | null;
+  /** Joined, display-only summary line shown on the card. */
   allergenes: string;
+  /**
+   * Raw stored array, used to prefill the edit dialog. Without it the edit form
+   * could not show the current selection — which is why allergens and tags used
+   * to be write-once: settable when creating a dish and unchangeable after.
+   */
+  allergenesValue?: string[];
   state?: "ACTIVE" | "INACTIVE";
   /** Currency symbol for the add-ons price hint (display only). */
   currencySymbol?: string;
@@ -51,6 +65,7 @@ const DishCard: React.FC<DishCardProps> = ({
   priceValue,
   photoValue,
   allergenes,
+  allergenesValue,
   state = "ACTIVE",
   currencySymbol = "€",
   onDelete,
@@ -75,6 +90,16 @@ const DishCard: React.FC<DishCardProps> = ({
   // one. `editPhotoUrl` is the resolved display URL (empty for the local
   // placeholder fallback).
   const [editPhotoKey, setEditPhotoKey] = useState<string | null>(photoValue ?? null);
+
+  // "Contient" + diet tags. Stored as one array on the dish, split into the two
+  // form groups here. `editExtras` holds values this form has no toggle for
+  // (older rows, imports): a ToggleGroup only reports values it renders, so
+  // without parking them the first click would silently delete them — possibly
+  // dropping an allergen off a live menu. They are re-appended on save.
+  const initialTags = splitDishTags(allergenesValue);
+  const [editAllergens, setEditAllergens] = useState<string[]>(initialTags.allergens);
+  const [editDietTags, setEditDietTags] = useState<string[]>(initialTags.dietTags);
+  const [editExtras, setEditExtras] = useState<string[]>(initialTags.extras);
 
   // Local placeholder shown when a dish has no real photo.
   const PLACEHOLDER = "/images/plat-placeholder.svg";
@@ -162,6 +187,12 @@ const DishCard: React.FC<DishCardProps> = ({
     setEditDescription(description);
     setEditPrice(priceValue ?? 0);
     setEditPhotoKey(photoValue ?? null);
+    // Re-derive from props on every open, so reopening after a save (or after
+    // the list refreshed) shows what is actually stored rather than stale state.
+    const tags = splitDishTags(allergenesValue);
+    setEditAllergens(tags.allergens);
+    setEditDietTags(tags.dietTags);
+    setEditExtras(tags.extras);
     setEditErrors({});
     setEditOpen(true);
     onEdit?.(id);
@@ -183,6 +214,10 @@ const DishCard: React.FC<DishCardProps> = ({
           name: editName.trim(),
           description: editDescription,
           price: editPrice,
+          // Recombined into the one array the column holds. Sent unconditionally
+          // (unlike `photo`) because clearing every toggle is a legitimate edit
+          // and must be able to write an empty array.
+          allergenes: mergeDishTags(editAllergens, editDietTags, editExtras),
           // Only send the photo key when set, so an unchanged dish keeps its
           // existing image (PUT /api/plat updates `photo` only when provided).
           ...(editPhotoKey ? { photo: editPhotoKey } : {}),
@@ -389,6 +424,25 @@ const DishCard: React.FC<DishCardProps> = ({
               />
               {editErrors.price ? <p className="text-xs text-red-500">{editErrors.price}</p> : null}
             </div>
+            {/* Same two groups as the create form, from the same shared lists.
+                These were absent here entirely, so allergens and tags could only
+                ever be set at creation time. */}
+            <DishTagGroup
+              label={t("plats.field.contains")}
+              hint={t("plats.field.containsHint")}
+              options={ALLERGEN_OPTIONS}
+              value={editAllergens}
+              onChange={setEditAllergens}
+              t={t}
+            />
+            <DishTagGroup
+              label={t("plats.field.dietTags")}
+              hint={t("plats.field.dietTagsHint")}
+              options={DIET_TAG_OPTIONS}
+              value={editDietTags}
+              onChange={setEditDietTags}
+              t={t}
+            />
           </div>
           <div className="border-t border-border px-6 py-4">
             <Button

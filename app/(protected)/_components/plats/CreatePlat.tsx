@@ -23,6 +23,66 @@ import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n";
 import type { TranslationKey } from "@/lib/i18n/dictionaries";
 import { currencySymbol, currencyCode } from "@/lib/currency";
+import {
+  ALLERGEN_OPTIONS,
+  DIET_TAG_OPTIONS,
+  mergeDishTags,
+  type DishTagOption,
+} from "@/lib/dish-tags";
+
+/**
+ * One labelled group of dish toggles ("Contient" or the diet tags).
+ *
+ * Shared by the create form and the edit dialog in PlatCard so the two cannot
+ * offer different options — they already had before, which is how `Fait maison`
+ * ended up renderable on the diner card but not settable anywhere.
+ *
+ * `t` is passed in rather than called here via useI18n so this stays a plain
+ * presentational function usable from either caller's render.
+ */
+export function DishTagGroup({
+  label,
+  hint,
+  options,
+  value,
+  onChange,
+  t,
+}: {
+  label: string;
+  hint: string;
+  options: DishTagOption[];
+  value: string[];
+  onChange: (values: string[]) => void;
+  t: (key: TranslationKey) => string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div>
+        <Label>{label}</Label>
+        <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+      </div>
+      <ToggleGroup
+        size="lg"
+        type="multiple"
+        className="grid grid-cols-2"
+        value={value}
+        onValueChange={onChange}
+      >
+        {options.map((option) => (
+          // `value` is the frozen string persisted in Dish.allergenes; only the
+          // label is translated. See lib/dish-tags.ts.
+          <ToggleGroupItem
+            key={option.value}
+            value={option.value}
+            aria-label={t(option.labelKey)}
+          >
+            {t(option.labelKey)} {option.emoji}
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+    </div>
+  );
+}
 
 interface CreatePlatProps {
   categories: { id: string; name: string }[];
@@ -45,7 +105,11 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
   const [dishName, setDishName] = useState("");
   const [dishDescription, setDishDescription] = useState("");
   const [dishPrice, setDishPrice] = useState(0);
-  const [allergenes, setAllergenes] = useState<string[]>([]);
+  // Two selections, one column. The DB stores a single `allergenes` array; the
+  // form keeps the groups apart so each can carry its own label, then merges on
+  // submit (see mergeDishTags).
+  const [allergens, setAllergens] = useState<string[]>([]);
+  const [dietTags, setDietTags] = useState<string[]>([]);
   const [fileKey, setFileKey] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ category?: string; name?: string; price?: string }>({});
@@ -73,7 +137,7 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
           photo: fileKey,
           price: dishPrice,
           categoryId: selectedCategory,
-          allergenes,
+          allergenes: mergeDishTags(allergens, dietTags),
         }),
       });
 
@@ -92,7 +156,8 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
       setDishName("");
       setDishDescription("");
       setDishPrice(0);
-      setAllergenes([]);
+      setAllergens([]);
+      setDietTags([]);
       setFileKey(null);
     } catch (error) {
       console.error("Error creating dish:", error);
@@ -184,45 +249,29 @@ const CreatePlat: React.FC<CreatePlatProps> = ({ categories, onAddDish, fixedCat
               {errors.price ? <p className="text-xs text-red-500">{errors.price}</p> : null}
             </div>
 
-            <div className="flex gap-2 flex-col">
-              <Label>{t("plats.field.allergens")}</Label>
-              <ToggleGroup
-                size={"lg"}
-                type="multiple"
-                className="grid grid-cols-2"
-                value={allergenes}
-                onValueChange={(values) => setAllergenes(values)}
-              >
-                {/* value stays French (stored in DB); label is translated + keeps its emoji. */}
-                <ToggleGroupItem value="Arachides" aria-label="Toggle Arachides">
-                  {t("allergens.Arachides")} 🥜
-                </ToggleGroupItem>
-                <ToggleGroupItem value="Fruits à coque" aria-label="Toggle Fruits à coque">
-                  {t("allergens.Fruits à coque" as TranslationKey)} 🌰
-                </ToggleGroupItem>
-                <ToggleGroupItem value="Lait" aria-label="Toggle Lait">
-                  {t("allergens.Lait")} 🥛
-                </ToggleGroupItem>
-                <ToggleGroupItem value="Œufs" aria-label="Toggle Œufs">
-                  {t("allergens.Œufs" as TranslationKey)} 🥚
-                </ToggleGroupItem>
-                <ToggleGroupItem value="Blé" aria-label="Toggle Blé">
-                  {t("allergens.Blé" as TranslationKey)} 🍚
-                </ToggleGroupItem>
-                <ToggleGroupItem value="Soja" aria-label="Toggle Soja">
-                  {t("allergens.Soja")} 🌾
-                </ToggleGroupItem>
-                <ToggleGroupItem value="Piquant" aria-label="Toggle Piquant">
-                  {t("allergens.Piquant")} 🌶️
-                </ToggleGroupItem>
-                <ToggleGroupItem value="Poisson" aria-label="Toggle Poisson">
-                  {t("allergens.Poisson")} 🐟
-                </ToggleGroupItem>
-                <ToggleGroupItem value="Vegetarian" aria-label="Toggle Vegetarian">
-                  {t("allergens.Vegetarian")} 🥦
-                </ToggleGroupItem>
-              </ToggleGroup>
-            </div>
+            {/* Two groups, not one list. These feed two visually different parts
+                of the diner card — "Contient : Lait, Blé" versus coloured
+                Végétarien/Fait maison badges — so presenting them under a single
+                "Allergènes & tags" heading gave the owner no way to tell which
+                toggle produced which. Options and classification both come from
+                lib/dish-tags.ts. */}
+            <DishTagGroup
+              label={t("plats.field.contains")}
+              hint={t("plats.field.containsHint")}
+              options={ALLERGEN_OPTIONS}
+              value={allergens}
+              onChange={setAllergens}
+              t={t}
+            />
+
+            <DishTagGroup
+              label={t("plats.field.dietTags")}
+              hint={t("plats.field.dietTagsHint")}
+              options={DIET_TAG_OPTIONS}
+              value={dietTags}
+              onChange={setDietTags}
+              t={t}
+            />
 
             <div className="flex gap-2 flex-col">
               <Label>{t("plats.field.photo")}</Label>

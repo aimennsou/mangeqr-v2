@@ -32,6 +32,7 @@ import { ReviewWidget } from "./ReviewWidget";
 import { useI18n } from "@/lib/i18n";
 import { LOCALES, LOCALE_LABELS, LOCALE_FLAGS, type Locale } from "@/lib/i18n/config";
 import type { MenuAppearance } from "@/schemas";
+import { splitAllergenes, type DietTag } from "@/lib/dish-tags";
 import {
   appearanceStyles,
   appearanceTheme,
@@ -106,14 +107,29 @@ export interface PublicMenuProps {
    * When true (owner-facing live preview), skip the fire-and-forget scan
    * tracking POST so opening/switching the editor never inflates the owner's
    * own analytics. Defaults to false so the real diner route is unaffected.
+   *
+   * ONLY analytics. It used to also mean "I am inside a phone frame, contain the
+   * overlays", and those two are not the same thing: the real diner menu is now
+   * framed on desktop too, and reusing this flag for that would have silently
+   * stopped counting every desktop scan, category view and dish view. Frame
+   * containment is `framed`.
    */
   previewMode?: boolean;
   /**
-   * Preview only: the fixed-size phone SCREEN element to portal the dish dialog
-   * into, so the dialog is contained to the visible phone viewport instead of
-   * escaping to the app (document.body) or spanning the tall scrolling menu.
+   * The menu is rendered inside a fixed-size scrolling container (a phone frame)
+   * rather than filling the browser viewport.
+   *
+   * Switches the cart button and the dish/cart overlays from viewport-`fixed` to
+   * container-`absolute`, so they land inside the phone instead of floating over
+   * the page around it. Implied by `previewMode` for the owner preview.
    */
-  previewContainer?: HTMLElement | null;
+  framed?: boolean;
+  /**
+   * The frame's SCREEN element, used as the portal target for overlays when
+   * `framed`. Without it an overlay escapes to document.body and covers the whole
+   * page instead of the phone.
+   */
+  overlayContainer?: HTMLElement | null;
 }
 
 export function PublicMenu({
@@ -133,7 +149,8 @@ export function PublicMenu({
   orderingEnabled = false,
   tables = [],
   previewMode = false,
-  previewContainer,
+  framed = false,
+  overlayContainer,
 }: PublicMenuProps) {
   const [activeMenuId, setActiveMenuId] = useState<string>(
     menus[0]?.id ?? ""
@@ -141,17 +158,25 @@ export function PublicMenu({
   const { t, locale, setLocale } = useI18n();
   const scanTracked = useRef(false);
 
-  // Root element of this menu. In preview mode the dish dialog is portaled into
-  // the phone SCREEN (previewContainer) — or this root as a fallback — instead
-  // of document.body, so it stays inside the phone frame rather than opening as
-  // a full-app overlay (BUG: preview dish popup opened in the app).
+  // Containment follows `framed` ALONE — it is deliberately not implied by
+  // `previewMode`. /m/[leadId] passes previewMode (a lead preview is not a real
+  // scan) and is viewed mostly on a phone, where it must behave like any diner
+  // menu: overlays pinned to the viewport, not absolutely positioned inside a
+  // tall scrolling root. That coupling was an accident of the old single flag.
+  const contained = framed;
+
+  // Root element of this menu. When contained, overlays are portaled into the
+  // phone SCREEN (overlayContainer) — or this root as a fallback — instead of
+  // document.body, so they stay inside the frame rather than opening as a
+  // full-page overlay.
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [dialogContainer, setDialogContainer] = useState<HTMLElement | null>(
     null
   );
   useEffect(() => {
-    if (previewMode) setDialogContainer(previewContainer ?? rootRef.current);
-  }, [previewMode, previewContainer]);
+    if (contained) setDialogContainer(overlayContainer ?? rootRef.current);
+    else setDialogContainer(null);
+  }, [contained, overlayContainer]);
 
   // Dish currently opened in the detail view (null = closed).
   const [openDish, setOpenDish] = useState<Dish | null>(null);
@@ -401,7 +426,7 @@ export function PublicMenu({
   return (
     <div
       ref={rootRef}
-      className={cn("mx-auto min-h-screen max-w-lg pb-16", previewMode && "relative")}
+      className={cn("mx-auto min-h-screen max-w-lg pb-16", contained && "relative min-h-full")}
       style={{ ...styles.screen, color: theme.text }}
     >
       {/* Top bar: logo + centered active-menu title + language switcher.
@@ -410,7 +435,12 @@ export function PublicMenu({
           DINER_HEADER_H, which the category rail below pins against. */}
       <header
         className="sticky top-0 z-20 flex h-14 items-center gap-2 px-4 backdrop-blur"
-        style={{ backgroundColor: theme.background, borderColor: theme.border }}
+        // `borderColor` used to be set here with no border-* class to apply it —
+        // dead style. Separation now comes from the soft sticky shadow.
+        style={{
+          backgroundColor: theme.background,
+          boxShadow: theme.elevationSticky,
+        }}
       >
         <h1
           className="flex-1 truncate text-center text-lg font-bold"
@@ -590,7 +620,10 @@ export function PublicMenu({
             // so this can never drift from the header's actual height again.
             top: DINER_HEADER_H,
             backgroundColor: theme.background,
-            borderBottom: `1px solid ${theme.border}`,
+            // Was a 1px rule spanning the full width — the hardest line on the
+            // page. A downward-only shadow separates the rail from the content
+            // sliding under it without drawing an edge.
+            boxShadow: theme.elevationSticky,
           }}
           aria-label={t("diner.categories")}
         >
@@ -655,10 +688,10 @@ export function PublicMenu({
                   >
                     {category.name}
                   </h2>
-                  <span
-                    className="h-px flex-1"
-                    style={{ backgroundColor: theme.border }}
-                  />
+                  {/* The rule that used to stretch from the category name to the
+                      right edge is gone. The accent-coloured heading and the
+                      spacing above it already separate sections; the line only
+                      added a hard horizontal edge. */}
                 </div>
                 <div className="space-y-3">
                   {category.dishes.length === 0 ? (
@@ -726,7 +759,7 @@ export function PublicMenu({
         theme={theme}
         accent={styles.accent}
         closeLabel={t("diner.close")}
-        previewMode={previewMode}
+        contained={contained}
         container={dialogContainer}
         onOpenChange={(open) => {
           if (!open) setOpenDish(null);
@@ -742,7 +775,7 @@ export function PublicMenu({
             currency={currency}
             theme={theme}
             accent={styles.accent}
-            previewMode={previewMode}
+            contained={contained}
             container={dialogContainer}
             labels={{
               addToCart: t("order.add"),
@@ -764,7 +797,7 @@ export function PublicMenu({
               onClick={() => setCartOpen(true)}
               className={cn(
                 "z-40 flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold shadow-lg transition-transform hover:scale-105",
-                previewMode ? "absolute bottom-4 right-4" : "fixed bottom-5 right-5"
+                contained ? "absolute bottom-4 right-4" : "fixed bottom-5 right-5"
               )}
               style={{ backgroundColor: theme.accent, color: theme.onAccent }}
             >
@@ -788,6 +821,11 @@ export function PublicMenu({
             lines={cart}
             theme={theme}
             accent={styles.accent}
+            // Both, deliberately: `contained` positions the sheet inside the
+            // phone, `previewMode` suppresses the post-checkout redirect. A real
+            // diner ordering from a framed desktop menu must still be routed to
+            // their order status page.
+            contained={contained}
             previewMode={previewMode}
             container={dialogContainer}
             labels={{
@@ -876,9 +914,12 @@ function DishRow({
           onOpen();
         }
       }}
-      className="w-full cursor-pointer rounded-2xl border p-3.5 text-left shadow-none transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+      // Outline dropped in favour of the tinted fill plus a soft ambient shadow:
+      // a 1px edge around every dish turned a scrolling menu into a stack of
+      // boxes.
+      className="w-full cursor-pointer rounded-2xl p-3.5 text-left transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
       style={{
-        borderColor: theme.border,
+        boxShadow: theme.elevation,
         backgroundColor: theme.surface,
         // @ts-expect-error CSS custom prop for tailwind ring color.
         "--tw-ring-color": theme.accent,
@@ -957,8 +998,11 @@ function DishRow({
           {contains.map((a) => (
             <span
               key={a}
-              className="inline-flex items-center rounded-full border px-2 py-0.5 text-xs"
-              style={{ borderColor: theme.border, color: theme.muted }}
+              // Filled rather than outlined, matching the diet badges above it.
+              // These two chip rows sit two lines apart, so one outlined and one
+              // filled looked like an inconsistency rather than a distinction.
+              className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
+              style={{ backgroundColor: theme.background, color: theme.muted }}
             >
               {a}
             </span>
@@ -1018,7 +1062,7 @@ function DishDetailDialog({
   theme,
   accent,
   closeLabel,
-  previewMode = false,
+  contained = false,
   container,
   onOpenChange,
 }: {
@@ -1026,9 +1070,9 @@ function DishDetailDialog({
   theme: AppearanceTheme;
   accent: { color: string };
   closeLabel: string;
-  /** Owner preview: contain the dialog inside the phone frame instead of the app. */
-  previewMode?: boolean;
-  /** Portal target (the menu root) when in preview mode. */
+  /** Inside a phone frame: contain the dialog there instead of over the page. */
+  contained?: boolean;
+  /** Portal target (the frame screen, or the menu root) when contained. */
   container?: HTMLElement | null;
   onOpenChange: (open: boolean) => void;
 }) {
@@ -1036,12 +1080,12 @@ function DishDetailDialog({
   // portal into the phone container, so the dialog stays inside the phone frame
   // rather than covering the whole app (fixed = viewport). On the real diner
   // route it stays fixed + portaled to <body> as usual.
-  const positionClass = previewMode ? "absolute" : "fixed";
+  const positionClass = contained ? "absolute" : "fixed";
   return (
     <Dialog open={dish !== null} onOpenChange={onOpenChange}>
       {dish ? (
-        <DialogPortal container={previewMode ? container ?? undefined : undefined}>
-          <DialogOverlay className={cn(previewMode && "absolute")} />
+        <DialogPortal container={contained ? container ?? undefined : undefined}>
+          <DialogOverlay className={cn(contained && "absolute")} />
           <DialogPrimitive.Content
             className={cn(
               positionClass,
@@ -1127,10 +1171,9 @@ function Chip({
 }) {
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs"
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs"
       style={{
         backgroundColor: theme.surface,
-        borderColor: theme.border,
         color: theme.text,
       }}
     >
@@ -1148,42 +1191,7 @@ function ensureHttp(url: string) {
   return /^https?:\/\//i.test(url) ? url : `https://${url}`;
 }
 
-/**
- * Diet/quality "tags" (rendered as colored badges) vs true allergens (rendered
- * under "Contient :"). The owner stores everything in one `allergenes[]` array,
- * so we classify known dietary/quality values as tags and treat the rest as
- * allergens — matching the reference card (Végétarien/Fait maison badges +
- * "Contient : Gluten, Sulfites").
- */
-type DietTag = {
-  key: string;
-  variant: "veg" | "home" | "spicy" | "season";
-};
-
-// Normalized lookup: known values (FR + EN spellings) → a tag descriptor.
-const DIET_TAG_MAP: Record<string, DietTag> = {
-  vegetarian: { key: "diner.tag.vegetarian", variant: "veg" },
-  végétarien: { key: "diner.tag.vegetarian", variant: "veg" },
-  vegetarien: { key: "diner.tag.vegetarian", variant: "veg" },
-  "fait maison": { key: "diner.tag.homemade", variant: "home" },
-  homemade: { key: "diner.tag.homemade", variant: "home" },
-  piquant: { key: "diner.tag.spicy", variant: "spicy" },
-  épicé: { key: "diner.tag.spicy", variant: "spicy" },
-  spicy: { key: "diner.tag.spicy", variant: "spicy" },
-  "de saison": { key: "diner.tag.seasonal", variant: "season" },
-  seasonal: { key: "diner.tag.seasonal", variant: "season" },
-};
-
-function splitAllergenes(allergenes: string[]): {
-  tags: DietTag[];
-  contains: string[];
-} {
-  const tags: DietTag[] = [];
-  const contains: string[] = [];
-  for (const raw of allergenes) {
-    const tag = DIET_TAG_MAP[raw.trim().toLowerCase()];
-    if (tag) tags.push(tag);
-    else contains.push(raw);
-  }
-  return { tags, contains };
-}
+// The diet-tag classification used to live here as a private map, while the
+// owner form kept its own unrelated hardcoded list. They had already drifted —
+// `Fait maison` and `De saison` rendered here but were unreachable from the
+// form. Both now read from lib/dish-tags.ts. See the header comment there.

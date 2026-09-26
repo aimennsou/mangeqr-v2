@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 
 import { db } from '@/lib/db';
 import { currencySymbol } from '@/lib/currency';
+import { LEAD_COVER_PHOTO, leadDishPhoto } from '@/lib/lead-placeholders';
 import { PublicMenu } from '@/app/restaurant/[id]/_components/PublicMenu';
 
 export const dynamic = 'force-dynamic';
@@ -42,6 +43,16 @@ export default async function LeadMenuPage({
     ? (lead.data as { categories: LeadCategory[] }).categories
     : [];
 
+  // Illustrative photos, chosen at render time and never persisted — the funnel
+  // asks a visitor for names and prices only, so without these the preview meant
+  // to sell the product rendered as bare text rows. See lib/lead-placeholders.ts
+  // for why they are not written back into LeadMenu.data.
+  //
+  // `dishIndex` counts across the WHOLE menu rather than per category, so the
+  // fallback cycle keeps varying instead of restarting on every category and
+  // giving each one the same opening photo.
+  let dishIndex = 0;
+
   const menus = [
     {
       id: 'lead-menu',
@@ -55,7 +66,12 @@ export default async function LeadMenuPage({
           name: d.name,
           description: d.description || null,
           price: Number(d.price) || 0,
-          photo: null,
+          photo: leadDishPhoto({
+            dishName: d.name,
+            description: d.description,
+            categoryName: c.name,
+            index: dishIndex++
+          }),
           allergenes: [] as string[],
           favoriteCount: 0,
           addonGroups: []
@@ -70,7 +86,7 @@ export default async function LeadMenuPage({
       name={lead.restaurantName}
       address=""
       phone=""
-      coverUrl={null}
+      coverUrl={LEAD_COVER_PHOTO}
       currency={currencySymbol(lead.currency)}
       menus={menus}
       orderingEnabled={false}

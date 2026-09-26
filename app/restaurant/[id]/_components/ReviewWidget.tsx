@@ -100,9 +100,10 @@ export function ReviewWidget({ restaurantId, googleLink, theme }: ReviewWidgetPr
   if (submitted) {
     return (
       <div
-        className="rounded-lg border p-4 text-center"
+        // Outline dropped for the soft ambient shadow, matching the dish cards.
+        className="rounded-2xl p-4 text-center"
         style={{
-          borderColor: theme.border,
+          boxShadow: theme.elevation,
           backgroundColor: theme.surface,
           color: theme.text,
         }}
@@ -116,8 +117,10 @@ export function ReviewWidget({ restaurantId, googleLink, theme }: ReviewWidgetPr
 
   return (
     <div
-      className="rounded-lg border p-4"
-      style={{ borderColor: theme.border, backgroundColor: theme.surface }}
+      // rounded-2xl (not lg) so the review panel matches the dish cards it sits
+      // directly beneath; the two radii used to disagree by 8px.
+      className="rounded-2xl p-4"
+      style={{ boxShadow: theme.elevation, backgroundColor: theme.surface }}
     >
       <h3 className="font-semibold" style={{ color: theme.text }}>
         {t("diner.leaveReview")}
@@ -177,6 +180,12 @@ export function ReviewWidget({ restaurantId, googleLink, theme }: ReviewWidgetPr
               <p className="text-sm" style={{ color: theme.muted }}>
                 {isHighRating ? t("diner.reviewHappy") : t("diner.reviewHelp")}
               </p>
+              {/* Skinned from the menu theme rather than left on the shadcn
+                  defaults. Those resolve `border-input` / `bg-background` from the
+                  APP tokens, which flip with the diner's device dark mode — so on
+                  the same menu the textarea and the input rendered as two
+                  different greys, each with a hard outline. Borderless fills on
+                  `theme.background` sit inside the card without boxing it. */}
               <Textarea
                 placeholder={
                   isHighRating
@@ -185,11 +194,25 @@ export function ReviewWidget({ restaurantId, googleLink, theme }: ReviewWidgetPr
                 }
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                className="border-0 shadow-none focus-visible:ring-1 focus-visible:ring-offset-0"
+                style={{
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  // @ts-expect-error CSS custom prop for the tailwind ring color.
+                  "--tw-ring-color": theme.accent,
+                }}
               />
               <Input
                 placeholder={t("diner.contactPlaceholder")}
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
+                className="border-0 shadow-none focus-visible:ring-1 focus-visible:ring-offset-0"
+                style={{
+                  backgroundColor: theme.background,
+                  color: theme.text,
+                  // @ts-expect-error CSS custom prop for the tailwind ring color.
+                  "--tw-ring-color": theme.accent,
+                }}
               />
               <Button
                 className="w-full"
