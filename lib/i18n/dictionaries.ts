@@ -5,6 +5,24 @@ import type { Locale } from "./config";
 //
 // Coverage (per v2 spec): primary owner navigation + common UI + the diner menu.
 // Owner-authored content (dish names, category names, etc.) is never translated.
+//
+// TWO KNOWN LIMITS OF THIS FORMAT — values are plain strings, nothing more:
+//
+// 1. NO PLURALIZATION. Where a count changes the wording, ship two keys and pick
+//    at the call site (e.g. `kiosk.menu.itemOne` / `kiosk.menu.itemMany`, chosen
+//    by `cartCount > 1`). Fine at this scale; if plural-sensitive copy spreads,
+//    or a locale with more than two plural forms is added (Arabic actually has
+//    six categories in CLDR), this needs a real plural-rule layer — Intl.PluralRules
+//    over per-key form maps.
+// 2. NO INTERPOLATION. `translate()` returns the raw string. Keys that need values
+//    use `{placeholder}` tokens substituted with `.replace()` by the caller (e.g.
+//    `table.rowsSelected` with `{selected}` / `{total}`). Keep tokens obvious and
+//    document them next to the key, because nothing type-checks them.
+//
+// Parity across fr/ar/en is enforced by `scripts/check-i18n-parity.mjs`, which
+// also catches duplicate keys. TypeScript cannot do it: `Dict` is a plain
+// Record<string, string> and `TranslationKey` is derived from `fr` alone, so a key
+// missing from ar/en is invisible to the compiler.
 
 type Dict = Record<string, string>;
 
@@ -249,6 +267,29 @@ const fr: Dict = {
   "restaurants.toast.deleted": "Votre restaurant est supprimé.",
   "restaurants.toast.deleteError":
     "Une erreur est survenue lors de la suppression des restaurants.",
+
+  // --- Data table chrome (RestoTable) ---
+  "table.noResults": "Aucun résultat.",
+  "table.selectAll": "Tout sélectionner",
+  "table.selectRow": "Sélectionner la ligne",
+  // {selected} and {total} are substituted at render time, not by the dictionary.
+  "table.rowsSelected": "{selected} de {total} ligne(s) sélectionnée(s).",
+  "table.previous": "Précédent",
+  "table.next": "Suivant",
+
+  // --- Cookie consent banner ---
+  // noteLead / noteRest wrap the accept button's label so it can be emphasized
+  // inline; they are rendered as adjacent nodes, never concatenated, so RTL
+  // word order works. See the landing.* convention note.
+  "cookies.title": "Nous utilisons des cookies",
+  "cookies.body":
+    "Nous utilisons des cookies pour garantir que vous bénéficiez de la meilleure expérience sur notre site web. Pour plus d'informations sur l'utilisation des cookies, veuillez consulter notre politique en matière de cookies.",
+  "cookies.bodyShort":
+    "Nous utilisons des cookies pour garantir que vous bénéficiez de la meilleure expérience sur notre plateforme. Pour plus d'informations sur l'utilisation des cookies, veuillez consulter notre politique en matière de cookies.",
+  "cookies.noteLead": "En cliquant sur «\u00a0",
+  "cookies.noteRest": "\u00a0», vous acceptez notre utilisation de vos cookies.",
+  "cookies.accept": "Accepter",
+  "cookies.decline": "Refuser",
 
   // --- Menus page (owner) ---
   "menus.add": "Ajouter un menu",
@@ -1252,6 +1293,25 @@ const ar: Dict = {
   "restaurants.toast.deleted": "تم حذف مطعمك.",
   "restaurants.toast.deleteError": "حدث خطأ أثناء حذف المطاعم.",
 
+  // --- Data table chrome (RestoTable) ---
+  "table.noResults": "لا توجد نتائج.",
+  "table.selectAll": "تحديد الكل",
+  "table.selectRow": "تحديد الصف",
+  "table.rowsSelected": "{selected} من {total} صف محدد.",
+  "table.previous": "السابق",
+  "table.next": "التالي",
+
+  // --- Cookie consent banner ---
+  "cookies.title": "نحن نستخدم ملفات تعريف الارتباط",
+  "cookies.body":
+    "نستخدم ملفات تعريف الارتباط لضمان حصولك على أفضل تجربة على موقعنا. لمزيد من المعلومات حول استخدام ملفات تعريف الارتباط، يرجى مراجعة سياستنا الخاصة بها.",
+  "cookies.bodyShort":
+    "نستخدم ملفات تعريف الارتباط لضمان حصولك على أفضل تجربة على منصتنا. لمزيد من المعلومات حول استخدام ملفات تعريف الارتباط، يرجى مراجعة سياستنا الخاصة بها.",
+  "cookies.noteLead": "بالنقر على «",
+  "cookies.noteRest": "»، أنت توافق على استخدامنا لملفات تعريف الارتباط.",
+  "cookies.accept": "قبول",
+  "cookies.decline": "رفض",
+
   // --- Menus page (owner) ---
   "menus.add": "إضافة قائمة",
   "menus.subheading": "أنشئ ونظّم قوائم مطاعمك.",
@@ -2218,6 +2278,25 @@ const en: Dict = {
   "restaurants.toast.updateError": "An error occurred during the update.",
   "restaurants.toast.deleted": "Your restaurant was deleted.",
   "restaurants.toast.deleteError": "An error occurred while deleting the restaurants.",
+
+  // --- Data table chrome (RestoTable) ---
+  "table.noResults": "No results.",
+  "table.selectAll": "Select all",
+  "table.selectRow": "Select row",
+  "table.rowsSelected": "{selected} of {total} row(s) selected.",
+  "table.previous": "Previous",
+  "table.next": "Next",
+
+  // --- Cookie consent banner ---
+  "cookies.title": "We use cookies",
+  "cookies.body":
+    "We use cookies to make sure you get the best experience on our website. For more information on how we use cookies, please see our cookie policy.",
+  "cookies.bodyShort":
+    "We use cookies to make sure you get the best experience on our platform. For more information on how we use cookies, please see our cookie policy.",
+  "cookies.noteLead": "By clicking “",
+  "cookies.noteRest": "”, you agree to our use of your cookies.",
+  "cookies.accept": "Accept",
+  "cookies.decline": "Decline",
 
   // --- Menus page (owner) ---
   "menus.add": "Add a menu",

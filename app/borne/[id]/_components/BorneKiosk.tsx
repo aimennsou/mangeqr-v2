@@ -18,7 +18,7 @@ import {
 
 import { resolveBorneConfig, type BorneConfig } from '@/schemas';
 import { cn } from '@/lib/utils';
-import { useI18n } from '@/lib/i18n';
+import { I18nProvider, useI18n } from '@/lib/i18n';
 import {
   LOCALES,
   LOCALE_LABELS,
@@ -212,13 +212,57 @@ function CoverBackdrop({ coverUrl }: { coverUrl?: string | null }) {
 }
 
 /**
+ * Public entry point for the kiosk.
+ *
+ * Wraps the flow in an ISOLATED I18nProvider (the same mechanism the owner's
+ * menu preview uses). Two reasons:
+ *
+ * 1. The kiosk runs unattended on in-store hardware. With the shared provider,
+ *    a walk-in switching to Arabic wrote `mangeqr_locale` to the cookie and
+ *    localStorage, so the kiosk's "home" language silently drifted to whatever
+ *    the last customer picked and survived a reload.
+ * 2. It lets `reset()` restore the restaurant's own language between customers
+ *    without touching anything global.
+ *
+ * `initialLocale` is seeded from the outer app locale, which the root layout
+ * resolved from the cookie server-side — passing it through avoids a hydration
+ * mismatch that `readInitialLocale` would cause on its own (it returns the
+ * default on the server and the cookie value on the client).
+ *
+ * An isolated provider deliberately does NOT touch `document.documentElement`,
+ * so `KioskLocaleFrame` carries `lang`/`dir` itself. `display: contents` keeps
+ * it out of the layout while still being the nearest `[dir]` ancestor, which is
+ * all Tailwind's `rtl:` variant needs.
+ */
+export function BorneKiosk(props: BorneKioskProps) {
+  const { locale: appLocale } = useI18n();
+
+  return (
+    <I18nProvider isolated initialLocale={appLocale}>
+      <KioskLocaleFrame>
+        <BorneKioskInner {...props} homeLocale={appLocale} />
+      </KioskLocaleFrame>
+    </I18nProvider>
+  );
+}
+
+function KioskLocaleFrame({ children }: { children: React.ReactNode }) {
+  const { locale, dir } = useI18n();
+  return (
+    <div lang={locale} dir={dir} className="contents">
+      {children}
+    </div>
+  );
+}
+
+/**
  * Full-screen self-order kiosk (borne de commande), modeled on a typical QSR
  * kiosk flow: welcome → order type → photo menu (category rail + dish grid,
  * item detail with add-ons, persistent cart bar) → cart review → confirmation
  * with an order number. Reuses the diner CartLine shape and the shared
  * POST /api/orders submit contract.
  */
-export function BorneKiosk({
+function BorneKioskInner({
   restaurantId,
   name,
   currency,
@@ -226,8 +270,9 @@ export function BorneKiosk({
   menus,
   tables,
   borneConfig,
-}: BorneKioskProps) {
-  const { t } = useI18n();
+  homeLocale,
+}: BorneKioskProps & { homeLocale: Locale }) {
+  const { t, setLocale } = useI18n();
   const cfg = resolveBorneConfig(borneConfig);
   const accent = cfg.accent;
 
@@ -353,6 +398,10 @@ export function BorneKiosk({
     setDetailDish(null);
     setConfirmation(null);
     setRating(0);
+    // Back to the restaurant's own language, so the next walk-in doesn't inherit
+    // the previous customer's choice. Safe to call unconditionally: the kiosk's
+    // provider is isolated, so this writes no cookie and no localStorage.
+    setLocale(homeLocale);
     setScreen('welcome');
   };
 
