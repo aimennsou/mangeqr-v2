@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId, memberCanAccess } from '@/data/workspace';
+import { assertRestaurantInScope, memberCanAccess } from '@/data/workspace';
 import { currencySymbol } from '@/lib/currency';
 
 /**
@@ -75,10 +75,15 @@ export async function POST(req: NextRequest) {
       ? rawOffset
       : 0;
 
-  // Scope to the workspace owner and confirm the restaurant belongs to them.
-  const ownerId = await getWorkspaceOwnerId(userId);
   if (!(await memberCanAccess(userId, 'performances'))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+  // Scope to the workspace owner AND to this member's restaurant scope, so a
+  // member assigned to one branch cannot pull another branch's revenue by
+  // changing the restaurant id in the request body.
+  const ownerId = await assertRestaurantInScope(userId, targetRestaurantId);
+  if (!ownerId) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
   const restaurant = await db.restaurant.findFirst({
     where: { id: targetRestaurantId, userId: ownerId },

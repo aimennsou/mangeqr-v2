@@ -10,8 +10,9 @@ import {
 import { db } from '@/lib/db';
 import { SignInSchema } from '@/schemas';
 import { getUserByEmail } from '@/data/user';
-import { isWorkspaceMember } from '@/data/workspace';
+import { getWorkspaceContext } from '@/data/workspace';
 import { isTrialExpired } from '@/lib/plan';
+import { memberLandingHref } from '@/lib/permissions';
 import {
   parseAdminPermissions,
   adminLandingHref,
@@ -123,6 +124,15 @@ export async function signIn(
   // Superadmins and team members skip onboarding (members can't create
   // restaurants; superadmins go to their console). An explicit callbackUrl
   // (deep link) always wins.
+  // Resolve the workspace role ONCE (USER role only — platform roles have no
+  // workspace). It decides both the destination and whether the trial gate
+  // below applies.
+  const workspace =
+    existingUser.role === 'USER'
+      ? await getWorkspaceContext(existingUser.id)
+      : null;
+  const isMember = workspace?.role === 'MEMBER';
+
   let defaultDestination: string;
   if (existingUser.role === 'SUPERADMIN') {
     defaultDestination = '/superadmin';
@@ -135,21 +145,33 @@ export async function signIn(
     defaultDestination = adminLandingHref(
       parseAdminPermissions(existingUser.adminPermissions)
     );
-  } else if (
-    existingUser.role === 'USER' &&
-    !existingUser.onboardedAt &&
-    !(await isWorkspaceMember(existingUser.id))
-  ) {
+  } else if (isMember) {
+    // A MEMBER must not be sent to DEFAULT_SIGNIN_REDIRECT ('/performances'):
+    // that route is permission-gated, so a member whose owner did not grant
+    // `performances` landed on a page requirePermission immediately bounced them
+    // out of. memberLandingHref returns their first allowed area, or /settings,
+    // which every member can reach.
+    defaultDestination = memberLandingHref(workspace?.permissions ?? null);
+  } else if (!existingUser.onboardedAt) {
+    // Brand-new OWNER: first-login onboarding wizard. Members never come here
+    // (they cannot create restaurants) — the isMember branch above caught them.
     defaultDestination = '/onboarding';
   } else {
     defaultDestination = DEFAULT_SIGNIN_REDIRECT;
   }
 
-  // FREE-trial gate (at login): a regular owner whose free trial has ended is
-  // routed to their account settings with a flag, where a clear "passez au
-  // forfait Starter" prompt is shown, instead of the normal destination.
+  // FREE-trial gate (at login): a regular OWNER whose free trial has ended is
+  // routed to their account settings, where a clear "passez au forfait Starter"
+  // prompt is shown, instead of the normal destination.
+  //
+  // Deliberately skipped for MEMBERS. A member has no subscription of their own —
+  // their access derives from the OWNER's plan, which `TrialGate` in
+  // app/(protected)/layout.tsx already checks against the owner. Judging a member
+  // on their own (default FREE) row would strand them on /settings for a plan
+  // they neither bought nor can upgrade.
   const trialOver =
     existingUser.role === 'USER' &&
+    !isMember &&
     isTrialExpired({
       plan: existingUser.plan,
       planRenewsAt: existingUser.planRenewsAt

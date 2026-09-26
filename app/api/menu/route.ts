@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { getWorkspaceOwnerId, getRestaurantScope } from '@/data/workspace';
 import { blockIfTrialExpired, blockIfNoPermission } from '@/lib/trial-guard';
 import { notifyPlanLimitHit } from '@/lib/notifications';
 
@@ -255,8 +255,10 @@ export async function GET(req: NextRequest) {
     const denied = await blockIfNoPermission(userId, 'menus');
     if (denied) return denied;
 
-    // Resolve the workspace owner so a member sees the OWNER's menus.
-    const ownerId = await getWorkspaceOwnerId(userId);
+    // Resolve the workspace owner so a member sees the OWNER's menus, plus this
+    // member's per-restaurant scope.
+    const { ownerId, restaurantIds: memberScope } =
+      await getRestaurantScope(userId);
 
     // Optional server-side scoping: `?restaurantId=` limits the result to a
     // single restaurant's menus instead of shipping the whole workspace and
@@ -275,8 +277,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "No restaurants found for this user" }, { status: 404 });
     }
 
-    // Step 3: Extract all the restaurant IDs the workspace owns.
-    const shopIds = user.restaurants.map((restaurant) => restaurant.id);
+    // Step 3: The restaurant IDs this CALLER may read — the workspace's own set,
+    // narrowed to the member's restaurant scope. Intersecting (rather than
+    // trusting the scope alone) keeps the ownership guarantee even if a stale
+    // scope still lists a restaurant that has since been deleted or moved.
+    const ownedIds = user.restaurants.map((restaurant) => restaurant.id);
+    const shopIds =
+      memberScope === null
+        ? ownedIds
+        : ownedIds.filter((id) => memberScope.includes(id));
+
+    if (shopIds.length === 0) {
+      return NextResponse.json([], { status: 200 });
+    }
 
     // If a restaurantId is requested, only honor it when it belongs to the
     // workspace; otherwise fall back to the full owned set. This keeps the

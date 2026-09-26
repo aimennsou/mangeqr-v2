@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId, memberCanAccess } from '@/data/workspace';
+import {
+  getRestaurantScope,
+  assertRestaurantInScope,
+  memberCanAccess,
+} from '@/data/workspace';
 import { listOrders } from '@/data/orders';
 
 /**
@@ -29,10 +33,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const ownerId = await getWorkspaceOwnerId(userId);
+  const { ownerId, restaurantIds } = await getRestaurantScope(userId);
   const { searchParams } = req.nextUrl;
-  const restaurantId = searchParams.get('restaurantId') ?? undefined;
+  const requestedRestaurantId = searchParams.get('restaurantId') ?? undefined;
   const activeOnly = searchParams.get('activeOnly') === '1';
+
+  // An explicit restaurantId must be authorized before it is trusted: it arrives
+  // from the client, so a member scoped to one branch could otherwise read
+  // another branch's orders just by changing the query string. Rejecting (rather
+  // than silently ignoring it and returning the full scope) avoids showing data
+  // the caller did not ask for.
+  if (requestedRestaurantId) {
+    const allowed = await assertRestaurantInScope(userId, requestedRestaurantId);
+    if (!allowed) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+  }
 
   // Optional rolling time window. Parsed defensively: a non-numeric value means
   // "no bound" rather than an Invalid Date that silently matches nothing.
@@ -46,7 +62,10 @@ export async function GET(req: NextRequest) {
   // so instead of silently showing a partial history.
   const { orders, truncated } = await listOrders({
     ownerId,
-    restaurantId,
+    restaurantId: requestedRestaurantId,
+    // Applied only when no explicit restaurantId — bounds the "all restaurants"
+    // case to the branches this member actually works in.
+    restaurantIds,
     activeOnly,
     since
   });

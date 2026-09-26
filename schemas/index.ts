@@ -61,13 +61,21 @@ export const CreateInviteSchema = z.object({
   inviteePhone: z.string().trim().max(40).optional().or(z.literal('')),
   label: z.string().trim().max(80).optional().or(z.literal('')),
   permissions: z.array(PermissionKeySchema).optional(),
+  /**
+   * Restaurants this member may work in. Omitted or empty => ALL of the owner's
+   * restaurants (see lib/restaurant-scope.ts). Ids are NOT validated here — the
+   * data layer always intersects them with the restaurants the owner actually
+   * has, so a bogus id can only ever narrow access, never widen it.
+   */
+  restaurantIds: z.array(z.string().uuid()).optional(),
 });
 export type CreateInviteValues = z.infer<typeof CreateInviteSchema>;
 
-/** Owner edits a member's permissions after they've joined. */
+/** Owner edits a member's permissions + restaurant scope after they've joined. */
 export const UpdateMemberPermissionsSchema = z.object({
   membershipId: z.string().uuid(),
   permissions: z.array(PermissionKeySchema),
+  restaurantIds: z.array(z.string().uuid()).optional(),
 });
 export type UpdateMemberPermissionsValues = z.infer<
   typeof UpdateMemberPermissionsSchema
@@ -88,7 +96,10 @@ export const SignUpAndJoinSchema = z
       .min(1, { message: 'L’e-mail est requis.' })
       .email({ message: 'Adresse e-mail invalide.' }),
     phone: z.string().trim().max(40).optional().or(z.literal('')),
-    password: z.string().min(6, { message: '6 caractères minimum.' }),
+    // 8, matching ResetPasswordSchema and the normal sign-up. It was 6 here, so
+    // an invited member could set a password they would not be allowed to
+    // re-choose the first time they used "mot de passe oublié".
+    password: z.string().min(8, { message: '8 caractères minimum.' }),
     confirm: z.string().min(1, { message: 'Confirmez votre mot de passe.' }),
   })
   .refine((data) => data.password === data.confirm, {
@@ -387,7 +398,11 @@ export type SuperadminSetFeatureEnabledValues = z.infer<
 
 /** Public "demande de devis" for kiosk / TV hardware (#4). */
 export const DevisRequestSchema = z.object({
-  kind: z.enum(['BORNE', 'TV', 'BOTH']).default('BOTH'),
+  // PLAN = subscription enquiry from a pricing card, as opposed to a hardware
+  // quote. Same inbox, distinguishable by kind.
+  kind: z.enum(['BORNE', 'TV', 'BOTH', 'PLAN']).default('BOTH'),
+  /** Tier clicked, when kind = PLAN (e.g. "Pro"). Ignored otherwise. */
+  plan: z.string().trim().max(40).optional().or(z.literal('')),
   name: z.string().trim().min(1, { message: 'Nom requis.' }).max(120),
   phone: z.string().trim().min(1, { message: 'Téléphone requis.' }).max(40),
   email: z

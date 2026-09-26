@@ -23,6 +23,7 @@ import Logo from "@/components/Logo";
 import { currentUser } from "@/lib/authentication";
 import { getUserById } from "@/data/user";
 import { getEffectivePlan } from "@/lib/plan";
+import { buildInviteLink } from "@/lib/team-invite";
 import { db } from "@/lib/db";
 import {
   getWorkspaceContext,
@@ -40,13 +41,6 @@ import PrinterSettingsCard from "./_components/printer-settings-card";
 import SupportCard from "./_components/support-card";
 import SupportTickets from "./_components/support-tickets";
 import { listSupportTicketsForUser } from "@/data/support";
-
-/** Build the copyable redeem link for an invite code (mirrors actions/team). */
-function buildRedeemLink(code: string): string {
-  const origin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, "") ?? "";
-  const path = `/team/join?code=${encodeURIComponent(code)}`;
-  return origin ? `${origin}${path}` : path;
-}
 
 function getInitials(name?: string | null, email?: string | null) {
   const source = (name || email || "").trim();
@@ -115,8 +109,12 @@ export default async function SettingsPage() {
       email: string | null;
       image: string | null;
       permissions: import('@/lib/permissions').MemberPermission[];
+      /** null = all of the owner's restaurants. */
+      restaurantIds: string[] | null;
     }[];
     invites: { id: string; code: string; link: string }[];
+    /** The owner's restaurants, so the invite form can offer a scope picker. */
+    restaurants: { id: string; name: string }[];
   } | null = null;
   let teamOwnerName: string | null = null;
   let memberActivity: {
@@ -128,12 +126,21 @@ export default async function SettingsPage() {
   }[] = [];
 
   if (userId && workspace.role === "OWNER") {
-    const [seats, members, invitations, activity] = await Promise.all([
-      canAddMember(userId),
-      listMembers(userId),
-      listInvitations(userId),
-      listWorkspaceActivity(userId, { take: 50 })
-    ]);
+    const [seats, members, invitations, activity, ownedRestaurants] =
+      await Promise.all([
+        canAddMember(userId),
+        listMembers(userId),
+        listInvitations(userId),
+        listWorkspaceActivity(userId, { take: 50 }),
+        // For the per-restaurant scope picker. Read directly rather than through
+        // /api/magasin because this is an owner-only branch and we only need
+        // id + name.
+        db.restaurant.findMany({
+          where: { userId },
+          select: { id: true, name: true },
+          orderBy: { name: 'asc' }
+        })
+      ]);
     memberActivity = activity.map((a) => ({
       id: a.id,
       actorName: a.actorName,
@@ -149,13 +156,18 @@ export default async function SettingsPage() {
         name: m.name,
         email: m.email,
         image: m.image,
-        permissions: m.permissions
+        permissions: m.permissions,
+        restaurantIds: m.restaurantIds
       })),
       invites: invitations.map((i) => ({
         id: i.id,
         code: i.code,
-        link: buildRedeemLink(i.code)
-      }))
+        // Shared builder. This list used to build its own link pointing at the
+        // AUTH-GATED /team/join, so a pending invite copied from here bounced an
+        // account-less invitee to the sign-in wall.
+        link: buildInviteLink(i.code)
+      })),
+      restaurants: ownedRestaurants
     };
   } else if (userId && workspace.role === "MEMBER") {
     const owner = await db.user.findUnique({
@@ -185,7 +197,7 @@ export default async function SettingsPage() {
 
       {/* One white section wrapping the whole account page (like performances). */}
       <Card className="rounded-lg border-none mt-6">
-        <CardContent className="p-6 space-y-8">
+        <CardContent className="p-4 sm:p-6 lg:p-8 space-y-8">
 
       {/* Editorial header */}
       <div className="border-b border-border pb-6">
@@ -248,17 +260,29 @@ export default async function SettingsPage() {
 
       {/* Les 4 autres sections : 2 par ligne */}
       <div className="grid gap-6 md:grid-cols-2">
-        {/* Carte du plan (B.2) : statut actif/expiré, date d'expiration, usage vs. limites */}
-        <PlanCard
-          subscribedPlan={subscribedPlan}
-          effectivePlan={effectivePlan}
-          planRenewsAt={planRenewsAt}
-          restaurantCount={restaurantCount}
-          menuCount={menuCount}
-          campaignCount={campaignCount}
-          planPaymentMethod={planPaymentMethod}
-          isAlgerian={isAlgerian}
-        />
+        {/* Carte du plan (B.2) : statut actif/expiré, date d'expiration, usage vs. limites.
+            OWNER-ONLY — this was the one card on the page that wasn't gated.
+
+            A workspace MEMBER has no subscription of their own: their access
+            comes from the OWNER's plan (see getWorkspaceOwnerId / canAddMember).
+            Their own User row still carries the default plan FREE with no
+            expiry, so an invited member was shown "Mon abonnement — Gratuit
+            (essai)", their own 0/1 restaurant and menu counters, and an
+            "upgrade" form that would have billed them for a plan that grants
+            them nothing. Members see TeamMemberCard instead, which tells them
+            whose workspace they belong to. */}
+        {workspace.role === "OWNER" ? (
+          <PlanCard
+            subscribedPlan={subscribedPlan}
+            effectivePlan={effectivePlan}
+            planRenewsAt={planRenewsAt}
+            restaurantCount={restaurantCount}
+            menuCount={menuCount}
+            campaignCount={campaignCount}
+            planPaymentMethod={planPaymentMethod}
+            isAlgerian={isAlgerian}
+          />
+        ) : null}
 
         {/* Section de mise à jour du profil */}
         <Card className="rounded-xl border-border shadow-none">
@@ -297,6 +321,7 @@ export default async function SettingsPage() {
             limit={teamOwnerSection.limit}
             members={teamOwnerSection.members}
             invites={teamOwnerSection.invites}
+            restaurants={teamOwnerSection.restaurants}
           />
         ) : workspace.role === "MEMBER" ? (
           <TeamMemberCard ownerName={teamOwnerName} />
@@ -317,20 +342,9 @@ export default async function SettingsPage() {
 
         {/* In-app support — lets any authenticated user send a message that
             lands in the superadmin support inbox. Full width. */}
-        <SupportCard
-          title={t("account.support")}
-          description={t("account.supportDesc")}
-          defaultName={name}
-          defaultEmail={email}
-          labels={{
-            name: t("account.support.name"),
-            email: t("account.support.email"),
-            message: t("account.support.message"),
-            messagePlaceholder: t("account.support.messagePlaceholder"),
-            submit: t("account.support.submit"),
-            sending: t("account.support.sending")
-          }}
-        />
+        {/* No label props: the card resolves its own copy client-side, so it
+            follows a locale switch instead of being frozen at request time. */}
+        <SupportCard defaultName={name} defaultEmail={email} />
 
         {/* Support history — the user's own tickets + conversation. */}
         <SupportTickets

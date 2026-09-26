@@ -5,7 +5,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { buildPathMenuUrl, normalizeSubdomain, validateSubdomain } from '@/lib/subdomain';
 import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
-import { getWorkspaceOwnerId, memberCanAccess } from '@/data/workspace';
+import {
+  getWorkspaceOwnerId,
+  getRestaurantScope,
+  assertRestaurantInScope,
+  memberCanAccess,
+} from '@/data/workspace';
+import { restaurantIdFilter } from '@/lib/restaurant-scope';
 import { notifyPlanLimitHit } from '@/lib/notifications';
 
 
@@ -131,12 +137,20 @@ export async function GET() {
     // Read access: scope to the workspace owner so a member sees the OWNER's
     // restaurants (needed to pick one to edit its menus). Mutations remain
     // owner-only per POST/PUT/DELETE guards.
-    const ownerId = await getWorkspaceOwnerId(userId);
+    //
+    // PLUS the member's per-restaurant scope. This endpoint is THE source for
+    // every restaurant dropdown in the dashboard (Commandes, Cuisine, Plan de
+    // salle, menus, catégories, cartes, avis, numérique), so filtering here is
+    // what stops a member hired for one branch from seeing every branch in those
+    // selectors. `restaurantIds` is null for owners and for unscoped members, in
+    // which case the filter is empty and the query is unchanged.
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
-    // Fetch all restaurants associated with the workspace owner
+    // Fetch the restaurants of the workspace owner that are in scope
     const restaurants = await db.restaurant.findMany({
       where: {
         userId: ownerId,
+        ...restaurantIdFilter(restaurantIds),
       }
     });
 
@@ -181,11 +195,19 @@ export async function GET() {
       }
 
       // Scope deletion to the workspace owner's restaurants so a member can
-      // never delete another owner's restaurant by guessing its id.
+      // never delete another owner's restaurant by guessing its id, AND to the
+      // member's own restaurant scope so a member restricted to one branch
+      // cannot delete a branch they don't work in.
       const ids = Array.isArray(id) ? id : [id];
+      const { restaurantIds: deleteScope } = await getRestaurantScope(userId);
+      const scopedIds =
+        deleteScope === null ? ids : ids.filter((x) => deleteScope.includes(x));
+      if (scopedIds.length === 0) {
+        return NextResponse.json({ error: "Restaurant introuvable" }, { status: 404 });
+      }
       await db.restaurant.deleteMany({
         where: {
-          id: { in: ids },
+          id: { in: scopedIds },
           userId: ownerId,
         },
       });
@@ -222,12 +244,11 @@ export async function GET() {
         return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
       }
 
-      // Ownership check: the restaurant must belong to the workspace owner.
-      const owned = await db.restaurant.findFirst({
-        where: { id, userId: ownerId },
-        select: { id: true },
-      });
-      if (!owned) {
+      // Ownership AND scope check in one call: the restaurant must belong to the
+      // workspace owner and be one this member is assigned to. Filtering the
+      // dropdown is cosmetic — this is what stops a scoped member simply POSTing
+      // another branch's id.
+      if (!(await assertRestaurantInScope(userId, id))) {
         return NextResponse.json({ error: "Restaurant introuvable" }, { status: 404 });
       }
 

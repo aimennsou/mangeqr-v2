@@ -1,6 +1,7 @@
 import type { OrderStatus, OrderType } from '@prisma/client';
 
 import { db } from '@/lib/db';
+import { restaurantFkFilter } from '@/lib/restaurant-scope';
 
 /**
  * Owner/staff order data layer (server-only reads) — FEAT-1.
@@ -93,6 +94,12 @@ function mapOrder(o: any): OrderView {
 interface ListOrdersArgs {
   ownerId: string;
   restaurantId?: string;
+  /**
+   * The caller's per-restaurant scope, applied only when `restaurantId` is not
+   * set (i.e. the "all restaurants" case). `null`/omitted = unscoped.
+   * See lib/restaurant-scope.ts.
+   */
+  restaurantIds?: string[] | null;
   /** When true, only active (non-terminal) orders. Default false = all. */
   activeOnly?: boolean;
   /**
@@ -129,6 +136,7 @@ export interface ListOrdersResult {
 export async function listOrders({
   ownerId,
   restaurantId,
+  restaurantIds,
   activeOnly = false,
   since,
   take = 200
@@ -138,7 +146,14 @@ export async function listOrders({
     const rows = await db.order.findMany({
       where: {
         restaurant: { userId: ownerId },
-        ...(restaurantId ? { restaurantId } : {}),
+        // A single explicit restaurant wins (the caller has already authorized
+        // it). Otherwise fall back to the member's restaurant SCOPE: without
+        // this, "all restaurants" on the Commandes/Cuisine board meant every
+        // branch the OWNER has, including ones this member doesn't work in.
+        // `restaurantFkFilter` is empty for owners and unscoped members.
+        ...(restaurantId
+          ? { restaurantId }
+          : restaurantFkFilter(restaurantIds ?? null)),
         ...(activeOnly ? { status: { in: ACTIVE_ORDER_STATUSES } } : {}),
         ...(since ? { createdAt: { gte: since } } : {})
       },

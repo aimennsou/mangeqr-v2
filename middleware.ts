@@ -64,7 +64,15 @@ export default auth((req: { auth?: any; nextUrl?: any; headers?: any }) => {
   }
 
   if (isAuthRoute) {
-    if (isSignedIn) {
+    // A one-time token in the URL means the visitor is here to CONSUME that
+    // token (password reset, e-mail verification), not to sign in. Bouncing them
+    // to the dashboard just because they happen to have a session silently ate
+    // the link — which is exactly what happened when an owner handed a member a
+    // reset link while that member was still logged in on the same browser.
+    // The token itself is the authorization, so letting it through is safe.
+    const carriesOneTimeToken = !!nextUrl.searchParams?.get('token');
+
+    if (isSignedIn && !carriesOneTimeToken) {
       return Response.redirect(new URL(DEFAULT_SIGNIN_REDIRECT, nextUrl));
     }
     return null;

@@ -7,7 +7,30 @@ import {
   hasPermission,
   type MemberPermission,
 } from '@/lib/permissions';
+import {
+  parseRestaurantScope,
+  isRestaurantInScope,
+} from '@/lib/restaurant-scope';
+import { Prisma } from '@prisma/client';
 import type { Invitation, WorkspaceRole } from '@prisma/client';
+
+/**
+ * Convert a restaurant scope into something Prisma will accept for a nullable
+ * `Json?` column.
+ *
+ * Prisma rejects a raw `null` there: for a nullable Json field you must pass
+ * `Prisma.DbNull` to write a SQL NULL (plain `null` is reserved, and
+ * `Prisma.JsonNull` would write the JSON value `null` instead — a different
+ * thing, and one that `parseRestaurantScope` would then read back as "unscoped"
+ * only by accident).
+ */
+function scopeToJson(
+  scope: string[] | null
+): Prisma.InputJsonValue | typeof Prisma.DbNull {
+  return scope === null
+    ? Prisma.DbNull
+    : (scope as unknown as Prisma.InputJsonValue);
+}
 
 /**
  * Workspace data layer (server-only reads/helpers).
@@ -61,24 +84,99 @@ export async function getWorkspaceContext(
   ownerId: string;
   role: 'OWNER' | 'MEMBER';
   permissions: MemberPermission[] | null;
+  /**
+   * Which of the owner's restaurants this caller may see.
+   * `null` = all of them (always the case for an OWNER). See
+   * `lib/restaurant-scope.ts` for the semantics.
+   */
+  restaurantIds: string[] | null;
 }> {
   try {
     const membership = await db.membership.findUnique({
       where: { memberUserId: userId },
-      select: { ownerUserId: true, permissions: true },
+      select: { ownerUserId: true, permissions: true, restaurantIds: true },
     });
     if (membership) {
       return {
         ownerId: membership.ownerUserId,
         role: 'MEMBER',
         permissions: parsePermissions(membership.permissions),
+        restaurantIds: parseRestaurantScope(membership.restaurantIds),
       };
     }
   } catch {
     // fall through to owner default
   }
-  // Owners implicitly have every permission.
-  return { ownerId: userId, role: 'OWNER', permissions: null };
+  // Owners implicitly have every permission and see every restaurant they own.
+  return {
+    ownerId: userId,
+    role: 'OWNER',
+    permissions: null,
+    restaurantIds: null,
+  };
+}
+
+/**
+ * Resolve the owner id AND the caller's restaurant scope in one lookup.
+ *
+ * This is the read-side companion to `getWorkspaceOwnerId`: anywhere that used
+ * `ownerId` alone to list restaurant-owned records now also needs the scope, or
+ * a member restricted to one branch would still see every branch's data.
+ *
+ * Owners get `{ ownerId: self, restaurantIds: null }`, i.e. the original
+ * behaviour, so switching a query over to this helper is a no-op for them.
+ */
+export async function getRestaurantScope(
+  userId: string
+): Promise<{ ownerId: string; restaurantIds: string[] | null }> {
+  try {
+    const membership = await db.membership.findUnique({
+      where: { memberUserId: userId },
+      select: { ownerUserId: true, restaurantIds: true },
+    });
+    if (membership) {
+      return {
+        ownerId: membership.ownerUserId,
+        restaurantIds: parseRestaurantScope(membership.restaurantIds),
+      };
+    }
+  } catch {
+    // fall through to owner default
+  }
+  return { ownerId: userId, restaurantIds: null };
+}
+
+/**
+ * Authorize a caller against a SPECIFIC restaurant id, checking BOTH that it
+ * belongs to their workspace owner and that it is inside their scope.
+ *
+ * Filtering the restaurant dropdowns is cosmetic on its own — a member could
+ * simply send a different `restaurantId` in the request. This is the check that
+ * actually enforces the scope, so any route or action that accepts a
+ * `restaurantId` from the client should call it.
+ *
+ * Returns the owner id on success so the caller can keep scoping its own
+ * queries, or null when the restaurant is not theirs / not in scope. The two
+ * failures are deliberately indistinguishable.
+ */
+export async function assertRestaurantInScope(
+  userId: string,
+  restaurantId: string
+): Promise<string | null> {
+  if (!restaurantId) return null;
+
+  const { ownerId, restaurantIds } = await getRestaurantScope(userId);
+  if (!isRestaurantInScope(restaurantIds, restaurantId)) return null;
+
+  try {
+    const owned = await db.restaurant.findFirst({
+      where: { id: restaurantId, userId: ownerId },
+      select: { id: true },
+    });
+    return owned ? ownerId : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -162,6 +260,8 @@ export interface WorkspaceMember {
   email: string | null;
   image: string | null;
   permissions: MemberPermission[];
+  /** null = every restaurant the owner has. See lib/restaurant-scope.ts. */
+  restaurantIds: string[] | null;
   createdAt: Date;
 }
 
@@ -183,10 +283,45 @@ export async function listMembers(ownerId: string): Promise<WorkspaceMember[]> {
       email: m.member.email,
       image: m.member.image,
       permissions: parsePermissions(m.permissions),
+      restaurantIds: parseRestaurantScope(m.restaurantIds),
       createdAt: m.createdAt,
     }));
   } catch {
     return [];
+  }
+}
+
+/**
+ * Resolve ONE membership together with its member's account, scoped to
+ * `ownerId`.
+ *
+ * Owner-scoped by design: the `ownerUserId` in the where-clause is what stops an
+ * owner from acting on somebody else's member by guessing a membership id. Used
+ * by the owner-triggered password reset, which needs the member's email (their
+ * login) and must never be callable across workspaces.
+ *
+ * Returns null when the membership does not exist OR belongs to another owner —
+ * the two are deliberately indistinguishable to the caller.
+ */
+export async function getMemberForOwner(
+  ownerId: string,
+  membershipId: string
+): Promise<{ memberId: string; name: string | null; email: string | null } | null> {
+  try {
+    const membership = await db.membership.findFirst({
+      where: { id: membershipId, ownerUserId: ownerId },
+      select: {
+        member: { select: { id: true, name: true, email: true } },
+      },
+    });
+    if (!membership) return null;
+    return {
+      memberId: membership.member.id,
+      name: membership.member.name,
+      email: membership.member.email,
+    };
+  } catch {
+    return null;
   }
 }
 
@@ -197,12 +332,26 @@ export async function listMembers(ownerId: string): Promise<WorkspaceMember[]> {
 export async function updateMemberPermissions(
   ownerId: string,
   membershipId: string,
-  permissions: MemberPermission[]
+  permissions: MemberPermission[],
+  /**
+   * Restaurant scope. Pass `undefined` to leave it untouched; pass an array (or
+   * null) to replace it. Distinguishing "not provided" from "cleared" matters:
+   * an older caller that only sends permissions must not silently widen a
+   * member's restaurant scope back to all.
+   */
+  restaurantIds?: string[] | null
 ): Promise<boolean> {
   try {
     const res = await db.membership.updateMany({
       where: { id: membershipId, ownerUserId: ownerId },
-      data: { permissions: permissions as unknown as object },
+      data: {
+        permissions: permissions as unknown as object,
+        ...(restaurantIds === undefined
+          ? {}
+          : {
+              restaurantIds: scopeToJson(parseRestaurantScope(restaurantIds)),
+            }),
+      },
     });
     return res.count > 0;
   } catch {
@@ -387,6 +536,8 @@ export async function createInvitation(
     inviteePhone?: string | null;
     label?: string | null;
     permissions?: MemberPermission[] | null;
+    /** Restaurants this invitee may work in. Null/empty => all of the owner's. */
+    restaurantIds?: string[] | null;
   }
 ): Promise<Invitation> {
   const days = opts?.expiresInDays ?? 7;
@@ -409,6 +560,12 @@ export async function createInvitation(
           ...(opts?.permissions
             ? { permissions: opts.permissions as unknown as object }
             : {}),
+          // Normalized through parseRestaurantScope so an empty selection is
+          // stored as NULL (= all restaurants), never as an empty array that
+          // would read as "no restaurants".
+          restaurantIds: scopeToJson(
+            parseRestaurantScope(opts?.restaurantIds)
+          ),
         },
       });
     } catch (err) {
@@ -570,7 +727,19 @@ export async function removeMember(
 // ---------------------------------------------------------------------------
 
 export type RedeemResult =
-  | { ok: true; ownerId: string }
+  | {
+      ok: true;
+      ownerId: string;
+      /**
+       * The permissions actually written onto the new Membership.
+       *
+       * Returned so the caller can compute where to send the member. Both join
+       * flows used to hardcode `/performances`, which is permission-gated — a
+       * member invited WITHOUT the `performances` permission was redirected
+       * straight into a page `requirePermission` then bounced them out of.
+       */
+      permissions: MemberPermission[];
+    }
   | {
       ok: false;
       reason:
@@ -671,12 +840,16 @@ export async function consumeInvitationAndCreateMembership(
       // Create membership + consume the invite atomically, carrying over the
       // permissions the owner chose at invite time (default set when unset).
       const invitePermissions = parsePermissions(invitation.permissions);
+      // The per-restaurant scope carries over from the invitation exactly like
+      // the permissions do — the owner chose both at invite time.
+      const inviteScope = parseRestaurantScope(invitation.restaurantIds);
       await tx.membership.create({
         data: {
           ownerUserId: ownerId,
           memberUserId,
           role: 'MEMBER',
           permissions: invitePermissions as unknown as object,
+          restaurantIds: scopeToJson(inviteScope),
         },
       });
       await tx.invitation.update({
@@ -684,7 +857,11 @@ export async function consumeInvitationAndCreateMembership(
         data: { usedByUserId: memberUserId, usedAt: new Date() },
       });
 
-      return { ok: true, ownerId } as const;
+      return {
+        ok: true,
+        ownerId,
+        permissions: invitePermissions,
+      } as const;
     });
   } catch {
     return { ok: false, reason: 'invalid' };

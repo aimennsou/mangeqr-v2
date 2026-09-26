@@ -39,22 +39,45 @@ export async function sendVerificationEmail(
   });
 }
 
+/**
+ * Email a password-reset link.
+ *
+ * Returns whether the mail was ACTUALLY dispatched (same contract as
+ * `sendTeamInvitationEmail`). It used to return void, which made every caller
+ * unable to distinguish "sent" from "silently skipped because RESEND_API_KEY is
+ * unset" or "Resend replied with an error" — Resend reports failures in the
+ * response body rather than throwing, so awaiting without inspecting `error`
+ * looks like success. The owner-triggered member reset needs the truth so it can
+ * say "copy this link yourself" instead of claiming an email went out.
+ *
+ * Never throws: existing callers treat this as best-effort.
+ */
 export async function sendPasswordResetEmail(
   name: string | null,
   email: string,
   token: string
-) {
+): Promise<boolean> {
   const resetLink = `${domain}/auth/reset-password?token=${token}`;
 
   const resend = getResend();
-  if (!resend) return;
+  if (!resend) return false;
 
-  await resend.emails.send({
-    from: 'MangeQR <reset@mangeqr.com>',
-    to: [email],
-    subject: 'Réinitialisation de votre mot de passe',
-    react: PasswordReset({ name, resetLink })
-  });
+  try {
+    const { error } = await resend.emails.send({
+      from: 'MangeQR <reset@mangeqr.com>',
+      to: [email],
+      subject: 'Réinitialisation de votre mot de passe',
+      react: PasswordReset({ name, resetLink })
+    });
+    if (error) {
+      console.error('[mail] password reset send failed:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('[mail] password reset send threw:', err);
+    return false;
+  }
 }
 
 export async function sendTwoFactorTokenEmail(

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { signUpAndJoin } from '@/actions/team';
+import { useI18n } from '@/lib/i18n';
 
 /**
  * Invite-without-account sign-up form (#13). Creates the account + membership in
@@ -28,6 +29,7 @@ export function InviteSignUpForm({
   defaultPhone: string;
 }) {
   const router = useRouter();
+  const { t } = useI18n();
   const [isPending, startTransition] = useTransition();
 
   const [name, setName] = useState(defaultName);
@@ -60,77 +62,87 @@ export function InviteSignUpForm({
       });
       if (signInRes?.error) {
         // Account exists — send them to sign-in to finish.
-        toast.info('Compte créé. Connectez-vous pour continuer.');
+        toast.info(t('invite.form.createdSignIn'));
         router.push('/auth/sign-in');
         return;
       }
       // Land the new member directly inside the app. A full navigation (not a
       // client router.push) ensures the fresh session cookie is picked up by
       // the server on the protected route.
-      window.location.assign('/performances');
+      //
+      // The destination comes from the ACTION, which derives it from the
+      // permissions the owner granted. Hardcoding '/performances' here sent
+      // members without that permission into a guard that bounced them straight
+      // back out.
+      window.location.assign(res.redirectTo);
     });
   };
 
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="inv-name">Nom complet</Label>
+        <Label htmlFor="inv-name">{t('invite.form.name')}</Label>
         <Input
           id="inv-name"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Jean Dupont"
+          placeholder={t('invite.form.namePh')}
           autoComplete="name"
           disabled={isPending}
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="inv-email">Email</Label>
+        <Label htmlFor="inv-email">{t('invite.form.email')}</Label>
+        {/* dir="ltr" on the e-mail and phone inputs: neither is RTL text, and
+            without it the "@", the "+" and the digit groups reorder as you type
+            on an Arabic page. */}
         <Input
           id="inv-email"
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="vous@exemple.com"
+          placeholder={t('invite.form.emailPh')}
           autoComplete="email"
           disabled={isPending}
+          dir="ltr"
           required
         />
       </div>
       <div className="space-y-2">
-        <Label htmlFor="inv-phone">Téléphone (optionnel)</Label>
+        <Label htmlFor="inv-phone">{t('invite.form.phone')}</Label>
         <Input
           id="inv-phone"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
-          placeholder="+213 …"
+          placeholder={t('invite.form.phonePh')}
           autoComplete="tel"
           disabled={isPending}
+          dir="ltr"
         />
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="inv-password">Mot de passe</Label>
+          <Label htmlFor="inv-password">{t('invite.form.password')}</Label>
           <Input
             id="inv-password"
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••"
+            placeholder="••••••••"
             autoComplete="new-password"
             disabled={isPending}
             required
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="inv-confirm">Confirmer</Label>
+          <Label htmlFor="inv-confirm">{t('invite.form.confirm')}</Label>
           <Input
             id="inv-confirm"
             type="password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
-            placeholder="••••••"
+            placeholder="••••••••"
             autoComplete="new-password"
             disabled={isPending}
             required
@@ -143,11 +155,11 @@ export function InviteSignUpForm({
         className="w-full bg-yellow-400 text-black hover:bg-yellow-400/90"
       >
         {isPending ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 className="me-2 h-4 w-4 animate-spin" />
         ) : (
-          <UserPlus className="mr-2 h-4 w-4" />
+          <UserPlus className="me-2 h-4 w-4" />
         )}
-        Créer mon compte et rejoindre
+        {t('invite.form.submit')}
       </Button>
     </form>
   );

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { currentUserId } from '@/lib/authentication';
-import { getWorkspaceOwnerId } from '@/data/workspace';
+import { assertRestaurantInScope } from '@/data/workspace';
 import { assertRestaurantOwned, getFloorPlan } from '@/data/tables';
 
 /**
@@ -26,9 +26,10 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const ownerId = await getWorkspaceOwnerId(userId);
-  const owned = await assertRestaurantOwned(restaurantId, ownerId);
-  if (!owned) {
+  // Ownership AND per-restaurant scope: `assertRestaurantInScope` subsumes the
+  // old `assertRestaurantOwned(restaurantId, ownerId)` check and additionally
+  // rejects a branch this member is not assigned to.
+  if (!(await assertRestaurantInScope(userId, restaurantId))) {
     return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 

@@ -6,7 +6,13 @@ import bcrypt from 'bcryptjs';
 import { currentUser } from '@/lib/authentication';
 import { db } from '@/lib/db';
 import { getUserByEmail } from '@/data/user';
-import { sendTeamInvitationEmail } from '@/lib/mail';
+import { sendTeamInvitationEmail, sendPasswordResetEmail } from '@/lib/mail';
+import { generatePasswordResetToken } from '@/lib/tokens';
+// Single definition of the invite link. This module used to carry its own
+// `buildRedeemLink`, and app/(protected)/settings/page.tsx carried a second one
+// pointing at a DIFFERENT (auth-gated) path — see lib/team-invite.ts.
+import { buildInviteLink, buildPasswordResetLink } from '@/lib/team-invite';
+import { memberLandingHref } from '@/lib/permissions';
 import {
   CreateInviteSchema,
   SignUpAndJoinSchema,
@@ -21,6 +27,7 @@ import {
   isWorkspaceMember,
   consumeInvitationAndCreateMembership,
   findValidInvitationByCode,
+  getMemberForOwner,
 } from '@/data/workspace';
 
 /**
@@ -35,19 +42,6 @@ import {
 
 /** Owner-only guard message reused across actions. */
 const OWNER_ONLY_ERROR = 'Action réservée au propriétaire du compte.';
-
-/**
- * Build the redeem link for an invite code. Uses `NEXT_PUBLIC_APP_URL` as the
- * origin when available, otherwise falls back to a relative path (still usable
- * as a same-origin link).
- */
-function buildRedeemLink(code: string): string {
-  const origin = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/+$/, '') ?? '';
-  // Public invite landing (#13): works for people WITHOUT an account (they can
-  // sign up + join in one step) and for signed-in users (redirected to redeem).
-  const path = `/team/invite?code=${encodeURIComponent(code)}`;
-  return origin ? `${origin}${path}` : path;
-}
 
 /**
  * Generate a one-time invite code for the owner's workspace (R3.1).
@@ -107,9 +101,10 @@ export async function generateInvite(
       inviteePhone: parsed.data.inviteePhone || null,
       label: parsed.data.label || null,
       permissions: parsed.data.permissions ?? null,
+      restaurantIds: parsed.data.restaurantIds ?? null,
     });
 
-    const link = buildRedeemLink(invitation.code);
+    const link = buildInviteLink(invitation.code);
 
     // Email the invitee when the owner supplied an address. `inviteeEmail` was
     // already being collected and stored but nothing was ever sent — the owner
@@ -225,13 +220,108 @@ export async function updateTeamMemberPermissions(
   const ok = await updateMemberPermissions(
     user.id,
     parsed.data.membershipId,
-    parsed.data.permissions
+    parsed.data.permissions,
+    // `undefined` leaves the existing scope alone; an array (possibly empty,
+    // which normalizes to "all") replaces it.
+    parsed.data.restaurantIds
   );
   if (!ok) {
     return { error: 'Membre introuvable.' };
   }
 
   return { success: 'Permissions mises à jour.' };
+}
+
+/**
+ * Start a password reset for one of the owner's team members (owner-only).
+ *
+ * DELIBERATELY DOES NOT SET A PASSWORD, and there is nowhere in this codebase
+ * that a member's password could be read back: `User.password` only ever holds a
+ * bcrypt hash. So the owner cannot be shown "the member's password" — the honest
+ * equivalent is to let them hand over a one-time reset link and have the member
+ * choose their own.
+ *
+ * Mechanics: reuses the SAME machinery as the public "mot de passe oublié" flow
+ * (`generatePasswordResetToken` -> `PasswordResetToken`, consumed by
+ * `actions/reset-password.ts`), so no new table, token format or expiry rule is
+ * introduced. One hour, single use, and generating a new one invalidates the
+ * previous token for that address.
+ *
+ * The existing password keeps working until the link is actually used, so this is
+ * safe to trigger by mistake — it locks nobody out.
+ *
+ * The link is RETURNED to the owner as well as emailed. That is intentional: the
+ * email send is best-effort (Resend is skipped entirely when `RESEND_API_KEY` is
+ * unset, and staff addresses on a shared restaurant mailbox often don't reach the
+ * person), so without the returned link a failed send would leave the owner with
+ * no way to help their member. It is a strict improvement over showing a
+ * password: single-use and short-lived.
+ */
+export async function resetMemberPassword(
+  membershipId: string
+): Promise<
+  | { error: string }
+  | { success: string; link: string; email: string; emailed: boolean }
+> {
+  const user = await currentUser();
+  if (!user?.id) {
+    return { error: 'Non autorisé.' };
+  }
+
+  // Owner-only: a member must not be able to reset a colleague's password.
+  if (await isWorkspaceMember(user.id)) {
+    return { error: OWNER_ONLY_ERROR };
+  }
+
+  const parsed = IdSchema.safeParse(membershipId);
+  if (!parsed.success) {
+    return { error: 'Identifiant invalide.' };
+  }
+
+  // Owner-scoped lookup: guessing a membership id from another workspace
+  // resolves to null here rather than leaking or acting on it.
+  const member = await getMemberForOwner(user.id, parsed.data);
+  if (!member) {
+    return { error: 'Membre introuvable.' };
+  }
+
+  // The reset token is keyed by EMAIL (PasswordResetToken.email), and email is
+  // also the only login identifier the credentials provider accepts, so a member
+  // without one cannot be reset — or signed in — at all.
+  if (!member.email) {
+    return {
+      error:
+        "Ce collaborateur n'a pas d'adresse e-mail enregistrée : impossible de réinitialiser son mot de passe.",
+    };
+  }
+
+  let token: string;
+  try {
+    const created = await generatePasswordResetToken(member.email);
+    token = created.token;
+  } catch {
+    return { error: 'Impossible de générer le lien de réinitialisation.' };
+  }
+
+  const link = buildPasswordResetLink(token);
+
+  // Best-effort send, but report the TRUTH: sendPasswordResetEmail returns false
+  // when Resend is unconfigured or replies with an error, so the owner is never
+  // told an email went out when it didn't.
+  const emailed = await sendPasswordResetEmail(
+    member.name,
+    member.email,
+    token
+  );
+
+  return {
+    success: emailed
+      ? `Lien de réinitialisation envoyé à ${member.email}.`
+      : 'Lien de réinitialisation généré. Transmettez-le à votre collaborateur.',
+    link,
+    email: member.email,
+    emailed,
+  };
 }
 
 const JoinSchema = z.object({
@@ -275,7 +365,7 @@ function redeemReasonToMessage(
  */
 export async function joinWorkspace(
   code: string
-): Promise<{ error: string } | { success: string }> {
+): Promise<{ error: string } | { success: string; redirectTo: string }> {
   const user = await currentUser();
   if (!user?.id) {
     return { error: 'Non autorisé.' };
@@ -297,7 +387,15 @@ export async function joinWorkspace(
     return { error: redeemReasonToMessage(result.reason) };
   }
 
-  return { success: 'Vous avez rejoint l\'espace de travail.' };
+  return {
+    success: 'Vous avez rejoint l\'espace de travail.',
+    // Derived from the permissions the owner actually granted. The client used
+    // to hardcode '/performances', which is permission-gated, so a member
+    // without that permission was dropped on a page the guard then bounced them
+    // out of. `memberLandingHref` returns their first allowed area, or
+    // /settings, which every member can reach.
+    redirectTo: memberLandingHref(result.permissions),
+  };
 }
 
 
@@ -312,7 +410,9 @@ export async function joinWorkspace(
  */
 export async function signUpAndJoin(
   values: z.infer<typeof SignUpAndJoinSchema>
-): Promise<{ error: string } | { success: string; email: string }> {
+): Promise<
+  { error: string } | { success: string; email: string; redirectTo: string }
+> {
   const parsed = SignUpAndJoinSchema.safeParse(values);
   if (!parsed.success) {
     return {
@@ -392,5 +492,7 @@ export async function signUpAndJoin(
   return {
     success: 'Compte créé et rattaché à l’espace.',
     email,
+    // See joinWorkspace: never hardcode /performances for a member.
+    redirectTo: memberLandingHref(result.permissions),
   };
 }

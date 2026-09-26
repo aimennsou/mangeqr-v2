@@ -97,6 +97,15 @@ model Membership {
   // Granular per-member permissions (JSON array of permission keys, e.g.
   // ["menus","orders","reviews"]). Null = default member permission set.
   permissions  Json?
+  // Per-RESTAURANT scope (JSON array of Restaurant ids). A member may work in
+  // only one of the owner's restaurants, so the area permissions above are not
+  // enough on their own.
+  //   null / absent  => ALL of the owner's restaurants (unscoped)
+  //   ["id", ...]    => ONLY those restaurants
+  // An empty array is normalized to null on write (see parseRestaurantScope):
+  // saving "nothing selected" must not silently lock a member out of the whole
+  // workspace.
+  restaurantIds Json?
   createdAt    DateTime      @default(now())
   owner        User          @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
   member       User          @relation("WorkspaceMember", fields: [memberUserId], references: [id], onDelete: Cascade)
@@ -120,6 +129,10 @@ model Invitation {
   label        String?
   // Permissions chosen at invite time; copied onto the Membership on redeem.
   permissions  Json?
+  // Per-restaurant scope chosen at invite time; copied onto the Membership on
+  // redeem, exactly like `permissions`. Same semantics as Membership.restaurantIds
+  // (null = all of the owner's restaurants).
+  restaurantIds Json?
   expiresAt    DateTime?
   usedByUserId String?       @db.Uuid
   usedAt       DateTime?
@@ -658,6 +671,10 @@ enum DevisKind {
   BORNE
   TV
   BOTH
+  // Subscription enquiry from a pricing card ("Contactez-nous"), rather than a
+  // hardware quote. Shares this table so the back-office has one inbound-interest
+  // inbox; `plan` below records which tier was clicked.
+  PLAN
 }
 
 enum DevisStatus {
@@ -683,6 +700,9 @@ model DevisRequest {
   borneCount      Int?       // how many self-order kiosks (bornes) wanted
   tvCount         Int?       // how many TV screens wanted
   teamType        String?    // free-text about their team (size / structure)
+  // Which pricing tier the prospect clicked, when kind = PLAN (e.g. "Pro").
+  // Null for hardware quotes.
+  plan            String?
   message         String?
   status        DevisStatus  @default(NEW)
   createdAt     DateTime     @default(now())
