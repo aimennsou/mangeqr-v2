@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 
 import { db } from '@/lib/db';
 import { CreateOrderSchema } from '@/schemas';
+import { PUBLIC_LIMITS, blockIfRateLimited } from '@/lib/rate-limit';
 
 /**
  * POST /api/orders (FEAT-1) — PUBLIC diner order submission (no auth).
@@ -21,9 +22,23 @@ import { CreateOrderSchema } from '@/schemas';
  *  - Dine-in tableId must belong to the restaurant.
  *  - orderNumber is a per-restaurant sequence allocated inside the transaction.
  *
+ *  - Rate limited per IP. This endpoint inserts an Order and burns an
+ *    orderNumber on every call, so an unlimited public POST let a script flood a
+ *    restaurant's kitchen board with fake orders. The limit is deliberately
+ *    loose (see PUBLIC_LIMITS.createOrder) because a whole dining room shares
+ *    one NAT'd wifi IP.
+ *
  * Returns `{ id, orderNumber }` on success so the diner can watch live status.
  */
 export async function POST(req: NextRequest) {
+  const limited = blockIfRateLimited(
+    req,
+    PUBLIC_LIMITS.createOrder.bucket,
+    PUBLIC_LIMITS.createOrder.limit,
+    PUBLIC_LIMITS.createOrder.windowMs
+  );
+  if (limited) return limited;
+
   let body: unknown;
   try {
     body = await req.json();

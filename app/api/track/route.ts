@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { PUBLIC_LIMITS, rateLimit } from '@/lib/rate-limit';
 
 /**
  * Public, unauthenticated analytics tracking endpoint used by the diner-facing
@@ -10,8 +11,25 @@ import { db } from '@/lib/db';
  *
  * Writes are best-effort: any failure returns 200 so tracking never disrupts
  * the diner experience.
+ *
+ * Rate limited per IP, because every accepted call INSERTS a row and there was
+ * no bound at all — a script could grow ScanData/CategoryData/DishData without
+ * limit and poison the owner's KPIs. Over the limit we return 200 `{ ok: false }`
+ * rather than 429, keeping the "tracking never disrupts the diner" contract: the
+ * caller is fire-and-forget and must not see an error.
  */
 export async function POST(req: NextRequest) {
+  if (
+    !rateLimit(
+      req,
+      PUBLIC_LIMITS.track.bucket,
+      PUBLIC_LIMITS.track.limit,
+      PUBLIC_LIMITS.track.windowMs
+    ).ok
+  ) {
+    return NextResponse.json({ ok: false }, { status: 200 });
+  }
+
   try {
     const { type, restaurantId, categoryId, dishId } = await req.json();
 
