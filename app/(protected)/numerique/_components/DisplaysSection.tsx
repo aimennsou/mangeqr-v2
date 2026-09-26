@@ -24,6 +24,25 @@ import {
   type BorneConfig,
 } from '@/schemas';
 import { updateTvConfig, updateBorneConfig } from '@/actions/update-display-config';
+import { useI18n } from '@/lib/i18n';
+
+/** Shared layout for a segmented-control button. */
+const SEGMENT_BASE =
+  'flex-1 rounded-md px-3 py-1.5 text-sm font-medium capitalize transition-colors';
+
+/**
+ * Selected state for a segmented control.
+ *
+ * A TINT plus a ring rather than a solid `bg-yellow-400` fill. The solid version
+ * sat directly above the accent-colour swatch, so two saturated yellow blocks
+ * competed for attention and the segmented control read as the more important of
+ * the two — which it isn't.
+ */
+function segmentState(selected: boolean): string {
+  return selected
+    ? 'bg-yellow-400/20 text-yellow-700 ring-1 ring-inset ring-yellow-400/50 dark:text-yellow-400'
+    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground';
+}
 
 interface RestaurantLite {
   id: string;
@@ -40,6 +59,7 @@ interface RestaurantLite {
  * live preview in a new tab.
  */
 export default function DisplaysSection() {
+  const { t } = useI18n();
   const [restaurants, setRestaurants] = useState<RestaurantLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState('');
@@ -135,6 +155,7 @@ function Row({
 }
 
 function TvEditor({ restaurant }: { restaurant: RestaurantLite }) {
+  const { t } = useI18n();
   const initial = resolveTvConfig(restaurant.tvConfig ?? null);
   const [cfg, setCfg] = useState(initial);
   const [isPending, startTransition] = useTransition();
@@ -183,40 +204,34 @@ function TvEditor({ restaurant }: { restaurant: RestaurantLite }) {
         </div>
 
         <div className="grid gap-1.5">
-          <Label className="text-xs text-muted-foreground">Thème</Label>
+          <Label className="text-xs text-muted-foreground">{t('tv.theme')}</Label>
           <div className="flex gap-1 rounded-lg border border-border p-1">
             {(['dark', 'light'] as const).map((th) => (
               <button
                 key={th}
                 type="button"
                 onClick={() => set('theme', th)}
-                className={cn(
-                  'flex-1 rounded-md px-3 py-1.5 text-sm capitalize transition-colors',
-                  cfg.theme === th
-                    ? 'bg-yellow-400 text-black'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
+                aria-pressed={cfg.theme === th}
+                className={cn(SEGMENT_BASE, segmentState(cfg.theme === th))}
               >
-                {th === 'dark' ? 'Sombre' : 'Clair'}
+                {th === 'dark' ? t('tv.theme.dark') : t('tv.theme.light')}
               </button>
             ))}
           </div>
         </div>
 
         <div className="grid gap-1.5">
-          <Label className="text-xs text-muted-foreground">Colonnes</Label>
+          <Label className="text-xs text-muted-foreground">
+            {t('tv.columns')}
+          </Label>
           <div className="flex gap-1 rounded-lg border border-border p-1">
             {([1, 2, 3] as const).map((c) => (
               <button
                 key={c}
                 type="button"
                 onClick={() => set('columns', c)}
-                className={cn(
-                  'flex-1 rounded-md px-3 py-1.5 text-sm transition-colors',
-                  cfg.columns === c
-                    ? 'bg-yellow-400 text-black'
-                    : 'text-muted-foreground hover:text-foreground'
-                )}
+                aria-pressed={cfg.columns === c}
+                className={cn(SEGMENT_BASE, segmentState(cfg.columns === c))}
               >
                 {c}
               </button>
@@ -226,7 +241,7 @@ function TvEditor({ restaurant }: { restaurant: RestaurantLite }) {
 
         <div className="grid gap-1.5">
           <Label htmlFor="tv-accent" className="text-xs text-muted-foreground">
-            Couleur d&apos;accent
+            {t('tv.accent')}
           </Label>
           <input
             id="tv-accent"
@@ -279,6 +294,7 @@ function TvEditor({ restaurant }: { restaurant: RestaurantLite }) {
 }
 
 function BorneEditor({ restaurant }: { restaurant: RestaurantLite }) {
+  const { t } = useI18n();
   const initial = resolveBorneConfig(restaurant.borneConfig ?? null);
   const [cfg, setCfg] = useState(initial);
   const [isPending, startTransition] = useTransition();
@@ -348,7 +364,7 @@ function BorneEditor({ restaurant }: { restaurant: RestaurantLite }) {
             htmlFor="borne-accent"
             className="text-xs text-muted-foreground"
           >
-            Couleur d&apos;accent
+            {t('tv.accent')}
           </Label>
           <input
             id="borne-accent"

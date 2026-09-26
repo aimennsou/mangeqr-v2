@@ -7,6 +7,8 @@ import {
   ArrowLeft,
   Check,
   CreditCard,
+  ChevronLeft,
+  ChevronRight,
   Minus,
   Plus,
   ShoppingBag,
@@ -125,15 +127,36 @@ function KioskSteps({
   title,
   subtitle,
   accent,
+  onDark = false,
 }: {
   current: number;
   title: string;
-  subtitle: string;
+  /** Optional: an empty string renders no subtitle line rather than a blank gap. */
+  subtitle?: string;
   accent: string;
+  /**
+   * True when this bar sits over a dark cover backdrop.
+   *
+   * The bar is a translucent blurred surface rather than a solid fill, so it
+   * picks up whatever is behind it — the restaurant's cover photo on the intro
+   * screens, plain neutral elsewhere. It used to be an opaque `bg-white`, which
+   * both cut a hard white band across the cover image and left the title
+   * invisible: screens with a cover set `text-neutral-50` on their root, so white
+   * type landed on a white bar.
+   */
+  onDark?: boolean;
 }) {
   const numbered = [1, 2, 3, 4];
+  const mutedLine = onDark ? 'rgba(255,255,255,0.22)' : 'rgba(0,0,0,0.12)';
   return (
-    <div className="border-b border-black/10 bg-white px-6 py-5">
+    <div
+      className={cn(
+        'border-b px-6 py-5 backdrop-blur-xl',
+        onDark
+          ? 'border-white/10 bg-black/25 text-neutral-50'
+          : 'border-black/10 bg-white/75 text-neutral-900'
+      )}
+    >
       <div className="mx-auto max-w-3xl">
         <div className="flex items-center justify-center gap-2">
           {numbered.map((n, i) => {
@@ -144,12 +167,16 @@ function KioskSteps({
                 <span
                   className={cn(
                     'flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold transition-colors',
-                    done || active ? 'text-white' : 'text-neutral-400'
+                    done || active
+                      ? 'text-white'
+                      : onDark
+                      ? 'text-white/50'
+                      : 'text-neutral-400'
                   )}
                   style={
                     done || active
                       ? { backgroundColor: accent, color: '#000' }
-                      : { border: '2px solid rgba(0,0,0,0.15)' }
+                      : { border: `2px solid ${mutedLine}` }
                   }
                 >
                   {done ? <Check className="h-5 w-5" /> : n}
@@ -157,8 +184,7 @@ function KioskSteps({
                 <span
                   className="h-0.5 w-6 rounded-full"
                   style={{
-                    backgroundColor:
-                      n < current ? accent : 'rgba(0,0,0,0.12)',
+                    backgroundColor: n < current ? accent : mutedLine,
                   }}
                 />
               </div>
@@ -168,12 +194,16 @@ function KioskSteps({
           <span
             className={cn(
               'flex h-10 w-12 shrink-0 items-center justify-center rounded-full transition-colors',
-              current > KIOSK_STEP_COUNT ? '' : 'text-neutral-400'
+              current > KIOSK_STEP_COUNT
+                ? ''
+                : onDark
+                ? 'text-white/50'
+                : 'text-neutral-400'
             )}
             style={
               current > KIOSK_STEP_COUNT
                 ? { backgroundColor: accent, color: '#000' }
-                : { border: '2px solid rgba(0,0,0,0.15)' }
+                : { border: `2px solid ${mutedLine}` }
             }
           >
             <CreditCard className="h-5 w-5" />
@@ -181,8 +211,24 @@ function KioskSteps({
         </div>
 
         <div className="mt-5 text-center">
-          <h1 className="text-3xl font-extrabold tracking-tight">{title}</h1>
-          <p className="mt-1 text-lg text-neutral-400">{subtitle}</p>
+          <h1
+            className={cn(
+              'text-3xl font-extrabold tracking-tight',
+              onDark && 'drop-shadow-lg'
+            )}
+          >
+            {title}
+          </h1>
+          {subtitle ? (
+            <p
+              className={cn(
+                'mt-1 text-lg',
+                onDark ? 'text-white/70' : 'text-neutral-400'
+              )}
+            >
+              {subtitle}
+            </p>
+          ) : null}
         </div>
       </div>
     </div>
@@ -479,12 +525,12 @@ function BorneKioskInner({
         className="relative flex h-screen w-screen flex-col items-center justify-center gap-10 overflow-hidden bg-neutral-950 text-center text-neutral-50"
       >
         <CoverBackdrop coverUrl={coverUrl} />
-        {/* Language picker — the welcome screen is one big tap-to-start button,
-            so the switcher stops propagation to avoid advancing the screen. */}
-        <KioskLangSwitcher
-          onDark
-          className="absolute end-6 top-6 z-20"
-        />
+        {/* NO language switcher on this screen, deliberately.
+            The only text here is cfg.welcomeTitle / cfg.welcomeSubtitle, which
+            the OWNER writes in the borne settings — owner-authored content is
+            never translated. So a switcher here changed the locale but left the
+            visible text alone, which reads as a broken control. The switcher
+            appears from the next screen onward, where the copy is ours. */}
         <span
           className="relative z-10 flex h-32 w-32 items-center justify-center rounded-[2rem] shadow-2xl"
           style={{ backgroundColor: accent, color: '#000' }}
@@ -527,6 +573,9 @@ function BorneKioskInner({
         onHome={() => (typeChosen ? setTypeChosen(false) : setScreen('cart'))}
         homeLabel={t('kiosk.back')}
         coverUrl={coverUrl}
+        // Step 3 of 4: menu (1) -> cart (2) -> service type (3) -> payment (4).
+        step={3}
+        accent={accent}
       >
         {!typeChosen ? (
           <div className="mx-auto grid max-w-3xl gap-6 p-8 sm:grid-cols-2">
@@ -915,6 +964,8 @@ function KioskShell({
   onHome,
   homeLabel,
   coverUrl,
+  step,
+  accent,
   children,
 }: {
   title: string;
@@ -923,10 +974,21 @@ function KioskShell({
   /** Defaults to the localized "Accueil" when omitted. */
   homeLabel?: string;
   coverUrl?: string | null;
+  /**
+   * 1-based position in the kiosk stepper. When given (with `accent`) the shell
+   * renders the same KioskSteps bar the menu and cart screens use, and drops its
+   * own centered title so the heading isn't duplicated.
+   *
+   * Screens that hand-rolled their own header used to skip the stepper entirely,
+   * so it vanished mid-flow on the service-type screen.
+   */
+  step?: number;
+  accent?: string;
   children: React.ReactNode;
 }) {
   const { t } = useI18n();
   const hasCover = !!coverUrl;
+  const showSteps = step != null && !!accent;
   return (
     <div
       className={cn(
@@ -956,27 +1018,44 @@ function KioskShell({
         </button>
         <KioskLangSwitcher onDark={hasCover} className="ms-auto" />
       </header>
+
+      {/* Stepper bar, when this screen is part of the numbered flow. It carries
+          the title/subtitle itself, so the centered block below is skipped. */}
+      {showSteps ? (
+        <div className="relative z-10">
+          <KioskSteps
+            current={step as number}
+            title={title}
+            subtitle={subtitle ?? ''}
+            accent={accent as string}
+            onDark={hasCover}
+          />
+        </div>
+      ) : null}
+
       <div className="relative z-10 flex flex-1 flex-col items-center justify-center">
-        <div className="mb-8 px-6 text-center">
-          <h1
-            className={cn(
-              'text-4xl font-extrabold tracking-tight',
-              hasCover && 'drop-shadow-lg'
-            )}
-          >
-            {title}
-          </h1>
-          {subtitle ? (
-            <p
+        {!showSteps ? (
+          <div className="mb-8 px-6 text-center">
+            <h1
               className={cn(
-                'mt-2 text-lg',
-                hasCover ? 'text-white/70' : 'text-neutral-400'
+                'text-4xl font-extrabold tracking-tight',
+                hasCover && 'drop-shadow-lg'
               )}
             >
-              {subtitle}
-            </p>
-          ) : null}
-        </div>
+              {title}
+            </h1>
+            {subtitle ? (
+              <p
+                className={cn(
+                  'mt-2 text-lg',
+                  hasCover ? 'text-white/70' : 'text-neutral-400'
+                )}
+              >
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         {children}
       </div>
     </div>
@@ -1299,6 +1378,89 @@ function ItemDetail({
   );
 }
 
+/**
+ * Horizontal strip for the cart upsell suggestions.
+ *
+ * The plain `overflow-x-auto` div this replaces could not actually be scrolled in
+ * practice: it hides its scrollbar (`scrollbar-width: none` plus the webkit rule)
+ * for a clean kiosk look, which leaves a mouse user with nothing to drag, and the
+ * overflow direction flips under RTL so the cut-off cards sit off the LEFT edge in
+ * Arabic. Native swipe/trackpad scrolling still works; this adds the affordances
+ * that were missing around it.
+ *
+ * Direction handling is the fiddly part: `scrollBy({ left })` is PHYSICAL, while
+ * "next" is leftward in RTL and rightward in LTR. The sign is derived from the
+ * element's computed direction rather than assumed, and the arrow glyphs swap to
+ * match, so "next" always points at unseen content.
+ */
+function UpsellStrip({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
+  const scroller = useRef<HTMLDivElement>(null);
+  const [canScroll, setCanScroll] = useState(false);
+
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+
+    const measure = () => {
+      // 4px of slack: sub-pixel widths otherwise report a phantom overflow.
+      setCanScroll(el.scrollWidth - el.clientWidth > 4);
+    };
+    measure();
+
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [children]);
+
+  const nudge = (forward: boolean) => {
+    const el = scroller.current;
+    if (!el) return;
+    const rtl = getComputedStyle(el).direction === 'rtl';
+    // Card (w-40 = 160px) + gap-3 (12px). Two at a time feels right on a big
+    // touch screen without skipping content.
+    const step = 172 * 2;
+    const physical = forward === rtl ? -step : step;
+    el.scrollBy({ left: physical, behavior: 'smooth' });
+  };
+
+  return (
+    <div className="relative">
+      <div
+        ref={scroller}
+        // touch-pan-x + overscroll-x-contain keep a horizontal swipe here from
+        // being stolen by the vertically scrolling cart behind it.
+        className="-mx-1 flex touch-pan-x gap-3 overflow-x-auto overscroll-x-contain scroll-smooth px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        {children}
+      </div>
+
+      {canScroll ? (
+        <>
+          <button
+            type="button"
+            aria-label={t('kiosk.scrollPrev')}
+            onClick={() => nudge(false)}
+            className="absolute start-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-2 shadow-md ring-1 ring-black/10 active:scale-95"
+          >
+            <ChevronLeft className="h-5 w-5 rtl:hidden" />
+            <ChevronRight className="hidden h-5 w-5 rtl:block" />
+          </button>
+          <button
+            type="button"
+            aria-label={t('kiosk.scrollNext')}
+            onClick={() => nudge(true)}
+            className="absolute end-0 top-1/2 z-10 -translate-y-1/2 rounded-full bg-white/95 p-2 shadow-md ring-1 ring-black/10 active:scale-95"
+          >
+            <ChevronRight className="h-5 w-5 rtl:hidden" />
+            <ChevronLeft className="hidden h-5 w-5 rtl:block" />
+          </button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 /** Cart review + submit screen. */
 function CartReview({
   lines,
@@ -1447,7 +1609,7 @@ function CartReview({
                   <span className="text-xl">✨</span>
                   {t('kiosk.cart.upsell')}
                 </p>
-                <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <UpsellStrip>
                   {suggestions.map((dish) => (
                     <button
                       key={dish.id}
@@ -1491,7 +1653,7 @@ function CartReview({
                       </div>
                     </button>
                   ))}
-                </div>
+                </UpsellStrip>
               </div>
             ) : null}
           </div>
@@ -1551,26 +1713,42 @@ function PaymentStep({
   return (
     <div
       className={cn(
-        'relative flex h-screen w-screen flex-col items-center justify-center overflow-hidden px-6 text-neutral-900',
+        // No items-center/justify-center/px-6 on the root any more: the steps bar
+        // must run full-bleed across the top, so the centering moved to the
+        // flex-1 content wrapper below it.
+        'relative flex h-screen w-screen flex-col overflow-hidden text-neutral-900',
         hasCover ? 'bg-neutral-950 text-neutral-50' : 'bg-neutral-50'
       )}
     >
       <CoverBackdrop coverUrl={coverUrl} />
 
-      <KioskLangSwitcher
-        onDark={hasCover}
-        className="absolute end-6 top-6 z-20"
-      />
+      {/* Step 4 of 4. This screen used to render no stepper at all, so the
+          progress bar vanished the moment a diner picked table service or
+          takeaway on the previous screen and landed here. The bar carries the
+          heading, so the card below no longer repeats it. */}
+      <div className="relative z-10">
+        <KioskSteps
+          current={4}
+          title={t('kiosk.pay.title')}
+          subtitle=""
+          accent={accent}
+          onDark={hasCover}
+        />
+        <KioskLangSwitcher
+          onDark={hasCover}
+          className="absolute end-6 top-5 z-30"
+        />
+      </div>
 
-      <div className="relative z-10 w-full max-w-xl rounded-3xl border border-black/10 bg-white p-8 text-neutral-900 shadow-xl">
-        <p className="text-sm font-semibold uppercase tracking-widest text-neutral-400">
-          {t('kiosk.pay.title')}
-        </p>
+      <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-6">
+      <div className="w-full max-w-xl rounded-3xl border border-black/10 bg-white p-8 text-neutral-900 shadow-xl">
         <button
           type="button"
           onClick={onPay}
           disabled={submitting}
-          className="mt-4 flex w-full items-center justify-between gap-4 rounded-2xl px-6 py-5 text-2xl font-bold text-white transition-transform active:scale-[0.98] disabled:opacity-60"
+          // No mt-4: this used to sit below a "Mode de paiement" label that the
+          // steps bar now carries, so the margin would be a stray gap.
+          className="flex w-full items-center justify-between gap-4 rounded-2xl px-6 py-5 text-2xl font-bold text-white transition-transform active:scale-[0.98] disabled:opacity-60"
           style={{ backgroundColor: accent, color: '#000' }}
         >
           <span className="flex items-center gap-3">
@@ -1609,6 +1787,7 @@ function PaymentStep({
           →
         </span>
       </button>
+      </div>
     </div>
   );
 }

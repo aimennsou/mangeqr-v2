@@ -305,7 +305,9 @@ export function FloorPlanEditor() {
         toast.error(result.error);
         return;
       }
-      toast.success(result?.success ?? 'Plan enregistré.');
+      // The server action only returns French, so translate locally instead of
+      // echoing it onto an Arabic or English screen.
+      toast.success(t('tables.saved'));
       loadPlan(selectedRestaurantId);
     });
   };
@@ -317,8 +319,8 @@ export function FloorPlanEditor() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-        Chargement...
+        <Loader2 className="me-2 h-6 w-6 animate-spin" />
+        {t('orders.loading')}
       </div>
     );
   }
@@ -353,16 +355,16 @@ export function FloorPlanEditor() {
         </div>
 
         {selectedRestaurantId && (
-          <div className="flex flex-wrap items-center gap-2 md:ml-auto">
+          <div className="flex flex-wrap items-center gap-2 md:ms-auto">
             <Button variant="outline" onClick={addTable}>
-              <Plus className="mr-2 h-4 w-4" /> {t('tables.addTable')}
+              <Plus className="me-2 h-4 w-4" /> {t('tables.addTable')}
             </Button>
             <Button
               variant={multiSelect ? 'default' : 'outline'}
               onClick={toggleMultiSelect}
               className={multiSelect ? 'bg-yellow-400 text-black hover:bg-yellow-400/90' : ''}
             >
-              <CheckSquare className="mr-2 h-4 w-4" />
+              <CheckSquare className="me-2 h-4 w-4" />
               {multiSelect ? t('tables.multi.done') : t('tables.multi.select')}
             </Button>
             <Button
@@ -371,9 +373,9 @@ export function FloorPlanEditor() {
               disabled={isSaving}
             >
               {isSaving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="me-2 h-4 w-4 animate-spin" />
               ) : (
-                <Save className="mr-2 h-4 w-4" />
+                <Save className="me-2 h-4 w-4" />
               )}
               {t('common.save')}
             </Button>
@@ -405,7 +407,7 @@ export function FloorPlanEditor() {
           <span className="text-sm font-medium">
             {selectedIds.size} {t('tables.multi.selected')}
           </span>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="ms-auto flex flex-wrap items-center gap-2">
             <Select
               onValueChange={(v) =>
                 assignSelectedToZone(v === NO_ZONE ? null : v)
@@ -431,7 +433,7 @@ export function FloorPlanEditor() {
               onClick={deleteSelected}
               disabled={selectedIds.size === 0}
             >
-              <Trash2 className="mr-2 h-4 w-4" /> {t('tables.multi.delete')}
+              <Trash2 className="me-2 h-4 w-4" /> {t('tables.multi.delete')}
             </Button>
           </div>
         </div>
@@ -439,10 +441,8 @@ export function FloorPlanEditor() {
 
       {!selectedRestaurantId ? (
         <div className="py-16 text-center text-muted-foreground">
-          <p className="text-lg font-semibold">Sélectionnez un restaurant.</p>
-          <p className="mt-2">
-            Choisissez un restaurant pour organiser son plan de salle.
-          </p>
+          <p className="text-lg font-semibold">{t('tables.pickRestaurant')}</p>
+          <p className="mt-2">{t('tables.pickRestaurantHint')}</p>
         </div>
       ) : (
         <div className="grid gap-6 lg:grid-cols-[1fr_18rem]">
@@ -461,7 +461,7 @@ export function FloorPlanEditor() {
           >
             {tables.length === 0 ? (
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                Ajoutez une table puis glissez-la pour la positionner.
+                {t('tables.canvasEmpty')}
               </div>
             ) : null}
             {tables.map((tbl) => {
@@ -494,6 +494,11 @@ export function FloorPlanEditor() {
                     occupancyClass +
                     (isSelected ? ' ring-2 ring-yellow-400' : '')
                   }
+                  // Physical `left`/`top` on purpose, even in Arabic: this is a
+                  // saved floor-plan geometry, not text flow. Mirroring it would
+                  // move every table to the other side of the room when the UI
+                  // language changes. The badge and dot below stay physical for
+                  // the same reason — they belong to the table shape.
                   style={{
                     left: tbl.posX,
                     top: tbl.posY,
@@ -536,12 +541,12 @@ export function FloorPlanEditor() {
           <div className="space-y-6">
             {/* Zones */}
             <div className="space-y-2">
-              <Label>Zones</Label>
+              <Label>{t('tables.zones')}</Label>
               <div className="flex gap-2">
                 <Input
                   value={newZoneName}
                   onChange={(e) => setNewZoneName(e.target.value)}
-                  placeholder="ex. Terrasse"
+                  placeholder={t('tables.zonePlaceholder')}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
@@ -556,7 +561,7 @@ export function FloorPlanEditor() {
               <ul className="space-y-1">
                 {zones.length === 0 ? (
                   <li className="text-xs text-muted-foreground">
-                    Aucune zone. (facultatif)
+                    {t('tables.noZones')}
                   </li>
                 ) : (
                   zones.map((z) => (
@@ -567,7 +572,10 @@ export function FloorPlanEditor() {
                       <span className="truncate">{z.name}</span>
                       <button
                         type="button"
-                        aria-label={`Supprimer la zone ${z.name}`}
+                        aria-label={t('tables.deleteZone').replace(
+                          '{name}',
+                          z.name
+                        )}
                         onClick={() => removeZone(z.id)}
                         className="text-muted-foreground hover:text-red-500"
                       >
@@ -583,13 +591,13 @@ export function FloorPlanEditor() {
             <div className="space-y-3 rounded-lg border p-3">
               <p className="text-sm font-medium">
                 {selectedTable
-                  ? `Table ${selectedTable.label}`
-                  : 'Aucune table sélectionnée'}
+                  ? t('orders.groupTable').replace('{label}', selectedTable.label)
+                  : t('tables.noneSelected')}
               </p>
               {selectedTable ? (
                 <>
                   <div className="grid gap-2">
-                    <Label htmlFor="tbl-label">Numéro / nom</Label>
+                    <Label htmlFor="tbl-label">{t('tables.labelField')}</Label>
                     <Input
                       id="tbl-label"
                       value={selectedTable.label}
@@ -601,7 +609,7 @@ export function FloorPlanEditor() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="tbl-seats">Places</Label>
+                    <Label htmlFor="tbl-seats">{t('tables.seats')}</Label>
                     <Input
                       id="tbl-seats"
                       type="number"
@@ -618,7 +626,7 @@ export function FloorPlanEditor() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label>Zone</Label>
+                    <Label>{t('tables.zone')}</Label>
                     <Select
                       value={selectedTable.zoneId ?? NO_ZONE}
                       onValueChange={(v) =>
@@ -631,7 +639,9 @@ export function FloorPlanEditor() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={NO_ZONE}>Aucune zone</SelectItem>
+                        <SelectItem value={NO_ZONE}>
+                          {t('tables.multi.noZone')}
+                        </SelectItem>
                         {zones.map((z) => (
                           <SelectItem key={z.id} value={z.id}>
                             {z.name}
@@ -646,13 +656,12 @@ export function FloorPlanEditor() {
                     className="w-full text-red-500 hover:text-red-600"
                     onClick={() => removeTable(selectedTable.id)}
                   >
-                    <Trash2 className="mr-2 h-4 w-4" /> Supprimer la table
+                    <Trash2 className="me-2 h-4 w-4" /> {t('tables.deleteTable')}
                   </Button>
                 </>
               ) : (
                 <p className="text-xs text-muted-foreground">
-                  Cliquez sur une table pour la modifier, ou glissez-la pour la
-                  déplacer.
+                  {t('tables.noneSelectedHint')}
                 </p>
               )}
             </div>

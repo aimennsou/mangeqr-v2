@@ -24,32 +24,39 @@ import { OrderCard } from './OrderCard';
 import { printOrderTicket } from './print-ticket';
 import { claimAutoPrint } from './print-dedupe';
 import { playNewOrderChime } from './notify';
-import { ORDER_STATUS_LABEL, statusBadgeClass } from './order-status';
+import { orderStatusLabel, statusBadgeClass } from './order-status';
 import FullscreenButton from '../FullscreenButton';
+import { useI18n } from '@/lib/i18n';
 
 const ALL = '__all__';
 
-// Kitchen columns: the active pipeline (terminal states are excluded server-side
-// via activeOnly). READY groups both dine-in-ready and delivery-ready; the
-// dispatch/serve step is handled from the card actions.
-const COLUMNS: OrderStatus[] = [
-  'RECEIVED',
-  'IN_PREPARATION',
-  'READY',
-  'OUT_FOR_DELIVERY'
-];
+// Kitchen columns. The board STOPS AT "Prête" on purpose: once food leaves the
+// pass the kitchen has nothing left to do with it, whether a server carries it to
+// a table or a driver takes it out. There used to be an "En livraison" column
+// here, which put a delivery-only concern on the kitchen screen and sat
+// permanently empty for restaurants that don't deliver.
+//
+// Everything after READY — serving, dispatching, delivering — is tracked on the
+// Commandes board instead. Terminal states are already excluded server-side via
+// activeOnly.
+const COLUMNS: OrderStatus[] = ['RECEIVED', 'IN_PREPARATION', 'READY'];
 
-// Handed off to the floor / the driver: still "active" for the order feed, but
-// the kitchen has nothing left to do on them. They used to be folded into the
-// READY column, so served dine-in orders piled up under "Prête" until somebody
-// pressed "Terminer".
-const HANDED_OFF: OrderStatus[] = ['SERVED', 'DELIVERED'];
+// Out of the kitchen's hands: still "active" in the order feed, but done as far
+// as the pass is concerned, so they leave this board rather than sitting in a
+// column forever. OUT_FOR_DELIVERY joined this list when the delivery column was
+// removed.
+const HANDED_OFF: OrderStatus[] = [
+  'SERVED',
+  'OUT_FOR_DELIVERY',
+  'DELIVERED'
+];
 
 /**
  * FEAT-1 Kitchen board (D17). Active orders laid out in status columns for a
  * quick station view. Owner + members. Polls + chimes on new orders.
  */
 export function KitchenBoard() {
+  const { t } = useI18n();
   const [restaurantId, setRestaurantId] = useState<string>(ALL);
   const [soundOn, setSoundOn] = useState(true);
 
@@ -59,6 +66,13 @@ export function KitchenBoard() {
   useEffect(() => {
     soundRef.current = soundOn;
   }, [soundOn]);
+
+  // Likewise for the translator: the poll callback is captured, so the new-order
+  // toast reads `t` through a ref to follow a language switch.
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const { restaurants, printerConfigs, printerConfigsRef } =
     usePrinterConfigs();
@@ -79,7 +93,9 @@ export function KitchenBoard() {
     intervalMs: 6000,
     onNewOrder: (o) => {
       if (soundRef.current) playNewOrderChime();
-      toast.info(`Nouvelle commande #${o.orderNumber}`);
+      toast.info(
+        tRef.current('orders.newToast').replace('{n}', String(o.orderNumber))
+      );
       // One ticket per order across every board, tab and device — the claim is
       // an atomic UPDATE on Order.ticketPrintedAt, so Commandes and Cuisine
       // being open at once can no longer each produce a ticket.
@@ -112,15 +128,17 @@ export function KitchenBoard() {
     >
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
         <div className="grid w-full gap-2 sm:max-w-xs">
-          <Label>Restaurant</Label>
+          <Label>{t('orders.filter.restaurant')}</Label>
           <Select value={restaurantId} onValueChange={setRestaurantId}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectGroup>
-                <SelectLabel>Restaurant</SelectLabel>
-                <SelectItem value={ALL}>Tous les restaurants</SelectItem>
+                <SelectLabel>{t('orders.filter.restaurant')}</SelectLabel>
+                <SelectItem value={ALL}>
+                  {t('orders.filter.allRestaurants')}
+                </SelectItem>
                 {restaurants.map((r) => (
                   <SelectItem key={r.id} value={r.id}>
                     {r.name}
@@ -130,11 +148,11 @@ export function KitchenBoard() {
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center gap-2 sm:ml-auto">
+        <div className="flex items-center gap-2 sm:ms-auto">
           <Button
             variant="outline"
             size="icon"
-            title={soundOn ? 'Couper le son' : 'Activer le son'}
+            title={soundOn ? t('orders.muteSound') : t('orders.unmuteSound')}
             onClick={() => setSoundOn((s) => !s)}
           >
             {soundOn ? (
@@ -149,10 +167,12 @@ export function KitchenBoard() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Chargement...
+          <Loader2 className="me-2 h-6 w-6 animate-spin" /> {t('orders.loading')}
         </div>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        // 3 columns, matching COLUMNS. Was xl:grid-cols-4 for the removed
+        // delivery column, which would now leave a dead gap on wide screens.
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {COLUMNS.map((col) => {
             const list = byColumn.get(col) ?? [];
             return (
@@ -163,7 +183,7 @@ export function KitchenBoard() {
                     statusBadgeClass(col)
                   )}
                 >
-                  <span>{ORDER_STATUS_LABEL[col]}</span>
+                  <span>{orderStatusLabel(col, t)}</span>
                   <span className="tabular-nums">{list.length}</span>
                 </div>
                 <div className="space-y-3">
@@ -180,6 +200,7 @@ export function KitchenBoard() {
                         onChanged={refresh}
                         onSeen={clearNew}
                         printerConfig={printerConfigs.get(o.restaurantId)}
+                        context="kitchen"
                       />
                     ))
                   )}

@@ -39,6 +39,26 @@ import {
   type AppearanceTheme,
 } from "@/lib/menu-appearance";
 
+/**
+ * Heights of the two stacked sticky bars, in px.
+ *
+ * The category rail pins directly beneath the header, so its `top` offset has to
+ * equal the header's height EXACTLY. It used to be a hardcoded `top-[57px]`
+ * against a header that measured ~52px, which left a few pixels of scrolling
+ * content showing through as a seam between them.
+ *
+ * The header is given an explicit `h-14` rather than being left to size itself
+ * from its content, because its natural height depends on the h1's line-height —
+ * and that changes with the locale's font (Tajawal for Arabic is not metrically
+ * identical to the Latin face). Any fixed offset would therefore be correct in at
+ * most one language. Fixing the height makes it correct in all of them.
+ *
+ * Keep DINER_HEADER_H in sync with the header's `h-14` class (14 * 4px = 56px).
+ */
+const DINER_HEADER_H = 56;
+/** Chip rail: py-2.5 (20px) + chip height (~22px). Used for scroll offsets only. */
+const DINER_CHIP_BAR_H = 42;
+
 type Dish = {
   id: string;
   name: string;
@@ -349,8 +369,11 @@ export function PublicMenu({
       `[data-category-anchor="${categoryId}"]`
     );
     if (!el) return;
-    // Offset for the sticky top bar + the sticky category bar (~112px).
-    const y = el.getBoundingClientRect().top + window.scrollY - 104;
+    // Clear both sticky bars, plus a little breathing room.
+    const y =
+      el.getBoundingClientRect().top +
+      window.scrollY -
+      (DINER_HEADER_H + DINER_CHIP_BAR_H + 8);
     window.scrollTo({ top: y, behavior: "smooth" });
   }, []);
 
@@ -383,8 +406,10 @@ export function PublicMenu({
     >
       {/* Top bar: logo + centered active-menu title + language switcher.
           Mirrors the reference (logo square, centered "Plats" title). */}
+      {/* h-14 (not py-3) so the height is locale-independent — see
+          DINER_HEADER_H, which the category rail below pins against. */}
       <header
-        className="sticky top-0 z-20 flex items-center gap-2 px-4 py-3 backdrop-blur"
+        className="sticky top-0 z-20 flex h-14 items-center gap-2 px-4 backdrop-blur"
         style={{ backgroundColor: theme.background, borderColor: theme.border }}
       >
         <h1
@@ -559,8 +584,11 @@ export function PublicMenu({
       {activeMenu && activeMenu.categories.length > 0 ? (
         <nav
           ref={chipNavRef}
-          className="sticky top-[57px] z-10 flex gap-2 overflow-x-auto px-4 py-2.5 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="sticky z-10 flex gap-2 overflow-x-auto px-4 py-2.5 backdrop-blur [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           style={{
+            // Driven by the shared constant instead of a hardcoded top-[57px],
+            // so this can never drift from the header's actual height again.
+            top: DINER_HEADER_H,
             backgroundColor: theme.background,
             borderBottom: `1px solid ${theme.border}`,
           }}

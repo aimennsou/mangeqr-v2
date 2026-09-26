@@ -11,6 +11,8 @@
  * for members. Nav hiding is UX only — server actions/routes must re-check.
  */
 
+import type { TranslationKey } from '@/lib/i18n/dictionaries';
+
 export type MemberPermission =
   | 'performances' // Mes performances (analytics)
   | 'menus' // Menus + Catégories & plats (create/edit dishes)
@@ -20,46 +22,58 @@ export type MemberPermission =
   | 'numerique' // Menu numérique : apparence & QR code
   | 'restaurants'; // Mes restaurants (manage restaurants)
 
-/** All assignable permissions, in display order, with French labels. */
+/**
+ * All assignable permissions, in display order.
+ *
+ * Carries dictionary KEYS, not text. It used to hold literal French `label` /
+ * `description` strings, and because this is a module-scope constant it was
+ * evaluated once before any I18nProvider existed — so the permission grid on the
+ * team screen could never follow a language switch. (Same trap as the old
+ * `ORDER_STATUS_LABEL` and the charts' `chartConfig`.) Callers resolve the keys
+ * with `t()` at render time.
+ *
+ * Typed as `TranslationKey` so a typo or a missing dictionary entry fails
+ * compilation rather than rendering a raw key on screen.
+ */
 export const MEMBER_PERMISSIONS: {
   key: MemberPermission;
-  label: string;
-  description: string;
+  labelKey: TranslationKey;
+  descriptionKey: TranslationKey;
 }[] = [
   {
     key: 'performances',
-    label: 'Performances',
-    description: 'Consulter les statistiques et le suivi.',
+    labelKey: 'perm.performances.label',
+    descriptionKey: 'perm.performances.desc',
   },
   {
     key: 'menus',
-    label: 'Menus & plats',
-    description: 'Gérer les menus, catégories et plats.',
+    labelKey: 'perm.menus.label',
+    descriptionKey: 'perm.menus.desc',
   },
   {
     key: 'reviews',
-    label: 'Avis clients',
-    description: 'Consulter les avis des clients.',
+    labelKey: 'perm.reviews.label',
+    descriptionKey: 'perm.reviews.desc',
   },
   {
     key: 'orders',
-    label: 'Commandes & cuisine',
-    description: 'Prendre les commandes et gérer la vue cuisine.',
+    labelKey: 'perm.orders.label',
+    descriptionKey: 'perm.orders.desc',
   },
   {
     key: 'tables',
-    label: 'Plan de salle',
-    description: 'Gérer les tables et le plan de salle.',
+    labelKey: 'perm.tables.label',
+    descriptionKey: 'perm.tables.desc',
   },
   {
     key: 'numerique',
-    label: 'Menu numérique & QR',
-    description: 'Personnaliser l’apparence du menu et le QR code.',
+    labelKey: 'perm.numerique.label',
+    descriptionKey: 'perm.numerique.desc',
   },
   {
     key: 'restaurants',
-    label: 'Restaurants',
-    description: 'Gérer les informations des restaurants.',
+    labelKey: 'perm.restaurants.label',
+    descriptionKey: 'perm.restaurants.desc',
   },
 ];
 

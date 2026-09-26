@@ -234,6 +234,11 @@ export function WelcomeTour() {
         nextBtnText: tr("tour.next"),
         prevBtnText: tr("tour.prev"),
         doneBtnText: tr("tour.done"),
+        // driver.js defaults to the English "{{current}} of {{total}}", which
+        // rendered as an untranslated, bidi-scrambled "OF 9 1" inside the RTL
+        // popover. Each locale supplies its own template; driver.js does the
+        // token substitution.
+        progressText: tr("tour.progress"),
         // Set the dismissed flag on ANY destroy (completed, closed, Esc, overlay)
         // and clear the singleton/latch so a later replay can start cleanly.
         onDestroyed: () => {

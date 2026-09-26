@@ -27,7 +27,9 @@ import { usePrinterConfigs } from './usePrinterConfigs';
 import { useTicketOptions } from './useTicketStrings';
 import { OrderCard } from './OrderCard';
 import { playNewOrderChime } from './notify';
-import { ORDER_STATUS_LABEL } from './order-status';
+import { orderStatusLabel } from './order-status';
+import { useI18n } from '@/lib/i18n';
+import type { TranslationKey } from '@/lib/i18n/dictionaries';
 
 const ALL = '__all__';
 
@@ -35,13 +37,17 @@ const ALL = '__all__';
  * Rolling time windows for the feed. Defaults to today so the board shows a
  * bounded, meaningful list — it used to request every order ever placed and let
  * the server's `take: 200` truncate it silently.
+ *
+ * `labelKey` used to hold the literal French label despite its name, which is
+ * why the period dropdown stayed French on an Arabic screen. It now holds an
+ * actual dictionary key, resolved per render.
  */
-const SCOPES = [
-  { value: '1', labelKey: "Aujourd'hui" },
-  { value: '7', labelKey: '7 derniers jours' },
-  { value: '30', labelKey: '30 derniers jours' },
-  { value: ALL, labelKey: 'Tout' }
-] as const;
+const SCOPES: { value: string; labelKey: TranslationKey }[] = [
+  { value: '1', labelKey: 'orders.filter.today' },
+  { value: '7', labelKey: 'orders.filter.last7' },
+  { value: '30', labelKey: 'orders.filter.last30' },
+  { value: ALL, labelKey: 'orders.filter.all' }
+];
 
 const STATUS_OPTIONS: OrderStatus[] = [
   'RECEIVED',
@@ -60,6 +66,7 @@ const STATUS_OPTIONS: OrderStatus[] = [
  * orders play a chime (toggleable) and highlight until seen.
  */
 export function OrdersBoard() {
+  const { t } = useI18n();
   const [restaurantId, setRestaurantId] = useState<string>(ALL);
   const [scope, setScope] = useState<string>('1');
   const [statusFilter, setStatusFilter] = useState<string>(ALL);
@@ -73,6 +80,14 @@ export function OrdersBoard() {
   useEffect(() => {
     soundOnRef.current = soundOn;
   }, [soundOn]);
+
+  // Same reason as `soundOnRef`: the poll callback is captured by the hook, so
+  // reading `t` through a ref keeps the new-order toast in the language that is
+  // current when the order lands rather than the one at subscribe time.
+  const tRef = useRef(t);
+  useEffect(() => {
+    tRef.current = t;
+  }, [t]);
 
   const { restaurants, printerConfigs, printerConfigsRef } =
     usePrinterConfigs();
@@ -93,10 +108,13 @@ export function OrdersBoard() {
     intervalMs: 8000,
     onNewOrder: (o) => {
       if (soundOnRef.current) playNewOrderChime();
+      const tr = tRef.current;
+      const where =
+        o.type === 'DINE_IN'
+          ? tr('orders.groupTable').replace('{label}', o.tableLabel ?? '')
+          : tr('orders.delivery');
       toast.info(
-        `Nouvelle commande #${o.orderNumber} — ${
-          o.type === 'DINE_IN' ? `Table ${o.tableLabel ?? ''}` : 'Livraison'
-        }`
+        `${tr('orders.newToast').replace('{n}', String(o.orderNumber))} — ${where}`
       );
       // Auto-print the ticket when the restaurant has enabled it, but only once
       // per order across every open board, tab and device. The claim is async
@@ -176,15 +194,17 @@ export function OrdersBoard() {
       <div className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="grid gap-2">
-            <Label>Restaurant</Label>
+            <Label>{t('orders.filter.restaurant')}</Label>
             <Select value={restaurantId} onValueChange={setRestaurantId}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>Restaurant</SelectLabel>
-                  <SelectItem value={ALL}>Tous les restaurants</SelectItem>
+                  <SelectLabel>{t('orders.filter.restaurant')}</SelectLabel>
+                  <SelectItem value={ALL}>
+                    {t('orders.filter.allRestaurants')}
+                  </SelectItem>
                   {restaurants.map((r) => (
                     <SelectItem key={r.id} value={r.id}>
                       {r.name}
@@ -196,17 +216,17 @@ export function OrdersBoard() {
           </div>
 
           <div className="grid gap-2">
-            <Label>Période</Label>
+            <Label>{t('orders.filter.period')}</Label>
             <Select value={scope} onValueChange={setScope}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>Période</SelectLabel>
+                  <SelectLabel>{t('orders.filter.period')}</SelectLabel>
                   {SCOPES.map((s) => (
                     <SelectItem key={s.value} value={s.value}>
-                      {s.labelKey}
+                      {t(s.labelKey)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -215,18 +235,20 @@ export function OrdersBoard() {
           </div>
 
           <div className="grid gap-2">
-            <Label>Statut</Label>
+            <Label>{t('orders.filter.status')}</Label>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectLabel>Statut</SelectLabel>
-                  <SelectItem value={ALL}>Tous les statuts</SelectItem>
+                  <SelectLabel>{t('orders.filter.status')}</SelectLabel>
+                  <SelectItem value={ALL}>
+                    {t('orders.filter.allStatuses')}
+                  </SelectItem>
                   {STATUS_OPTIONS.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {ORDER_STATUS_LABEL[s]}
+                      {orderStatusLabel(s, t)}
                     </SelectItem>
                   ))}
                 </SelectGroup>
@@ -235,22 +257,26 @@ export function OrdersBoard() {
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="orders-search">Rechercher</Label>
+            <Label htmlFor="orders-search">{t('orders.filter.search')}</Label>
+            {/* Logical insets (`start-*`/`end-*`, `ps-*`/`pe-*`) instead of
+                left/right: with the physical versions the search icon and the
+                clear button both stayed pinned to the same side in Arabic, so the
+                icon sat on top of the text. */}
             <div className="relative">
-              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="pointer-events-none absolute start-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="orders-search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="N°, table, client, téléphone"
-                className="pl-8 pr-8"
+                placeholder={t('orders.filter.searchPlaceholder')}
+                className="ps-8 pe-8"
               />
               {query ? (
                 <button
                   type="button"
                   onClick={() => setQuery('')}
-                  aria-label="Effacer la recherche"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label={t('orders.clearSearch')}
+                  className="absolute end-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -263,7 +289,12 @@ export function OrdersBoard() {
           {newCount > 0 ? (
             <span className="flex items-center gap-1 rounded-full bg-yellow-400 px-3 py-1 text-sm font-semibold text-black">
               <Bell className="h-4 w-4" />
-              {newCount} nouvelle{newCount > 1 ? 's' : ''}
+              {/* Plural picked by key rather than appending "s": Arabic does not
+                  pluralize by suffix, so the old `nouvelle{s}` could not be
+                  translated at all. */}
+              {t(
+                newCount > 1 ? 'orders.newBadgeMany' : 'orders.newBadgeOne'
+              ).replace('{n}', String(newCount))}
             </span>
           ) : null}
           <label className="flex items-center gap-2 text-sm">
@@ -272,23 +303,25 @@ export function OrdersBoard() {
               onCheckedChange={setShowCompleted}
               disabled={statusFilter !== ALL}
             />
-            Afficher terminées
+            {t('orders.showCompleted')}
           </label>
           <span className="text-sm text-muted-foreground">
-            {visible.length} commande{visible.length > 1 ? 's' : ''}
+            {t(
+              visible.length > 1 ? 'orders.countMany' : 'orders.countOne'
+            ).replace('{n}', String(visible.length))}
             {/* The server caps its result set; say so rather than showing a
                 partial history as if it were complete. */}
             {truncated ? (
               <span className="ms-2 text-amber-600 dark:text-amber-500">
-                (les plus récentes — affinez la période pour voir le reste)
+                {t('orders.truncated')}
               </span>
             ) : null}
           </span>
-          <div className="flex items-center gap-2 md:ml-auto">
+          <div className="flex items-center gap-2 md:ms-auto">
             <Button
               variant="outline"
               size="icon"
-              title={soundOn ? 'Couper le son' : 'Activer le son'}
+              title={soundOn ? t('orders.muteSound') : t('orders.unmuteSound')}
               onClick={() => setSoundOn((s) => !s)}
             >
               {soundOn ? (
@@ -304,19 +337,15 @@ export function OrdersBoard() {
 
       {loading ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
-          <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Chargement...
+          <Loader2 className="me-2 h-6 w-6 animate-spin" /> {t('orders.loading')}
         </div>
       ) : visible.length === 0 ? (
         <div className="py-16 text-center text-muted-foreground">
           <p className="text-lg font-semibold text-foreground">
-            {filtered
-              ? 'Aucune commande ne correspond aux filtres.'
-              : 'Aucune commande en cours.'}
+            {filtered ? t('orders.emptyFiltered') : t('orders.emptyTitle')}
           </p>
           <p className="mt-2">
-            {filtered
-              ? 'Modifiez la période, le statut ou la recherche.'
-              : 'Les nouvelles commandes des clients apparaîtront ici.'}
+            {filtered ? t('orders.emptyFilteredHint') : t('orders.emptyHint')}
           </p>
         </div>
       ) : (
@@ -325,12 +354,12 @@ export function OrdersBoard() {
           {tableGroups.length > 0 ? (
             <div className="space-y-4">
               <h3 className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
-                Sur place
+                {t('orders.groupDineIn')}
               </h3>
               {tableGroups.map((grp) => (
                 <div key={grp.table} className="space-y-3">
                   <p className="text-sm font-medium text-foreground">
-                    Table {grp.table}
+                    {t('orders.groupTable').replace('{label}', grp.table)}
                   </p>
                   <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     {grp.orders.map((o) => (
@@ -353,7 +382,7 @@ export function OrdersBoard() {
           {delivery.length > 0 ? (
             <div className="space-y-4">
               <h3 className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
-                Livraison
+                {t('orders.delivery')}
               </h3>
               <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 {delivery.map((o) => (

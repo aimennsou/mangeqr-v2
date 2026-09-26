@@ -45,6 +45,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import { MenuAppearanceSchema, type MenuAppearance } from '@/schemas';
 import { updateMenuAppearance } from '@/actions/update-menu-appearance';
 
@@ -304,38 +305,61 @@ export default function MenuAppearanceForm({
           <CardContent className="pt-0">
             {/* Compact list: one framed block, hairline-divided rows with a
                 small icon per row (no wall of identical boxes). */}
+            {/* Compact list: one framed block, hairline-divided rows.
+                The whole row is the switch's label, so tapping anywhere on it
+                toggles — previously only the 20x36px switch itself was a target,
+                which is poor on a phone. The icon also tints when enabled, so the
+                active set is readable at a glance instead of seven identical
+                grey squares. */}
             <div className="divide-y divide-border overflow-hidden rounded-xl border border-border">
               {INFO_TOGGLES.map((toggle) => {
                 const Icon = TOGGLE_ICON[toggle.name];
+                const rowId = `appearance-${toggle.name}`;
                 return (
                   <FormField
                     key={toggle.name}
                     control={form.control}
                     name={toggle.name}
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-center justify-between gap-4 px-4 py-3 transition-colors hover:bg-muted/40">
-                        <div className="flex min-w-0 items-center gap-3">
-                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-                            <Icon className="h-4 w-4" />
-                          </span>
-                          <div className="min-w-0">
-                            <FormLabel className="cursor-pointer">
-                              {toggle.label}
-                            </FormLabel>
-                            <FormDescription className="text-xs">
-                              {toggle.description}
-                            </FormDescription>
-                          </div>
-                        </div>
-                        <FormControl>
-                          <Switch
-                            disabled={isPending}
-                            checked={Boolean(field.value)}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
+                    render={({ field }) => {
+                      const on = Boolean(field.value);
+                      return (
+                        <FormItem className="gap-0 space-y-0">
+                          <FormLabel
+                            htmlFor={rowId}
+                            className="flex cursor-pointer flex-row items-center justify-between gap-4 px-4 py-3 font-normal transition-colors hover:bg-muted/40"
+                          >
+                            <span className="flex min-w-0 items-center gap-3">
+                              <span
+                                className={cn(
+                                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors',
+                                  on
+                                    ? 'bg-yellow-400/20 text-yellow-700 dark:text-yellow-400'
+                                    : 'bg-muted text-muted-foreground'
+                                )}
+                              >
+                                <Icon className="h-4 w-4" />
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block text-sm font-medium leading-none">
+                                  {toggle.label}
+                                </span>
+                                <FormDescription className="mt-1 text-xs">
+                                  {toggle.description}
+                                </FormDescription>
+                              </span>
+                            </span>
+                            <FormControl>
+                              <Switch
+                                id={rowId}
+                                disabled={isPending}
+                                checked={on}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                          </FormLabel>
+                        </FormItem>
+                      );
+                    }}
                   />
                 );
               })}

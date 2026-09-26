@@ -17,27 +17,28 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@/components/ui/chart';
+import { useI18n } from '@/lib/i18n';
 
 
 interface PieChartProps {
   data: { day: string; visits: number }[]; // Define the prop type for data
 }
 
-const chartConfig = {
-  visits: {
-    label: 'Visites'
-  },
-  Weekend: {
-    label: 'Weekend',
-    color: 'hsl(var(--chart-1))'
-  },
-  Weekday: {
-    label: 'Semaine',
-    color: 'hsl(var(--chart-3))'
-  }
-} satisfies ChartConfig;
-
 export function PieGraph({ data }: PieChartProps) {
+  const { t } = useI18n();
+
+  // Built inside the component, not at module scope: the series labels are
+  // translated, so they have to be recomputed when the locale changes.
+  const chartConfig = React.useMemo(
+    () =>
+      ({
+        visits: { label: t('charts.visits') },
+        Weekend: { label: t('charts.weekend'), color: 'hsl(var(--chart-1))' },
+        Weekday: { label: t('charts.weekday'), color: 'hsl(var(--chart-3))' }
+      }) satisfies ChartConfig,
+    [t]
+  );
+
   const totalVisits = React.useMemo(() => {
     return (data ?? []).reduce((acc, curr) => acc + curr.visits, 0);
   }, [data]);
@@ -48,14 +49,14 @@ export function PieGraph({ data }: PieChartProps) {
     <Card className="flex flex-col">
       <CardHeader className="flex flex-col items-stretch space-y-2 border-b p-0">
         <div className="flex flex-1 flex-col justify-center gap-2 px-6 py-5 sm:py-6">
-          <CardTitle>Visiteurs par période de la semaine : Weekend vs en semaine</CardTitle>
-          <CardDescription>Affichage des visiteurs sur la période sélectionnée</CardDescription>
+          <CardTitle>{t('charts.weekPart.title')}</CardTitle>
+          <CardDescription>{t('charts.weekPart.desc')}</CardDescription>
         </div>
       </CardHeader>
       <CardContent className="flex-1 pb-0 pt-6">
         {isEmpty ? (
           <div className="mx-auto flex aspect-square max-h-[360px] items-center justify-center text-sm text-muted-foreground">
-            Aucune donnée sur la période.
+            {t('charts.empty')}
           </div>
         ) : (
         <ChartContainer
@@ -102,7 +103,7 @@ export function PieGraph({ data }: PieChartProps) {
                           y={(viewBox.cy || 0) + 24}
                           className="fill-muted-foreground"
                         >
-                          Visiteurs / semaine
+                          {t('charts.visitorsPerWeek')}
                         </tspan>
                       </text>
                     );
@@ -117,7 +118,7 @@ export function PieGraph({ data }: PieChartProps) {
       <CardFooter className="flex-col gap-2 text-xs">
    
       <div className="leading-none text-muted-foreground">
-              <strong>Semaine:</strong> de Lundi au Vendredi | <strong>Week End:</strong> de Samedi au Dimanche
+              {t('charts.weekPart.legend')}
             </div>
       </CardFooter>
     </Card>

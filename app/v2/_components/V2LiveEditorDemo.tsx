@@ -105,6 +105,7 @@ function SortableDishRow({
   onPrice: (id: string, delta: number) => void;
   onToggle: (id: string) => void;
 }) {
+  const { t } = useI18n();
   const {
     attributes,
     listeners,
@@ -132,7 +133,7 @@ function SortableDishRow({
     >
       <button
         type="button"
-        aria-label="Réordonner"
+        aria-label={t('landing.editorDemo.reorder')}
         className="shrink-0 cursor-grab touch-none text-muted-foreground/50 hover:text-muted-foreground active:cursor-grabbing"
         {...attributes}
         {...listeners}
@@ -152,7 +153,7 @@ function SortableDishRow({
       <div className="flex items-center gap-1 rounded-lg border border-border">
         <button
           type="button"
-          aria-label="Baisser le prix"
+          aria-label={t('landing.editorDemo.priceDown')}
           onClick={() => onPrice(dish.id, -0.5)}
           className="flex h-7 w-7 items-center justify-center text-muted-foreground hover:text-foreground"
         >
@@ -163,7 +164,7 @@ function SortableDishRow({
         </span>
         <button
           type="button"
-          aria-label="Augmenter le prix"
+          aria-label={t('landing.editorDemo.priceUp')}
           onClick={() => onPrice(dish.id, 0.5)}
           className="flex h-7 w-7 items-center justify-center text-muted-foreground hover:text-foreground"
         >
@@ -171,12 +172,17 @@ function SortableDishRow({
         </button>
       </div>
 
-      {/* Availability toggle */}
+      {/* Availability toggle.
+          These are hand-rolled switches, NOT components/ui/switch.tsx, so the
+          RTL thumb fix applied there does not reach them — which is why the
+          landing page still showed distorted toggles in Arabic. Thumb travel is
+          a physical transform with no logical equivalent, so it is mirrored by
+          hand with explicit ltr:/rtl: pairs. */}
       <button
         type="button"
         role="switch"
         aria-checked={dish.available}
-        aria-label={`${dish.name} disponible`}
+        aria-label={`${dish.name} — ${t('landing.editorDemo.available')}`}
         onClick={() => onToggle(dish.id)}
         className={cn(
           'flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors',
@@ -186,7 +192,9 @@ function SortableDishRow({
         <span
           className={cn(
             'h-5 w-5 rounded-full bg-white shadow transition-transform',
-            dish.available ? 'translate-x-5' : 'translate-x-0'
+            dish.available
+              ? 'ltr:translate-x-5 rtl:-translate-x-5'
+              : 'translate-x-0'
           )}
         />
       </button>
@@ -271,10 +279,13 @@ export default function V2LiveEditorDemo() {
                 online ? 'bg-yellow-400' : 'bg-muted'
               )}
             >
+              {/* Mirrored by hand — see the availability toggle above. */}
               <span
                 className={cn(
                   'h-5 w-5 rounded-full bg-white shadow transition-transform',
-                  online ? 'translate-x-5' : 'translate-x-0'
+                  online
+                    ? 'ltr:translate-x-5 rtl:-translate-x-5'
+                    : 'translate-x-0'
                 )}
               />
             </button>

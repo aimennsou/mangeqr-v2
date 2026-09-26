@@ -8,6 +8,7 @@ import {
   useMemo,
   useState,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   DEFAULT_LOCALE,
   LOCALE_COOKIE,
@@ -67,6 +68,7 @@ export function I18nProvider({
    */
   isolated?: boolean;
 }) {
+  const router = useRouter();
   const [locale, setLocaleState] = useState<Locale>(() =>
     readInitialLocale(initialLocale)
   );
@@ -87,8 +89,9 @@ export function I18nProvider({
   const setLocale = useCallback(
     (loc: Locale) => {
       setLocaleState(loc);
-      // Isolated preview: keep language local only — no global persistence or
-      // document mutation, so the app's language is unaffected.
+      // Isolated preview: keep language local only — no global persistence, no
+      // document mutation, and NO router refresh, so the app around it is
+      // unaffected.
       if (isolated) return;
       if (typeof document !== "undefined") {
         // 1 year cookie + localStorage for persistence.
@@ -96,8 +99,18 @@ export function I18nProvider({
         window.localStorage?.setItem(LOCALE_COOKIE, loc);
       }
       applyDir(loc);
+
+      // Re-render SERVER components against the new cookie.
+      //
+      // Without this, switching language only updated client components. Any page
+      // that resolves strings on the server — /settings and /performances both
+      // do, passing translated text down as props — kept rendering the language
+      // from the last server response, so the screen ended up half Arabic and
+      // half French until a hard reload. router.refresh() preserves client state,
+      // so in-progress form input survives the switch.
+      router.refresh();
     },
-    [applyDir, isolated]
+    [applyDir, isolated, router]
   );
 
   const value = useMemo<I18nContextValue>(

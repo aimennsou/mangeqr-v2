@@ -282,12 +282,30 @@ export type PrintResult = 'printed' | 'blocked' | 'failed';
  * previously a blocked popup failed silently, which on a busy service looks
  * exactly like a printer problem.
  *
- * Strategy: always use a hidden iframe. It needs no popup permission, and the
- * parent drives `print()` from the iframe's own load event, so there is no race
- * with an injected inline script. The frame is torn down on `afterprint` (with a
- * long timeout as a backstop) rather than after a fixed 2s, which used to be
- * capable of removing the frame while the print dialog was still open and
- * cancelling the job.
+ * Strategy: an off-screen iframe (no popup permission needed), written
+ * SYNCHRONOUSLY with document.open/write/close, printed by the parent, and torn
+ * down on `afterprint` with a long timeout as a backstop.
+ *
+ * THREE THINGS HERE ARE LOAD-BEARING. Each one was a real blank-page bug:
+ *
+ * 1. The content is written synchronously rather than via `srcdoc` + `onload`.
+ *    Appending a src-less iframe fires a load event for its initial about:blank
+ *    document, so an `onload` handler runs BEFORE srcdoc content parses and
+ *    print() goes out against an empty document. That produced a blank sheet
+ *    carrying the PARENT page's title and URL in the browser's print header,
+ *    because a srcdoc/blank frame inherits the parent's URL.
+ *
+ * 2. The frame has real off-screen dimensions. A 0x0 or `visibility: hidden`
+ *    iframe generates no layout box, and Chrome prints it blank even when the
+ *    document is correct. Move it off-screen; do not shrink or hide it.
+ *
+ * 3. Teardown waits for `afterprint` (60s backstop) instead of a fixed short
+ *    timeout, which could remove the frame while the dialog was still open and
+ *    cancel the job.
+ *
+ * There is also a content assertion before printing, so a regression in any of
+ * the above surfaces as a 'failed' result and a toast rather than silently
+ * feeding blank paper to a thermal printer.
  */
 export function printOrderTicket(
   order: OrderView,
@@ -300,12 +318,14 @@ export function printOrderTicket(
     const iframe = document.createElement('iframe');
     iframe.setAttribute('aria-hidden', 'true');
     iframe.title = `ticket-${order.orderNumber}`;
+    // Off-screen with REAL dimensions — see note 2 above. Width tracks the roll
+    // so the ticket lays out at its true size before printing.
     iframe.style.position = 'fixed';
-    iframe.style.inset = 'auto 0 0 auto';
-    iframe.style.width = '0';
-    iframe.style.height = '0';
+    iframe.style.top = '0';
+    iframe.style.left = '-10000px';
+    iframe.style.width = '100mm';
+    iframe.style.height = '297mm';
     iframe.style.border = '0';
-    iframe.style.visibility = 'hidden';
 
     let cleaned = false;
     const cleanup = () => {
@@ -314,31 +334,44 @@ export function printOrderTicket(
       iframe.remove();
     };
 
-    iframe.onload = () => {
-      const frameWindow = iframe.contentWindow;
-      if (!frameWindow) {
-        cleanup();
-        return;
-      }
-      // Remove the frame once the dialog closes. Chrome and Firefox both fire
-      // afterprint; the timeout covers browsers that don't.
-      frameWindow.addEventListener('afterprint', cleanup, { once: true });
-      try {
-        frameWindow.focus();
-        frameWindow.print();
-      } catch {
-        cleanup();
-        return;
-      }
-      // Backstop: 60s is comfortably longer than a human takes to confirm a
-      // print dialog, and far safer than cancelling a live job.
-      setTimeout(cleanup, 60_000);
-    };
-
     document.body.appendChild(iframe);
 
-    // `srcdoc` avoids document.write and keeps the load event meaningful.
-    iframe.srcdoc = html;
+    const frameWindow = iframe.contentWindow;
+    const frameDoc = iframe.contentDocument ?? frameWindow?.document;
+    if (!frameWindow || !frameDoc) {
+      cleanup();
+      return 'failed';
+    }
+
+    // Synchronous write — see note 1. After close() the document is fully
+    // parsed, so there is no load event to race.
+    frameDoc.open();
+    frameDoc.write(html);
+    frameDoc.close();
+
+    // Assertion: never send a blank document to a printer. `.ticket` is the
+    // wrapper buildTicketBody emits once per copy.
+    if (!frameDoc.querySelector('.ticket')) {
+      cleanup();
+      return 'failed';
+    }
+
+    // Remove the frame once the dialog closes. Chrome and Firefox both fire
+    // afterprint; the timeout covers browsers that don't.
+    frameWindow.addEventListener('afterprint', cleanup, { once: true });
+
+    try {
+      frameWindow.focus();
+      frameWindow.print();
+    } catch {
+      cleanup();
+      return 'failed';
+    }
+
+    // Backstop: 60s is comfortably longer than a human takes to confirm a
+    // print dialog, and far safer than cancelling a live job.
+    setTimeout(cleanup, 60_000);
+
     return 'printed';
   } catch {
     return 'failed';
