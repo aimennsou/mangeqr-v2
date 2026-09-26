@@ -27,6 +27,8 @@ export function useOrdersPoll(opts: {
   } = opts;
   const [orders, setOrders] = useState<OrderView[]>([]);
   const [loading, setLoading] = useState(true);
+  // True when the server's result cap hid older matching orders.
+  const [truncated, setTruncated] = useState(false);
   // Ids of newly-arrived orders (since mount), so the UI can highlight them.
   const [newIds, setNewIds] = useState<Set<string>>(new Set());
 
@@ -45,8 +47,9 @@ export function useOrdersPoll(opts: {
         cache: 'no-store'
       });
       if (!res.ok) return;
-      const data: { orders: OrderView[] } = await res.json();
+      const data: { orders: OrderView[]; truncated?: boolean } = await res.json();
       const list = data.orders ?? [];
+      setTruncated(!!data.truncated);
 
       // Detect new orders (ids not seen before). Skip on the very first load so
       // we don't alert for the existing backlog.
@@ -92,5 +95,5 @@ export function useOrdersPoll(opts: {
     });
   }, []);
 
-  return { orders, loading, newIds, refresh: fetchOrders, clearNew };
+  return { orders, loading, truncated, newIds, refresh: fetchOrders, clearNew };
 }

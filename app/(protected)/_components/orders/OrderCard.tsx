@@ -10,6 +10,7 @@ import {
   MapPin,
   Phone,
   Printer,
+  RotateCcw,
   Wallet,
   X as XIcon
 } from 'lucide-react';
@@ -20,6 +21,8 @@ import { cn } from '@/lib/utils';
 import { setOrderStatus, setOrderPaid } from '@/actions/orders';
 import {
   ORDER_STATUS_LABEL,
+  REOPEN_STATUS,
+  canReopen,
   nextStatus,
   statusBadgeClass
 } from './order-status';
@@ -259,6 +262,22 @@ export function OrderCard({
           >
             <XIcon className="mr-1 h-4 w-4" />
             Annuler
+          </Button>
+        </div>
+      ) : canReopen(order.status) ? (
+        /* Undo an accidental cancellation. Cancelling is one tap on a busy pass
+           and used to be permanent — staff had to make the diner order again,
+           which also burned a second order number. COMPLETED gets no such
+           button: it is the accounting close. */
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={isPending}
+            onClick={() => update(REOPEN_STATUS)}
+          >
+            <RotateCcw className="mr-1 h-4 w-4" />
+            Rouvrir
           </Button>
         </div>
       ) : null}

@@ -20,8 +20,16 @@ import { DEFAULT_LOCALE, dirForLocale, type Locale } from '@/lib/i18n/config';
  * logo/name block and line prices). See schemas/index.ts.
  *
  * Self-contained (no print library). There is NO server-side or ESC/POS path:
- * printing only happens while a staff browser tab is open and in the foreground,
- * and nothing is recorded server-side about what was printed.
+ * printing only happens while a staff browser tab is open and the board is
+ * mounted, so closing the laptop stops auto-printing. Browsers also show a print
+ * DIALOG; true one-tap silent printing needs a kiosk-printing flag
+ * (Chrome --kiosk-printing) or a native agent.
+ *
+ * WHAT *IS* recorded server-side: `Order.ticketPrintedAt`, claimed atomically via
+ * `claimTicketPrint` (data/orders.ts) so exactly one board/tab/device ever prints
+ * a given order. See print-dedupe.ts. That column is the print log, not a full
+ * audit trail — it says an order was claimed for printing, not that paper came
+ * out of the printer, which the browser cannot tell us.
  */
 
 /** Strings the ticket needs; supplied by the caller from the dictionary. */

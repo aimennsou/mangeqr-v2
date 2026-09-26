@@ -86,7 +86,7 @@ export function OrdersBoard() {
     ticketOptionsRef.current = ticketOptions;
   }, [ticketOptions]);
 
-  const { orders, loading, newIds, refresh, clearNew } = useOrdersPoll({
+  const { orders, loading, truncated, newIds, refresh, clearNew } = useOrdersPoll({
     restaurantId: restaurantId === ALL ? undefined : restaurantId,
     activeOnly: false,
     days: scope === ALL ? undefined : Number(scope),
@@ -99,10 +99,14 @@ export function OrdersBoard() {
         }`
       );
       // Auto-print the ticket when the restaurant has enabled it, but only once
-      // per order across all open boards/tabs.
+      // per order across every open board, tab and device. The claim is async
+      // (it hits Order.ticketPrintedAt), so fire and forget — the toast and
+      // chime above have already told staff the order arrived.
       const cfg = printerConfigsRef.current.get(o.restaurantId);
-      if (cfg?.autoPrint && claimAutoPrint(o.id)) {
-        printOrderTicket(o, cfg, ticketOptionsRef.current);
+      if (cfg?.autoPrint) {
+        void claimAutoPrint(o.id).then((won) => {
+          if (won) printOrderTicket(o, cfg, ticketOptionsRef.current);
+        });
       }
     }
   });
@@ -272,6 +276,13 @@ export function OrdersBoard() {
           </label>
           <span className="text-sm text-muted-foreground">
             {visible.length} commande{visible.length > 1 ? 's' : ''}
+            {/* The server caps its result set; say so rather than showing a
+                partial history as if it were complete. */}
+            {truncated ? (
+              <span className="ms-2 text-amber-600 dark:text-amber-500">
+                (les plus récentes — affinez la période pour voir le reste)
+              </span>
+            ) : null}
           </span>
           <div className="flex items-center gap-2 md:ml-auto">
             <Button

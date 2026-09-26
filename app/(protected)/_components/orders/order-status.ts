@@ -12,6 +12,8 @@ import type { OrderStatus } from '@prisma/client';
 export {
   DINE_IN_FLOW,
   DELIVERY_FLOW,
+  REOPEN_STATUS,
+  canReopen,
   flowForType,
   nextStatus,
   isTerminal,

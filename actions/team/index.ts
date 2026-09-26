@@ -346,6 +346,7 @@ export async function signUpAndJoin(
       data: {
         name,
         email,
+        phone: phone?.trim() || null,
         password: hashedPassword,
         // Trusted invite flow → verified so they can log in immediately.
         emailVerified: new Date(),
@@ -372,12 +373,11 @@ export async function signUpAndJoin(
     return { error: redeemReasonToMessage(result.reason) };
   }
 
-  // The form asks for a phone number, but `User` has no phone column — it was
-  // previously validated and then silently discarded (the old
-  // `name: phone ? name : name` expression was a no-op). Keep it on the
-  // invitation instead, which is the owner-visible record of this person, and
-  // only when the owner didn't already prefill one. Best-effort: never fail the
-  // join over this.
+  // The phone is now stored on the account itself (User.phone, set above). Also
+  // mirror it onto the invitation, which is the OWNER-visible record of who they
+  // invited — the owner's team screen reads the invitation, not the member's
+  // account. Only when the owner didn't already prefill one. Best-effort: never
+  // fail the join over this.
   if (phone?.trim() && !invitation.inviteePhone) {
     try {
       await db.invitation.updateMany({

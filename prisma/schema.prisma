@@ -40,6 +40,9 @@ model User {
   id                      String                  @id @default(uuid()) @db.Uuid
   name                    String?
   email                   String?                 @unique
+  // Optional contact number. Collected by the invite sign-up form, which used to
+  // discard it (it was parked on Invitation.inviteePhone as a workaround).
+  phone                   String?
   tempEmail               String?
   emailVerified           DateTime?
   image                   String?
@@ -303,6 +306,13 @@ model Dish {
   allergenes    String[]
   // FEAT-1/D12: owner-defined add-on groups (single/multi-select) for ordering.
   addonGroups   DishAddonGroup[]
+  // Back-relations for the three tables that reference a dish. These columns
+  // previously held a bare uuid with no FK, so deleting a dish left dangling
+  // rows: analytics KPIs pointing at nothing, and order lines referencing a
+  // dish that no longer existed.
+  orderItems    OrderItem[]
+  dishViews     DishData[]
+  dishFavorites FavoriteData[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -367,9 +377,14 @@ model DishData {
   restaurantId  String        @db.Uuid
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   dishId        String        @db.Uuid
+  // Cascade, matching restaurantId above: these are pure analytics rows about a
+  // dish, so once the dish is gone they are noise. Without the FK, a deleted
+  // dish left rows that made the "plat le plus consulté" KPI resolve to nothing.
+  dish          Dish          @relation(fields: [dishId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
 
   @@index([restaurantId, createdAt])
+  @@index([dishId])
 }
 
 // One row per "favorite" click by a diner on a dish (heart button). Counted to
@@ -379,6 +394,10 @@ model FavoriteData {
   restaurantId  String        @db.Uuid
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   dishId        String        @db.Uuid
+  // Cascade for the same reason as DishData: the "plat favoris" KPI in
+  // /api/cards2 groups by dishId and then looks the dish up, so an orphan row
+  // could win the count and render a blank name.
+  dish          Dish          @relation(fields: [dishId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
 
   @@index([restaurantId, createdAt])
@@ -862,6 +881,13 @@ model Order {
   paid          Boolean          @default(false)
   paidAt        DateTime?
 
+  // Server-side print log. Auto-print used to be de-duplicated only in
+  // localStorage (a 6h TTL key per browser), so two staff tabs polling in the
+  // same moment could each print a ticket, and a different device knew nothing
+  // about it. Claimed atomically via `updateMany({ where: { ticketPrintedAt:
+  // null } })`, so exactly one caller can ever win. Null = never printed.
+  ticketPrintedAt DateTime?
+
   items         OrderItem[]
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
@@ -876,7 +902,14 @@ model OrderItem {
   id            String    @id @default(uuid()) @db.Uuid
   orderId       String    @db.Uuid
   order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  dishId        String    @db.Uuid
+  // NULLABLE + SetNull on purpose. An order line is financial history: Cascade
+  // would delete past order lines when an owner removes a dish from the menu,
+  // and Restrict would stop them removing it at all. Same trade-off the Order
+  // model already makes for tableId, and it is safe here because dishName and
+  // unitPrice below are snapshots — nothing reads dishId back out (it is absent
+  // from OrderItemView in data/orders.ts).
+  dishId        String?   @db.Uuid
+  dish          Dish?     @relation(fields: [dishId], references: [id], onDelete: SetNull)
   // Snapshots so historical orders are stable if the menu changes.
   dishName      String
   unitPrice     Float
@@ -890,4 +923,5 @@ model OrderItem {
   createdAt     DateTime  @default(now())
 
   @@index([orderId])
+  @@index([dishId])
 }

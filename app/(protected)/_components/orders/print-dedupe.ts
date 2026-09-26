@@ -1,22 +1,23 @@
 'use client';
 
 /**
- * Cross-tab guard against printing the same order ticket twice.
+ * Guard against printing the same order ticket twice.
  *
  * Auto-print fires from `onNewOrder` in BOTH `OrdersBoard` and `KitchenBoard`.
- * Staff routinely have Commandes and Cuisine open at once (often on two
- * devices), so a single new order used to produce one ticket per open board —
- * and nothing recorded that a ticket had already come out.
+ * Staff routinely have Commandes and Cuisine open at once, often on two devices,
+ * so a single new order used to produce one ticket per open board.
  *
- * `localStorage` is shared across tabs of the same origin, so claiming an order
- * id there de-duplicates between boards and between tabs. Entries older than
- * `TTL_MS` are pruned so the key can't grow without bound.
+ * Two layers, in order:
  *
- * This is best-effort, not a distributed lock: two tabs polling at the exact
- * same millisecond could both claim. The polls run on different intervals
- * (8s vs 6s), so in practice the window is negligible. A real guarantee needs
- * server-side print tracking (an `Order.ticketPrintedAt` column), which is the
- * follow-up if duplicate tickets are ever observed in the field.
+ * 1. `localStorage` (this file's `claimLocal`) — shared across tabs of the same
+ *    origin. Cheap and synchronous, so it stops the common case without a round
+ *    trip. It cannot help across DEVICES, and two tabs polling in the same
+ *    millisecond can both win.
+ * 2. `Order.ticketPrintedAt` via POST /api/owner-orders/print-claim — a
+ *    conditional UPDATE, so exactly one caller anywhere ever wins. This is the
+ *    actual guarantee.
+ *
+ * Layer 1 alone was the previous behaviour and is why this was filed as a gap.
  */
 
 const STORAGE_KEY = 'mangeqr_autoprinted_orders';
@@ -39,16 +40,26 @@ function write(claims: Claims): void {
   try {
     window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(claims));
   } catch {
-    /* quota / private mode — fall back to printing */
+    /* quota / private mode — fall back to the server claim */
+  }
+}
+
+/** Release a local claim, so a lost server claim doesn't block a later retry. */
+function releaseLocal(orderId: string): void {
+  try {
+    const claims = read();
+    delete claims[orderId];
+    write(claims);
+  } catch {
+    /* best effort */
   }
 }
 
 /**
- * Try to claim `orderId` for auto-printing. Returns true when THIS caller won
- * the claim and should print, false when a ticket was already produced for that
- * order by another board or tab.
+ * Layer 1: fast, synchronous, per-browser claim. Exported for tests and for
+ * callers that cannot await; prefer `claimAutoPrint`.
  */
-export function claimAutoPrint(orderId: string): boolean {
+export function claimLocal(orderId: string): boolean {
   if (typeof window === 'undefined') return false;
 
   const now = Date.now();
@@ -66,4 +77,44 @@ export function claimAutoPrint(orderId: string): boolean {
   claims[orderId] = now;
   write(claims);
   return true;
+}
+
+/**
+ * Try to claim `orderId` for auto-printing. Resolves true only when THIS caller
+ * should print.
+ *
+ * On a network failure the server claim is treated as LOST (returns false). An
+ * unprinted ticket is recoverable — staff reprint from the order card — whereas
+ * a duplicate is waste and confusion on a busy pass.
+ */
+export async function claimAutoPrint(orderId: string): Promise<boolean> {
+  // Cheap local check first: if another tab in this browser already printed,
+  // don't even ask the server.
+  if (!claimLocal(orderId)) return false;
+
+  try {
+    const res = await fetch('/api/owner-orders/print-claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId })
+    });
+
+    if (!res.ok) {
+      releaseLocal(orderId);
+      return false;
+    }
+
+    const data: { claimed?: boolean } = await res.json();
+    if (!data.claimed) {
+      // Another device got there first. Drop the local claim so this browser
+      // isn't left holding a claim it never used.
+      releaseLocal(orderId);
+      return false;
+    }
+
+    return true;
+  } catch {
+    releaseLocal(orderId);
+    return false;
+  }
 }

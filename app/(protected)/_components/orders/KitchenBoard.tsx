@@ -80,9 +80,14 @@ export function KitchenBoard() {
     onNewOrder: (o) => {
       if (soundRef.current) playNewOrderChime();
       toast.info(`Nouvelle commande #${o.orderNumber}`);
+      // One ticket per order across every board, tab and device — the claim is
+      // an atomic UPDATE on Order.ticketPrintedAt, so Commandes and Cuisine
+      // being open at once can no longer each produce a ticket.
       const cfg = printerConfigsRef.current.get(o.restaurantId);
-      if (cfg?.autoPrint && claimAutoPrint(o.id)) {
-        printOrderTicket(o, cfg, ticketOptionsRef.current);
+      if (cfg?.autoPrint) {
+        void claimAutoPrint(o.id).then((won) => {
+          if (won) printOrderTicket(o, cfg, ticketOptionsRef.current);
+        });
       }
     }
   });

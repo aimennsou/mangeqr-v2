@@ -42,6 +42,13 @@ export async function GET(req: NextRequest) {
       ? new Date(Date.now() - Math.min(rawDays, 365) * 24 * 60 * 60 * 1000)
       : undefined;
 
-  const orders = await listOrders({ ownerId, restaurantId, activeOnly, since });
-  return NextResponse.json({ orders }, { status: 200 });
+  // `truncated` tells the board the cap hid older matching orders, so it can say
+  // so instead of silently showing a partial history.
+  const { orders, truncated } = await listOrders({
+    ownerId,
+    restaurantId,
+    activeOnly,
+    since
+  });
+  return NextResponse.json({ orders, truncated }, { status: 200 });
 }
