@@ -11,11 +11,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { signUpAndJoin } from '@/actions/team';
 import { useI18n } from '@/lib/i18n';
+import { joinErrorKey, joinSuccessKey } from '@/lib/team-errors';
 
 /**
  * Invite-without-account sign-up form (#13). Creates the account + membership in
  * one step via `signUpAndJoin`, then signs the user in with the same
  * credentials and sends them to the dashboard.
+ *
+ * Outcome toasts come from the action's CODE so they follow the page locale.
+ * One exception: when the schema rejects the payload the action also returns the
+ * precise French field message in `error`; that is more useful than the generic
+ * translated "invalid data", so we prefer it for that single code.
  */
 export function InviteSignUpForm({
   code,
@@ -50,10 +56,17 @@ export function InviteSignUpForm({
         confirm,
       });
       if ('error' in res) {
-        toast.error(res.error);
+        // `invalid_data` carries a field-specific French message that is more
+        // actionable than the generic translated one; everything else is a
+        // known condition with a proper translation.
+        toast.error(
+          res.reason && res.reason !== 'invalid_data'
+            ? t(joinErrorKey(res.reason))
+            : res.error
+        );
         return;
       }
-      toast.success(res.success);
+      toast.success(res.code ? t(joinSuccessKey(res.code)) : res.success);
       // Log in immediately with the freshly created credentials.
       const signInRes = await signIn('credentials', {
         email: res.email,

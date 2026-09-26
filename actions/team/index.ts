@@ -13,6 +13,10 @@ import { generatePasswordResetToken } from '@/lib/tokens';
 // pointing at a DIFFERENT (auth-gated) path — see lib/team-invite.ts.
 import { buildInviteLink, buildPasswordResetLink } from '@/lib/team-invite';
 import { memberLandingHref } from '@/lib/permissions';
+// Outcome CODES for the join flow. Types only here; the code→dictionary-key maps
+// live in the same module and are imported by the client forms (a client
+// component cannot import values from this 'use server' file).
+import type { JoinErrorCode, JoinSuccessCode } from '@/lib/team-errors';
 import {
   CreateInviteSchema,
   SignUpAndJoinSchema,
@@ -331,17 +335,17 @@ const JoinSchema = z.object({
     .min(1, { message: 'Veuillez saisir un code.' }),
 });
 
-/** Map a redeem failure reason to a French, user-facing message. */
-function redeemReasonToMessage(
-  reason:
-    | 'invalid'
-    | 'self'
-    | 'already_member'
-    | 'owns_team'
-    | 'owns_restaurants'
-    | 'seat_full'
-): string {
-  switch (reason) {
+/**
+ * French fallback text for a join outcome code.
+ *
+ * The CODE is the contract now (see lib/team-errors.ts): the client maps it to a
+ * dictionary key so the message follows the reader's locale. This function only
+ * exists so `{ error }` keeps carrying something human-readable for any caller
+ * that is not localized, and so the return shape stays backward compatible.
+ * Keep the wording in sync with the `join.error.*` French entries.
+ */
+function joinCodeToFrench(code: JoinErrorCode): string {
+  switch (code) {
     case 'self':
       return 'Vous ne pouvez pas rejoindre votre propre espace de travail.';
     case 'already_member':
@@ -352,10 +356,25 @@ function redeemReasonToMessage(
       return 'Vous possédez déjà des restaurants et ne pouvez pas rejoindre un autre espace.';
     case 'seat_full':
       return "Le nombre de collaborateurs de cet espace est atteint. Contactez le propriétaire.";
+    case 'unauthorized':
+      return 'Non autorisé.';
+    case 'code_required':
+      return 'Veuillez saisir un code.';
+    case 'email_exists':
+      return 'Un compte existe déjà avec cet e-mail. Connectez-vous puis utilisez votre code.';
+    case 'account_create_failed':
+      return 'Impossible de créer le compte.';
+    case 'invalid_data':
+      return 'Données invalides.';
     case 'invalid':
     default:
       return 'Code invalide, expiré ou déjà utilisé.';
   }
+}
+
+/** Build the dual-shape failure result: a code to translate + a French fallback. */
+function joinFailure(code: JoinErrorCode): { error: string; reason: JoinErrorCode } {
+  return { error: joinCodeToFrench(code), reason: code };
 }
 
 /**
@@ -363,19 +382,18 @@ function redeemReasonToMessage(
  * redeemer. Validation, seat enforcement, redeemer guards and one-time
  * consumption are all handled atomically in the data layer.
  */
-export async function joinWorkspace(
-  code: string
-): Promise<{ error: string } | { success: string; redirectTo: string }> {
+export async function joinWorkspace(code: string): Promise<
+  | { error: string; reason: JoinErrorCode }
+  | { success: string; code: JoinSuccessCode; redirectTo: string }
+> {
   const user = await currentUser();
   if (!user?.id) {
-    return { error: 'Non autorisé.' };
+    return joinFailure('unauthorized');
   }
 
   const parsed = JoinSchema.safeParse({ code });
   if (!parsed.success) {
-    return {
-      error: parsed.error.errors[0]?.message ?? 'Code invalide.',
-    };
+    return joinFailure('code_required');
   }
 
   const result = await consumeInvitationAndCreateMembership(
@@ -384,11 +402,12 @@ export async function joinWorkspace(
   );
 
   if (!result.ok) {
-    return { error: redeemReasonToMessage(result.reason) };
+    return joinFailure(result.reason);
   }
 
   return {
     success: 'Vous avez rejoint l\'espace de travail.',
+    code: 'joined',
     // Derived from the permissions the owner actually granted. The client used
     // to hardcode '/performances', which is permission-gated, so a member
     // without that permission was dropped on a page the guard then bounced them
@@ -411,12 +430,23 @@ export async function joinWorkspace(
 export async function signUpAndJoin(
   values: z.infer<typeof SignUpAndJoinSchema>
 ): Promise<
-  { error: string } | { success: string; email: string; redirectTo: string }
+  | { error: string; reason: JoinErrorCode }
+  | {
+      success: string;
+      code: JoinSuccessCode;
+      email: string;
+      redirectTo: string;
+    }
 > {
   const parsed = SignUpAndJoinSchema.safeParse(values);
   if (!parsed.success) {
+    // The zod messages here are field-level and French-only. They stay in
+    // `error` as the fallback, but the code the client translates is the generic
+    // one — per-field localization would mean localizing the schemas themselves,
+    // which is a broader change than this flow.
     return {
       error: parsed.error.errors[0]?.message ?? 'Données invalides.',
+      reason: 'invalid_data',
     };
   }
 
@@ -427,15 +457,12 @@ export async function signUpAndJoin(
   // creating a user row and then deleting it again on every attempt.
   const invitation = await findValidInvitationByCode(code);
   if (!invitation) {
-    return { error: redeemReasonToMessage('invalid') };
+    return joinFailure('invalid');
   }
 
   const existing = await getUserByEmail(email);
   if (existing) {
-    return {
-      error:
-        'Un compte existe déjà avec cet e-mail. Connectez-vous puis utilisez votre code.',
-    };
+    return joinFailure('email_exists');
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -457,7 +484,7 @@ export async function signUpAndJoin(
     });
     userId = created.id;
   } catch {
-    return { error: 'Impossible de créer le compte.' };
+    return joinFailure('account_create_failed');
   }
 
   // Attach to the inviting workspace (atomic, re-checks all invariants).
@@ -470,7 +497,7 @@ export async function signUpAndJoin(
     } catch {
       // ignore cleanup failure
     }
-    return { error: redeemReasonToMessage(result.reason) };
+    return joinFailure(result.reason);
   }
 
   // The phone is now stored on the account itself (User.phone, set above). Also
@@ -491,6 +518,7 @@ export async function signUpAndJoin(
 
   return {
     success: 'Compte créé et rattaché à l’espace.',
+    code: 'account_created',
     email,
     // See joinWorkspace: never hardcode /performances for a member.
     redirectTo: memberLandingHref(result.permissions),

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { joinWorkspace } from '@/actions/team';
 import { useI18n } from '@/lib/i18n';
+import { joinErrorKey, joinSuccessKey } from '@/lib/team-errors';
 
 interface JoinFormProps {
   initialCode?: string;
@@ -18,11 +19,9 @@ interface JoinFormProps {
  * Redeem form for joining a workspace (mangeqr-team, T8 / R5.3). Prefilled with
  * the `?code=` query param. On success, toasts and redirects to the dashboard.
  *
- * NOTE the asymmetry: the *failure* messages still come from the action, which
- * only speaks French. They carry real meaning (seat full, already a member, you
- * own restaurants) so they are worth translating, but that means moving
- * `redeemReasonToMessage` out of the action and into the client — a separate
- * change. The strings this component owns are localized.
+ * The action returns an outcome CODE, not a sentence, so the toasts follow the
+ * reader's locale. It also returns a French `error`/`success` string as a
+ * fallback; we only use it if the code is missing.
  */
 export default function JoinForm({ initialCode = '' }: JoinFormProps) {
   const { t } = useI18n();
@@ -40,10 +39,10 @@ export default function JoinForm({ initialCode = '' }: JoinFormProps) {
     startTransition(async () => {
       const res = await joinWorkspace(trimmed);
       if ('error' in res) {
-        toast.error(res.error);
+        toast.error(res.reason ? t(joinErrorKey(res.reason)) : res.error);
         return;
       }
-      toast.success(res.success);
+      toast.success(res.code ? t(joinSuccessKey(res.code)) : res.success);
       // Destination comes from the action (derived from the granted
       // permissions), not a hardcoded '/performances' which is permission-gated.
       // A full navigation so the server sees the new membership on the next
