@@ -5,6 +5,7 @@ import { ArdoiseTemplate } from "./ArdoiseTemplate";
 import { BistroTemplate } from "./BistroTemplate";
 import { ElegantDoreTemplate } from "./ElegantDoreTemplate";
 import { TableauVertTemplate } from "./TableauVertTemplate";
+import { FastFoodTemplate } from "./FastFoodTemplate";
 
 // Registry of available physical-menu templates. Add new designs here.
 export const MENU_TEMPLATES: MenuTemplate[] = [
@@ -43,6 +44,12 @@ export const MENU_TEMPLATES: MenuTemplate[] = [
     label: "Brasserie Verte",
     description: "Papier crème, bandeaux verts pliés, en-tête script, deux colonnes.",
     Component: TableauVertTemplate,
+  },
+  {
+    id: "fast-food",
+    label: "Fast Food",
+    description: "Ardoise noire, bandeaux jaunes peints, illustrations burger / frites / pizza.",
+    Component: FastFoodTemplate,
   },
 ];
 

@@ -130,6 +130,18 @@ export interface PublicMenuProps {
    * page instead of the phone.
    */
   overlayContainer?: HTMLElement | null;
+  /**
+   * The element that actually scrolls, when it is not the window.
+   *
+   * Required for a framed menu. Three things here assume the viewport scrolls:
+   * the category chips (which drive `window.scrollTo`), the active-chip
+   * highlight, and the category/dish impression tracking (both
+   * IntersectionObservers default their root to the viewport). Inside a frame
+   * the window never scrolls, so without this the chips silently do nothing and
+   * the observers either never fire or fire for every section at once —
+   * corrupting analytics rather than just looking wrong.
+   */
+  scrollRoot?: HTMLElement | null;
 }
 
 export function PublicMenu({
@@ -151,6 +163,7 @@ export function PublicMenu({
   previewMode = false,
   framed = false,
   overlayContainer,
+  scrollRoot,
 }: PublicMenuProps) {
   const [activeMenuId, setActiveMenuId] = useState<string>(
     menus[0]?.id ?? ""
@@ -272,7 +285,11 @@ export function PublicMenu({
           observer.unobserve(el);
         }
       },
-      { threshold: 0.5 }
+      // `root` must be the frame's scroller when framed; left null (viewport)
+      // otherwise. Getting this wrong does not just misplace a highlight — it
+      // writes wrong analytics, because every section can read as visible at
+      // once against the wrong root.
+      { root: scrollRoot ?? null, threshold: 0.5 }
     );
 
     const sections = container.querySelectorAll<HTMLElement>(
@@ -281,7 +298,7 @@ export function PublicMenu({
     sections.forEach((s) => observer.observe(s));
 
     return () => observer.disconnect();
-  }, [restaurantId, previewMode, track, activeMenu?.id]);
+  }, [restaurantId, previewMode, track, activeMenu?.id, scrollRoot]);
 
   // Hoisted out of the effect below so it can be a precise dependency. The
   // effect only ever needs the FIRST category's id (to seed the sticky bar), and
@@ -324,7 +341,9 @@ export function PublicMenu({
         setActiveCategoryId(topId);
       },
       // A section counts as "at the top" once its body is near the sticky bars.
-      { rootMargin: "-120px 0px -60% 0px", threshold: 0 }
+      // The margins are percentages of the ROOT, so the root has to be the
+      // frame's scroller when framed or the band lands outside the phone.
+      { root: scrollRoot ?? null, rootMargin: "-120px 0px -60% 0px", threshold: 0 }
     );
 
     const sections = container.querySelectorAll<HTMLElement>(
@@ -338,7 +357,7 @@ export function PublicMenu({
     }
 
     return () => observer.disconnect();
-  }, [activeMenu?.id, firstCategoryId]);
+  }, [activeMenu?.id, firstCategoryId, scrollRoot]);
 
   const openDishDetail = useCallback(
     (dish: Dish) => {
@@ -389,18 +408,36 @@ export function PublicMenu({
   const chipNavRef = useRef<HTMLDivElement | null>(null);
 
   // Scroll the given category's heading to just below the sticky bars.
-  const scrollToCategory = useCallback((categoryId: string) => {
-    const el = document.querySelector<HTMLElement>(
-      `[data-category-anchor="${categoryId}"]`
-    );
-    if (!el) return;
-    // Clear both sticky bars, plus a little breathing room.
-    const y =
-      el.getBoundingClientRect().top +
-      window.scrollY -
-      (DINER_HEADER_H + DINER_CHIP_BAR_H + 8);
-    window.scrollTo({ top: y, behavior: "smooth" });
-  }, []);
+  //
+  // Scoped to this menu's root rather than the document, and aware that the
+  // scrolling box may be a frame instead of the window — a chip that called
+  // window.scrollTo inside a phone frame just did nothing at all.
+  const scrollToCategory = useCallback(
+    (categoryId: string) => {
+      const el = (rootRef.current ?? document).querySelector<HTMLElement>(
+        `[data-category-anchor="${categoryId}"]`
+      );
+      if (!el) return;
+      // Clear both sticky bars, plus a little breathing room.
+      const offset = DINER_HEADER_H + DINER_CHIP_BAR_H + 8;
+
+      if (scrollRoot) {
+        // Positions are viewport-relative, so convert into the scroller's own
+        // coordinate space before adding its current scroll position.
+        const top =
+          el.getBoundingClientRect().top -
+          scrollRoot.getBoundingClientRect().top +
+          scrollRoot.scrollTop -
+          offset;
+        scrollRoot.scrollTo({ top, behavior: "smooth" });
+        return;
+      }
+
+      const y = el.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({ top: y, behavior: "smooth" });
+    },
+    [scrollRoot]
+  );
 
   // Keep the active chip visible within the horizontal chip strip.
   useEffect(() => {
@@ -426,7 +463,15 @@ export function PublicMenu({
   return (
     <div
       ref={rootRef}
-      className={cn("mx-auto min-h-screen max-w-lg pb-16", contained && "relative min-h-full")}
+      // Height is switched by BREAKPOINT, not by `contained`, so there is no
+      // layout settle on first paint: `contained` is false until the media query
+      // effect runs, and a 100vh minimum inside a 780px frame would briefly add
+      // a scrollbar's worth of empty space. Below md the menu fills the viewport
+      // as a page; at md+ it is always inside the frame and fills the screen box.
+      //
+      // `relative` is unconditional: it anchors the contained overlays and is
+      // inert otherwise, so it needs no JS either.
+      className="relative mx-auto max-w-lg pb-16 max-md:min-h-screen md:min-h-full"
       style={{ ...styles.screen, color: theme.text }}
     >
       {/* Top bar: logo + centered active-menu title + language switcher.

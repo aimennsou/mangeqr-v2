@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { db } from '@/lib/db';
 import { currencySymbol } from '@/lib/currency';
 import { LEAD_COVER_PHOTO, leadDishPhoto } from '@/lib/lead-placeholders';
-import { PublicMenu } from '@/app/restaurant/[id]/_components/PublicMenu';
+import DinerMenuScreen from '@/app/restaurant/_shared/DinerMenuScreen';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,7 +81,7 @@ export default async function LeadMenuPage({
   ];
 
   return (
-    <PublicMenu
+    <DinerMenuScreen
       restaurantId={`lead-${lead.id}`}
       name={lead.restaurantName}
       address=""

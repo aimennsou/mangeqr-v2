@@ -51,24 +51,41 @@ export async function generateMetadata(): Promise<Metadata> {
 
   const title = t('landing.meta.title');
   const description = t('landing.meta.description');
+  const baseUrl = 'https://www.mangeqr.com';
 
   return {
     title,
     description,
+    alternates: {
+      canonical: baseUrl,
+      languages: {
+        'fr-FR': baseUrl,
+        'ar-DZ': `${baseUrl}/lp/ar`,
+      },
+    },
     openGraph: {
-      url: 'https://www.mangeqr.com/',
-      locale,
+      type: 'website',
+      url: baseUrl,
+      siteName: 'MangeQR',
+      locale: locale === 'ar' ? 'ar_AR' : 'fr_FR',
+      alternateLocale: locale === 'ar' ? ['fr_FR'] : ['ar_AR'],
       title,
       description,
       images: [
         {
-          url: 'https://www.mangeqr.com/og-image.png',
+          url: `${baseUrl}/og-image.png`,
           width: 1200,
           height: 630,
           alt: t('landing.meta.ogAlt')
         }
       ]
-    }
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: [`${baseUrl}/og-image.png`],
+    },
   };
 }
 
@@ -95,7 +112,15 @@ function buildLandingJsonLd() {
         name: 'MangeQR',
         url: baseUrl,
         logo: `${baseUrl}/og-image.png`,
-        areaServed: ['FR', 'DZ'],
+        areaServed: [
+          { '@type': 'Country', name: 'France' },
+          { '@type': 'Country', name: 'Algeria' },
+          { '@type': 'Country', name: 'Morocco' },
+          { '@type': 'Country', name: 'Tunisia' },
+        ],
+        knowsLanguage: ['fr', 'ar'],
+        // Add your social profile URLs here when ready:
+        // sameAs: ['https://www.instagram.com/mangeqr', 'https://www.facebook.com/mangeqr'],
       },
       {
         '@type': 'SoftwareApplication',
@@ -106,11 +131,67 @@ function buildLandingJsonLd() {
         publisher: { '@id': `${baseUrl}/#organization` },
         description:
           'Créez des menus numériques et physiques, collectez des avis clients et suivez vos performances. Une carte toujours à jour, sans réimpression.',
+        availableLanguage: [
+          { '@type': 'Language', name: 'French', alternateName: 'fr' },
+          { '@type': 'Language', name: 'Arabic', alternateName: 'ar' },
+        ],
         offers: {
           '@type': 'Offer',
-          price: '12',
+          price: '0',
           priceCurrency: 'EUR',
+          description: 'Essai gratuit, puis à partir de 12 €/mois',
         },
+        aggregateRating: undefined, // Add when you have real ratings
+      },
+      // WebSite with SearchAction enables Google sitelinks search box.
+      {
+        '@type': 'WebSite',
+        '@id': `${baseUrl}/#website`,
+        url: baseUrl,
+        name: 'MangeQR',
+        inLanguage: ['fr-FR', 'ar-DZ'],
+        publisher: { '@id': `${baseUrl}/#organization` },
+      },
+      // FAQ rich result — the 4 Q&A pairs from the landing page.
+      // Hardcoded in French: crawlers arrive without the locale cookie and only
+      // ever see the default (French) version. Keep in sync with
+      // landing.faq.q1..q4 / a1..a4 in lib/i18n/dictionaries.ts.
+      {
+        '@type': 'FAQPage',
+        mainEntity: [
+          {
+            '@type': 'Question',
+            name: 'Est-ce que MangeQR est une application ?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: "Non. MangeQR n'est pas une application à télécharger : vos clients ne passent pas par l'App Store. Dès qu'ils scannent le code QR, ils arrivent sur une page web avec le menu de votre restaurant.",
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'Est-il facile de créer un menu QR ?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Oui. MangeQR est pensé pour être simple. Vous créez votre restaurant, ajoutez vos menus et vos plats, et sauvegardez. Le menu est aussitôt mis à jour et synchronisé avec le QR code des tables.',
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'Puis-je changer les prix ou les plats après coup ?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: "À tout moment. Un plat n'est plus disponible ? Rendez-vous dans votre espace et masquez-le : il apparaît en grisé pour les clients au lieu de les décevoir à table.",
+            },
+          },
+          {
+            '@type': 'Question',
+            name: 'Comment je reçois mes QR codes ?',
+            acceptedAnswer: {
+              '@type': 'Answer',
+              text: 'Vous téléchargez vos QR codes en JPEG ou PDF directement depuis votre espace. En version BETA, nous vous envoyons aussi un échantillon de stand QR code.',
+            },
+          },
+        ],
       },
     ],
   };

@@ -1,10 +1,5 @@
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'MangeQR — قائمة طعام رقمية برمز QR في دقيقتين',
-  description:
-    'أنشئ قائمة طعام رقمية أنيقة برمز QR لمطعمك في دقيقتين — بدون طباعة متكررة وبدون أي خبرة تقنية.',
-};
+// Page-level metadata lives in lp/ar/page.tsx (richer, includes OG + Twitter +
+// keywords + hreflang). The layout only provides structural chrome.
 
 /**
  * Standalone layout for paid-ads landing pages (/lp/*).

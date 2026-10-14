@@ -6,7 +6,7 @@ import { buildRestaurantJsonLd } from "../../_shared/menu-jsonld";
 import { MenuUnavailable } from "../../_shared/MenuUnavailable";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { buildSubdomainMenuUrl } from "@/lib/subdomain";
-import { PublicMenu } from "../../[id]/_components/PublicMenu";
+import DinerMenuScreen from "../../_shared/DinerMenuScreen";
 
 // Diner menu resolved by restaurant subdomain (e.g. artisto.mangeqr.com, which
 // the middleware rewrites to this route). Fully dynamic.
@@ -72,7 +72,7 @@ export default async function SubdomainMenuPage({
           currencyCode: data.currencyCode,
         })}
       />
-      <PublicMenu {...data} />
+      <DinerMenuScreen {...data} />
     </>
   );
 }

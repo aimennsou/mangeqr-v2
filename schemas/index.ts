@@ -312,32 +312,16 @@ export function resolveBorneConfig(
 }
 
 /**
- * Admin-only payload to set a user's plan, payment method, and expiry
- * (Requirement 3 — cash/offline plans, no Stripe checkout).
+ * SUPERADMIN cash-subscription console payloads (superadmin, S5). Gated to the
+ * SUPERADMIN role in the action layer; never trust the client.
  *
- * `planRenewsAt` is the expiration date: `null`/omitted means no expiry.
- * It is accepted as an ISO datetime string (coerced to a `Date` before
- * persisting) so it can be sent from a form or another server context.
+ * `planRenewsAt` is the expiration date: `null`/omitted means no expiry,
+ * accepted as an ISO datetime string (coerced to a `Date` before persisting).
  * Expiry is enforced downstream by `getEffectivePlan` (lib/plan.ts): once
  * `planRenewsAt` is in the past a paid plan is treated as STARTER for gating.
  */
-export const AdminSetPlanSchema = z.object({
-  userId: z.string().uuid({
-    message: 'A valid user id is required.'
-  }),
-  plan: z.enum([Plan.FREE, Plan.STARTER, Plan.PRO, Plan.PREMIUM]),
-  planPaymentMethod: z.enum([PlanPaymentMethod.CASH, PlanPaymentMethod.ONLINE]),
-  planRenewsAt: z.string().datetime().nullable().optional()
-});
 
-export type AdminSetPlanValues = z.infer<typeof AdminSetPlanSchema>;
-
-/**
- * SUPERADMIN cash-subscription console payloads (superadmin, S5). Gated to the
- * SUPERADMIN role in the action layer; never trust the client.
- */
-
-/** Set a user's plan / payment method / expiry (same shape as AdminSetPlan). */
+/** Set a user's plan / payment method / expiry. */
 export const SuperadminSetPlanSchema = z.object({
   userId: z.string().uuid({
     message: 'A valid user id is required.'

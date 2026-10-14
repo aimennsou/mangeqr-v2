@@ -8,7 +8,24 @@ export const metadata: Metadata = {
   title: 'أنشئ قائمة QR مجانية في دقيقتين — MangeQR',
   description:
     'أنشئ قائمتك الرقمية واحصل على رمز QR ورابط للمشاركة. بدون حساب وبدون تثبيت.',
-  robots: { index: false }
+  keywords: [
+    'قائمة طعام رقمية',
+    'قائمة مطعم QR',
+    'منيو رقمي',
+    'رمز QR مطعم',
+    'قائمة QR مجانية',
+    'منيو الكتروني',
+  ],
+  robots: { index: false },
+  openGraph: {
+    type: 'website',
+    url: 'https://www.mangeqr.com/go/ar',
+    locale: 'ar_AR',
+    title: 'أنشئ قائمة QR مجانية في دقيقتين — MangeQR',
+    description:
+      'أنشئ قائمتك الرقمية واحصل على رمز QR ورابط للمشاركة. بدون حساب وبدون تثبيت.',
+    images: [{ url: 'https://www.mangeqr.com/og-image.png', width: 1200, height: 630, alt: 'MangeQR' }],
+  },
 };
 
 /**

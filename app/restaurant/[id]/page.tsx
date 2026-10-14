@@ -6,7 +6,7 @@ import { buildRestaurantJsonLd } from "../_shared/menu-jsonld";
 import { MenuUnavailable } from "../_shared/MenuUnavailable";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { buildPathMenuUrl } from "@/lib/subdomain";
-import { PublicMenu } from "./_components/PublicMenu";
+import DinerMenuScreen from "../_shared/DinerMenuScreen";
 
 // The diner-facing menu is fully dynamic (reflects the latest owner edits) and
 // must never be statically cached at build time.
@@ -27,8 +27,8 @@ export async function generateMetadata({
 
   const title = `${data.name} — Menu`;
   const description = data.address
-    ? `Découvrez la carte de ${data.name} (${data.address}) : plats, prix et disponibilités, toujours à jour.`
-    : `Découvrez la carte de ${data.name} : plats, prix et disponibilités, toujours à jour.`;
+    ? `Découvrez la carte de ${data.name} (${data.address}) : plats, prix et disponibilités, toujours à jour. اكتشف قائمة ${data.name} : الأطباق والأسعار محدّثة دائمًا.`
+    : `Découvrez la carte de ${data.name} : plats, prix et disponibilités, toujours à jour. اكتشف قائمة ${data.name} : الأطباق والأسعار محدّثة دائمًا.`;
   const url = buildPathMenuUrl(params.id);
 
   return {
@@ -67,7 +67,7 @@ export default async function PublicRestaurantMenuPage({
           currencyCode: data.currencyCode,
         })}
       />
-      <PublicMenu {...data} />
+      <DinerMenuScreen {...data} />
     </>
   );
 }

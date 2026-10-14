@@ -230,9 +230,6 @@ export async function GET() {
         category: true, // Optionally include related categories if needed
       },
     });
-
-console.log("GET at api/plat gave this", dishes)
-
     return NextResponse.json(dishes, { status: 200 });
   } catch (error) {
     console.error("Error fetching dishes:", error);

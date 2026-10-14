@@ -14,8 +14,6 @@ export async function POST(req: NextRequest) {
 
     const updatedDishes = await req.json();
 
-    console.log("Received data at /api/dish/position:", updatedDishes);
-
     if (!Array.isArray(updatedDishes)) {
       return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
     }

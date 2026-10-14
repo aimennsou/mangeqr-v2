@@ -40,9 +40,11 @@ export default function MenuAppearancePreview({
 }: MenuAppearancePreviewProps) {
   const [menuData, setMenuData] = useState<PreviewMenuData | null>(null);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading');
-  // The fixed-size phone SCREEN element; the dish dialog portals here so it is
-  // contained to the visible phone viewport (see PublicMenu previewContainer).
+  // The fixed-size phone SCREEN element; overlays portal here so they stay
+  // inside the phone viewport (see PublicMenu's `overlayContainer`).
   const [screenEl, setScreenEl] = useState<HTMLDivElement | null>(null);
+  // The scrolling element inside the frame (see `scrollRoot` on PublicMenu).
+  const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null);
 
   // Fetch the real menu data whenever the selected restaurant changes.
   useEffect(() => {
@@ -88,8 +90,11 @@ export default function MenuAppearancePreview({
             <div className="absolute left-1/2 top-1 h-4 w-20 -translate-x-1/2 rounded-full bg-gray-900" />
           </div>
 
-          {/* Scrollable menu content */}
-          <div className="h-[calc(560px-1.5rem)] overflow-y-auto">
+          {/* Scrollable menu content. Ref'd because the menu needs to know which
+              element scrolls — its category chips and both IntersectionObserver
+              roots otherwise assume the window, which never scrolls here. The
+              chips had never worked in this preview. */}
+          <div ref={setScrollEl} className="h-[calc(560px-1.5rem)] overflow-y-auto">
             {status === 'loading' ? (
               <div className="flex h-full items-center justify-center px-4 text-center text-sm text-muted-foreground">
                 Chargement de l&apos;aperçu...
@@ -105,8 +110,13 @@ export default function MenuAppearancePreview({
                 <PublicMenu
                   {...menuData}
                   menuAppearance={appearance ?? menuData.menuAppearance}
+                  // previewMode: don't count the owner's own editing as diner
+                  // analytics. framed: contain the overlays in the phone. These
+                  // used to be the same flag; they are not the same thing.
                   previewMode
-                  previewContainer={screenEl}
+                  framed
+                  overlayContainer={screenEl}
+                  scrollRoot={scrollEl}
                 />
               </I18nProvider>
             )}

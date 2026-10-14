@@ -6,52 +6,82 @@ import { isTrialExpired } from '@/lib/plan';
 /**
  * sitemap.xml
  *
- * Previously listed only the homepage, which meant the single biggest pool of
- * indexable content — every diner-facing restaurant menu — was invisible to
- * search engines. Each live menu is a real content page (restaurant name,
- * address, dishes, prices), so they are enumerated here.
+ * Enumerates every publicly-crawlable page so search engines discover the full
+ * content surface. Each diner-facing restaurant menu is a real content page
+ * (restaurant name, address, dishes, prices) and is enumerated dynamically.
+ *
+ * Hreflang alternates are declared on static routes that have locale variants
+ * (/ ↔ /lp/ar) so Google can serve the right version in French vs Arabic SERPs.
  *
  * Excluded on purpose:
  *  - restaurants whose owner's FREE trial has expired (their public menu is
  *    hidden by getPublicMenuData, so indexing them would surface a dead page),
  *  - restaurants with no ACTIVE menu (nothing to show),
- *  - the authenticated app, /api, /order/<uuid>, /tv and /borne (see robots.ts).
- *
- * KNOWN LIMITATION — locale: the app stores locale in the `mangeqr_locale`
- * cookie rather than in the URL, so there is exactly one URL per page and no
- * per-locale alternates can be declared here. Crawlers arrive without a cookie
- * and therefore only ever see French. Giving Arabic/English real organic
- * visibility needs locale-prefixed paths (/ar/…, /en/…) or per-locale
- * subdomains, plus hreflang alternates — a routing change, not a sitemap one.
+ *  - the authenticated app, /api, /order/<uuid>, /tv, /borne (see robots.ts),
+ *  - /go/fr and /go/ar (paid-ads funnels, explicitly noindex in their metadata),
+ *  - /cgu (placeholder, noindex until real terms are written),
+ *  - /v2 (permanent redirect to /).
  */
 export const revalidate = 3600; // regenerate at most hourly
 
-const baseUrl = 'https://www.mangeqr.com';
+const BASE_URL = 'https://www.mangeqr.com';
 
-/** Public marketing + funnel pages that should always be listed. */
-const STATIC_ROUTES: { path: string; priority: number }[] = [
-  { path: '/', priority: 1 },
-  { path: '/go/fr', priority: 0.7 },
-  { path: '/go/ar', priority: 0.7 },
-  { path: '/lp/ar', priority: 0.7 },
+/**
+ * Public marketing pages that should always be listed, with hreflang alternates
+ * where applicable. Google reads alternates from sitemaps OR from <link> tags;
+ * declaring them in both maximises discoverability.
+ */
+const STATIC_ROUTES: {
+  path: string;
+  priority: number;
+  changeFrequency: MetadataRoute.Sitemap[number]['changeFrequency'];
+  alternates?: Record<string, string>;
+}[] = [
+  {
+    path: '/',
+    priority: 1,
+    changeFrequency: 'weekly',
+    alternates: {
+      'fr-FR': BASE_URL,
+      'ar-DZ': `${BASE_URL}/lp/ar`,
+      'x-default': BASE_URL,
+    },
+  },
+  {
+    path: '/lp/ar',
+    priority: 0.9,
+    changeFrequency: 'weekly',
+    alternates: {
+      'ar-DZ': `${BASE_URL}/lp/ar`,
+      'fr-FR': BASE_URL,
+      'x-default': BASE_URL,
+    },
+  },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
 
   const routes: MetadataRoute.Sitemap = STATIC_ROUTES.map((r) => ({
-    url: `${baseUrl}${r.path === '/' ? '' : r.path}`,
+    url: `${BASE_URL}${r.path === '/' ? '' : r.path}`,
     lastModified: now,
-    changeFrequency: 'weekly',
+    changeFrequency: r.changeFrequency,
     priority: r.priority,
+    ...(r.alternates
+      ? {
+          alternates: {
+            languages: r.alternates,
+          },
+        }
+      : {}),
   }));
 
-  // Diner menus. Best-effort: a sitemap must never break the build or the route,
-  // so any DB failure just yields the static list.
+  // ---- Diner-facing menus (dynamic) ----
+  // Best-effort: a sitemap must never break the build or the route, so any DB
+  // failure just yields the static list.
   try {
     const restaurants = await db.restaurant.findMany({
       where: {
-        // Only restaurants that actually have something to show.
         menus: { some: { state: 'ACTIVE' } },
       },
       select: {
@@ -59,7 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         updatedAt: true,
         user: { select: { plan: true, planRenewsAt: true } },
       },
-      // Guard against an unbounded sitemap; 50k URLs is the spec limit.
+      // Guard against an unbounded sitemap; 50 000 URLs is the spec limit.
       take: 10000,
     });
 
@@ -75,7 +105,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
 
       routes.push({
-        url: `${baseUrl}/restaurant/${r.id}`,
+        url: `${BASE_URL}/restaurant/${r.id}`,
         lastModified: r.updatedAt,
         changeFrequency: 'daily',
         priority: 0.8,

@@ -8,7 +8,24 @@ export const metadata: Metadata = {
   title: 'Créez votre menu QR gratuit en 2 minutes — MangeQR',
   description:
     'Créez votre carte numérique, obtenez votre QR code et votre lien à partager. Sans compte, sans installation.',
-  robots: { index: false }
+  keywords: [
+    'menu QR code gratuit',
+    'carte numérique restaurant',
+    'menu digital gratuit',
+    'créer menu QR',
+    'QR code restaurant',
+    'menu sans contact',
+  ],
+  robots: { index: false },
+  openGraph: {
+    type: 'website',
+    url: 'https://www.mangeqr.com/go/fr',
+    locale: 'fr_FR',
+    title: 'Créez votre menu QR gratuit en 2 minutes — MangeQR',
+    description:
+      'Créez votre carte numérique, obtenez votre QR code et votre lien à partager. Sans compte, sans installation.',
+    images: [{ url: 'https://www.mangeqr.com/og-image.png', width: 1200, height: 630, alt: 'MangeQR' }],
+  },
 };
 
 /**

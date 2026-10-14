@@ -1,13 +1,12 @@
 'use server';
 
-import { type ReactElement } from 'react';
-import { Resend } from 'resend';
 import { type z } from 'zod';
 
 import { db } from '@/lib/db';
 import { currentUser } from '@/lib/authentication';
 import { SupportMessageSchema, SupportReplySchema } from '@/schemas';
 import EmailTemplate from '@/components/emails/contact-email';
+import { sendMail, getSupportInbox, isEmailConfigured } from '@/lib/email';
 
 /**
  * Send an in-app support message from an authenticated user.
@@ -45,24 +44,24 @@ export async function sendSupportMessage(
     console.error('[support] failed to persist support message', dbErr);
   }
 
-  // Best-effort email notification (inbox is the source of truth).
-  const apiKey = process.env.RESEND_API_KEY;
-  if (apiKey) {
-    try {
-      const resend = new Resend(apiKey);
-      await resend.emails.send({
-        from: 'Support MangeQR <contact@mangeqr.com>',
-        to: email,
-        subject: `Support — message de ${name}`,
-        react: EmailTemplate({ name, email, message }) as ReactElement
-      });
-    } catch (mailErr) {
-      console.error('[support] Resend send failed', mailErr);
-      if (!persisted) return { error: 'Échec de l’envoi du message.' };
+  // Best-effort email notification. The message is DELIVERED TO THE SUPPORT
+  // INBOX (not back to the sender); reply_to is the sender so the team can
+  // reply directly. The DB record remains the source of truth.
+  const configured = isEmailConfigured();
+  if (configured) {
+    const sent = await sendMail({
+      from: 'support',
+      to: getSupportInbox(),
+      replyTo: email,
+      subject: `Support — message de ${name}`,
+      react: EmailTemplate({ name, email, message }),
+    });
+    if (!sent && !persisted) {
+      return { error: 'Échec de l’envoi du message.' };
     }
   }
 
-  if (!persisted && !apiKey) {
+  if (!persisted && !configured) {
     return { error: 'Le service de support n’est pas configuré.' };
   }
 

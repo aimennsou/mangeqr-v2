@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 
 import { currentUserId } from '@/lib/authentication';
 import { db } from '@/lib/db';
 import { isWorkspaceMember } from '@/data/workspace';
+import { sendMail, isEmailConfigured } from '@/lib/email';
 
 // Send a MarketingCampaign to all its recipients
 export async function POST(req: NextRequest) {
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!process.env.RESEND_API_KEY) {
+    if (!isEmailConfigured()) {
       return NextResponse.json(
         {
           error:
@@ -68,22 +68,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    const results = await Promise.allSettled(
+    // sendMail returns a boolean per recipient (it inspects Resend's error
+    // body), so the count below reflects messages Resend actually accepted —
+    // not merely calls that didn't throw.
+    const results = await Promise.all(
       campaign.emailRecipients.map((recipient) =>
-        resend.emails.send({
-          from: 'MangeQR <contact@mangeqr.com>',
-          to: [recipient.email],
+        sendMail({
+          from: 'marketing',
+          to: recipient.email,
           subject: campaign.subject,
           html: campaign.body,
         })
       )
     );
 
-    const sentCount = results.filter(
-      (result) => result.status === 'fulfilled'
-    ).length;
+    const sentCount = results.filter(Boolean).length;
 
     // Mark the campaign as sent
     await db.marketingCampaign.update({
