@@ -1,0 +1,4 @@
+# Never commit real secrets, DB data, or backups.
+.env
+backups/*
+!backups/.gitkeep

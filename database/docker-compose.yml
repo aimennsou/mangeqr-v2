@@ -1,0 +1,102 @@
+# =============================================================================
+# MangeQR — self-hosted PostgreSQL for a Debian VPS
+# =============================================================================
+# Runs the production database (and optional admin UI + automated backups) in
+# Docker on your own VPS, replacing the hosted Neon database.
+#
+# Quick start (on the VPS, from this folder):
+#   cp .env.example .env      # then edit .env (set a strong POSTGRES_PASSWORD)
+#   docker compose up -d       # starts postgres (+ backup sidecar)
+#
+# By default Postgres binds to 127.0.0.1 only (see POSTGRES_BIND). The app
+# should run on the SAME VPS and connect over localhost. To connect from a
+# different host, read the "Remote access" section of README.md FIRST — do not
+# just expose 5432 to the internet.
+#
+# Profiles:
+#   (default)      postgres + backup
+#   --profile admin   also starts pgAdmin (web UI) on 127.0.0.1:5050
+# =============================================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mangeqr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-mangeqr}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:-mangeqr}
+      # Harden auth: require scram-sha-256 for all connections.
+      POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
+      # Consumed by the init script init/02-app-role.sh (first boot only) to
+      # create the least-privilege app role. Must be declared here so compose
+      # injects them into the container's environment.
+      APP_DB_USER: ${APP_DB_USER:-mangeqr_app}
+      APP_DB_PASSWORD: ${APP_DB_PASSWORD:-}
+    # Bind to localhost by default so the port is NOT reachable from the public
+    # internet. Override POSTGRES_BIND=0.0.0.0 only behind a firewall/VPN.
+    ports:
+      - "${POSTGRES_BIND:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # One-time init scripts (run only on an EMPTY data dir): extensions, etc.
+      - ./init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mangeqr} -d ${POSTGRES_DB:-mangeqr}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Modest, VPS-friendly resource guardrails. Tune to your box.
+    shm_size: 256mb
+    stop_grace_period: 30s
+
+  # Automated nightly backups via pg_dump into ./backups (host-mounted). Runs
+  # the same postgres image on a loop; see scripts/backup.sh for the logic.
+  backup:
+    image: postgres:16-alpine
+    container_name: mangeqr-pg-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-mangeqr}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      PGDATABASE: ${POSTGRES_DB:-mangeqr}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-7}
+      # HH:MM (24h, container TZ=UTC) the daily dump runs.
+      BACKUP_AT: ${BACKUP_AT:-03:00}
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup-loop.sh:/backup-loop.sh:ro
+    entrypoint: ["/bin/sh", "/backup-loop.sh"]
+
+  # Optional web admin UI. Started only with:  docker compose --profile admin up -d
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mangeqr-pgadmin
+    restart: unless-stopped
+    profiles: ["admin"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:?set PGADMIN_EMAIL in .env}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?set PGADMIN_PASSWORD in .env}
+      PGADMIN_LISTEN_PORT: 80
+    # Localhost only — reach it over an SSH tunnel (see README). Never expose
+    # pgAdmin directly to the internet.
+    ports:
+      - "127.0.0.1:${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+
+volumes:
+  pgdata:
+    name: mangeqr-pgdata
+  pgadmin:
+    name: mangeqr-pgadmin
