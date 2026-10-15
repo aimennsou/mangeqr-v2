@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {  PrismaClient } from '@prisma/client';; // Assuming Prisma is set up
+import { db } from '@/lib/db';
 
 // Weekday numbers (0 = Sunday, 1 = Monday, ..., 6 = Saturday)
 const WEEKDAYS = [1, 2, 3, 4, 5]; // Monday to Friday
 
 // Function to calculate total, weekday, and weekend scans
-const getScanCounts = async (shopId: string, startDate: Date, endDate: Date) => {
+const getScanCounts = async (restaurantId: string, startDate: Date, endDate: Date) => {
   try {
-    const scans = await prisma.scandata.findMany({
+    const scans = await db.scanData.findMany({
       where: {
-        shopId,
+        restaurantId,
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -36,7 +36,6 @@ const getScanCounts = async (shopId: string, startDate: Date, endDate: Date) => 
         { day: 'Weekend', visits: weekendScans, fill: 'var(--color-Weekend)' },
         { day: 'Weekday', visits: weekdayScans, fill: 'var(--color-Weekday)' },
       ];
-  console.log(chartData)
       return chartData;
   } catch (error) {
     console.error('Error fetching scan counts:', error);
@@ -48,15 +47,16 @@ const getScanCounts = async (shopId: string, startDate: Date, endDate: Date) => 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { shopId, startDate, endDate } = body;
+    const { shopId, restaurantId, startDate, endDate } = body;
+    const targetRestaurantId = restaurantId ?? shopId;
 
     // Validate input data
-    if (!shopId || !startDate || !endDate) {
+    if (!targetRestaurantId || !startDate || !endDate) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
     // Fetch the scan counts (total, weekday, weekend)
-    const result = await getScanCounts(shopId, new Date(startDate), new Date(endDate));
+    const result = await getScanCounts(targetRestaurantId, new Date(startDate), new Date(endDate));
 
     // If data was fetched successfully, return it; otherwise, send a 500 error
     if (result) {

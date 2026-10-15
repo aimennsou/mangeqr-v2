@@ -1,0 +1,109 @@
+import { db } from '@/lib/db';
+
+import type { MenuAppearance, PrinterConfig } from '@/schemas';
+
+/**
+ * Fetch all restaurants owned by a given user.
+ */
+export async function getRestaurantsForUser(userId: string) {
+  return db.restaurant.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
+/**
+ * Fetch a single restaurant by its id (no ownership check).
+ * Used by both the owner editor and the public diner-facing view.
+ */
+export async function getRestaurantById(id: string) {
+  return db.restaurant.findUnique({
+    where: { id },
+  });
+}
+
+/**
+ * Verify that a restaurant belongs to the given OWNER, and — when a member's
+ * restaurant scope is supplied — that it is one they are assigned to.
+ * Returns the restaurant when both hold, otherwise null.
+ *
+ * `scope` is optional so existing owner-only callers are unaffected: omitting it
+ * means "unscoped", which is always correct for an owner. Callers acting on
+ * behalf of a possible MEMBER must pass the scope from `getRestaurantScope`,
+ * otherwise a member assigned to one branch can act on another branch just by
+ * sending its id.
+ */
+export async function assertRestaurantOwner(
+  userId: string,
+  restaurantId: string,
+  scope?: string[] | null
+) {
+  // A scope that does not include the target is an immediate no, without a query.
+  if (scope && !scope.includes(restaurantId)) return null;
+
+  return db.restaurant.findFirst({
+    where: { id: restaurantId, userId },
+  });
+}
+
+/**
+ * Return the set of restaurant ids owned by a user.
+ * Convenience for routes that aggregate across all of a user's restaurants.
+ */
+export async function getRestaurantIdsForUser(userId: string): Promise<string[]> {
+  const restaurants = await db.restaurant.findMany({
+    where: { userId },
+    select: { id: true },
+  });
+
+  return restaurants.map((restaurant) => restaurant.id);
+}
+
+/**
+ * Read the diner-menu appearance settings for a restaurant, owner-scoped.
+ *
+ * Returns the stored `menuAppearance` (or `null` when the owner has not
+ * customized it yet, so callers fall back to the default appearance).
+ * Returns `null` as well when the restaurant does not exist or is not owned
+ * by the given user — the caller cannot distinguish "unset" from "not yours",
+ * which keeps another user's restaurants opaque.
+ */
+export async function getMenuAppearanceForUser(
+  userId: string,
+  restaurantId: string
+): Promise<MenuAppearance | null> {
+  const restaurant = await db.restaurant.findFirst({
+    where: { id: restaurantId, userId },
+    select: { menuAppearance: true },
+  });
+
+  if (!restaurant || restaurant.menuAppearance == null) {
+    return null;
+  }
+
+  return restaurant.menuAppearance as MenuAppearance;
+}
+
+/**
+ * Read the ticket-printer configuration for a restaurant, owner-scoped.
+ *
+ * Returns the stored `printerConfig` (or `null` when the owner has not
+ * customized it yet, so callers fall back to `DEFAULT_PRINTER_CONFIG`).
+ * Returns `null` as well when the restaurant does not exist or is not owned by
+ * the given user, keeping other users' restaurants opaque.
+ */
+export async function getPrinterConfigForUser(
+  userId: string,
+  restaurantId: string
+): Promise<PrinterConfig | null> {
+  const restaurant = await db.restaurant.findFirst({
+    where: { id: restaurantId, userId },
+    select: { printerConfig: true },
+  });
+
+  if (!restaurant || restaurant.printerConfig == null) {
+    return null;
+  }
+
+  return restaurant.printerConfig as PrinterConfig;
+}

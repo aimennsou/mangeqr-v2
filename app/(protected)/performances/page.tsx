@@ -11,17 +11,30 @@ import {
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SetStateAction, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
-import LastReviewsCard, { RecentSales } from "../_components/charts/LastReviews";
-import { TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tabs } from "@radix-ui/react-tabs";
-import { Select } from "@/components/ui/select";
+import { RecentReviews } from "../_components/charts/RecentReviews";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { DateRange } from "react-day-picker";
 import { useTheme } from "next-themes";
 import { ContentLayout } from "../_admin-panel/content-layout";
 import Logo from "@/components/Logo";
 import { Restaurant } from "@/types";
+import { AreaGraph } from "../_components/charts/AreaGraph";
+import { BarGraph } from "../_components/charts/BarGraph";
+import { PieGraph } from "../_components/charts/PieGraph";
+import KpiCard from "../_components/charts/KpiCard";
+import { OrderRevenueChart } from "../_components/charts/OrderRevenueChart";
+import PerformancesSkeleton from "../_components/charts/PerformancesSkeleton";
+import { QrCode, Star, Heart, LayoutGrid, ShoppingCart, Euro, Receipt, Truck } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 
 
@@ -46,6 +59,7 @@ import { Restaurant } from "@/types";
 
 export default function PerformancesPage() {
   const { theme } = useTheme();
+  const { t } = useI18n();
 
   const [loading, setLoading] = useState(true);
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
@@ -55,7 +69,13 @@ export default function PerformancesPage() {
 
 
 
-  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  // Default to the last 30 days so charts have a sensible range on first load.
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(() => {
+    const to = new Date();
+    const from = new Date();
+    from.setDate(from.getDate() - 30);
+    return { from, to };
+  });
 
   const [shops, setShops] = useState<{ id: string; name: string }[]>([]); 
   const [shopId, setShopId] = useState("");
@@ -63,7 +83,50 @@ export default function PerformancesPage() {
   const [areagraphData, setareagraphData] = useState([]);
   const [piegraphData, setpiegraphData] = useState([]);
   const [topDishName, setTopDishName] = useState<string | null>(null);
+  const [topDishFavorites, setTopDishFavorites] = useState<number>(0);
   const [topCategoryName, setTopCategoryName] = useState<string | null>(null);
+
+  // FEAT-1 order metrics (only rendered when ordering is enabled for the shop).
+  const [orderMetrics, setOrderMetrics] = useState<{
+    orderingEnabled: boolean;
+    currency: string;
+    totalOrders: number;
+    revenue: number;
+    avgOrderValue: number;
+    dineInCount: number;
+    deliveryCount: number;
+    daily: { date: string; orders: number; revenue: number }[];
+  } | null>(null);
+
+  const getOrderMetrics = async (
+    shopId: string,
+    startDate: Date,
+    endDate: Date
+  ) => {
+    try {
+      const response = await fetch("/api/order-metrics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          shopId,
+          startDate,
+          endDate,
+          // Let the server bucket the daily series by the viewer's local day
+          // instead of UTC, so a late-evening order isn't counted on tomorrow.
+          tzOffsetMinutes: new Date().getTimezoneOffset(),
+        }),
+      });
+      if (!response.ok) {
+        setOrderMetrics(null);
+        return;
+      }
+      const data = await response.json();
+      setOrderMetrics(data);
+    } catch (error) {
+      console.error("Error fetching order metrics:", error);
+      setOrderMetrics(null);
+    }
+  };
 
   const getcardsData = async (shopId: string, startDate: Date, endDate: Date) => {
     try {
@@ -149,12 +212,13 @@ export default function PerformancesPage() {
         // Parse the response data
         const data = await response.json();
     
-        // Handle topDishName
+        // Handle topDishName (most-favorited dish) + its favorite count.
         if (data.topDishName) {
           setTopDishName(data.topDishName);
         } else {
           setTopDishName('N/A');
         }
+        setTopDishFavorites(Number(data.topDishFavorites) || 0);
     
         // Handle topCategoryName
         if (data.topCategoryName) {
@@ -165,6 +229,7 @@ export default function PerformancesPage() {
     
       } catch (error) {
         setTopDishName('N/A');
+        setTopDishFavorites(0);
         setTopCategoryName('N/A');
       }
     };
@@ -230,13 +295,16 @@ export default function PerformancesPage() {
 
     const fetchRestaurants = async () => {
       try {
-        const response = await fetch('/api/restaurant');
+        const response = await fetch('/api/magasin');
         if (response.ok) {
           const data = await response.json();
-          setRestaurants(data);
-          setShops(data);
+          const list = Array.isArray(data) ? data : [];
+          setRestaurants(list);
+          setShops(list);
         } else {
-          console.error('Failed to fetch restaurants');
+          // 404 => this user has no restaurants yet
+          setRestaurants([]);
+          setShops([]);
         }
       } catch (error) {
         console.error('Error fetching restaurants:', error);
@@ -244,27 +312,35 @@ export default function PerformancesPage() {
     };
 
 
-  
+    // Load the restaurant list ONCE on mount. This used to live inside the
+    // analytics effect below, which also set `shops`; with `shops` in that
+    // effect's deps it re-ran → refetched → set `shops` again, an infinite loop.
+    useEffect(() => {
+      fetchRestaurants().finally(() => setLoading(false));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
-
+    // Once restaurants are loaded, default the selector to the first one.
     useEffect(() => {
       if (shops.length > 0 && !shopId) {
-        setShopId(shops[0].id); // Set the first shop as the default shopId
+        setShopId(shops[0].id);
       }
-      const fetchData = async () => {
-        if (dateRange?.from && dateRange.to && shopId) {
-          getbargraphData(shopId, dateRange.from, dateRange.to);
-          getareagraphData(shopId, dateRange.from, dateRange.to);
-          getpiegraphData(shopId, dateRange.from, dateRange.to);
-          getCardsData(shopId, dateRange.from, dateRange.to);
-          const fetchedData = await getcardsData(shopId, dateRange.from, dateRange.to);
-          setData(fetchedData); // Update state with the fetched data
-        }
-        await fetchRestaurants();
-      
-      };
-      fetchData();
-    }, [shops, dateRange, shopId]); // Runs when dateRange or shopId changes
+    }, [shops, shopId]);
+
+    // Fetch analytics only when the selected shop or date range changes.
+    // Note: this deliberately does NOT depend on `shops`, and no longer
+    // refetches the restaurant list (that is mount-only above).
+    useEffect(() => {
+      if (!dateRange?.from || !dateRange.to || !shopId) return;
+      const { from, to } = dateRange;
+      getbargraphData(shopId, from, to);
+      getareagraphData(shopId, from, to);
+      getpiegraphData(shopId, from, to);
+      getCardsData(shopId, from, to);
+      getcardsData(shopId, from, to).then(setData);
+      getOrderMetrics(shopId, from, to);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dateRange, shopId]);
   
     const handleDateRangeChange = (range: DateRange | undefined) => {
       setDateRange(range);
@@ -280,7 +356,7 @@ export default function PerformancesPage() {
 
 
   return (
-    <ContentLayout title="Mes performances">
+    <ContentLayout title={t("nav.performances")}>
       <Breadcrumb>
         <BreadcrumbList>
         <BreadcrumbItem>
@@ -292,37 +368,172 @@ export default function PerformancesPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Mes performances</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.performances")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <Card className="rounded-lg border-none  mt-6">
-      <CardContent className="p-6">
-      <div className="mt-6">
-      <>
-      <div className="text-center text-gray-500 py-6">
-          
+      <Card className="rounded-lg border-none mt-6">
+      <CardContent className="p-4 sm:p-6 lg:p-8">
+      {/* No `mt-6` here: the card already pads its content. */}
+      <div>
+      {loading ? (
+        <PerformancesSkeleton />
+      ) : shops.length === 0 ? (
+        <div className="text-center text-muted-foreground py-6">
           <div className="flex justify-center">
-      <Image
-        className={`${theme === "dark" ? "dark:invert" : ""}`}
-        src="/images/empty-performances.png"
-        alt="Empty folder"
-        width={400} // Adjust size as needed
-        height={400}
-      />
+            <Image
+              className={`${theme === "dark" ? "dark:invert" : ""}`}
+              src="/images/empty-performances.png"
+              alt="Empty folder"
+              width={400}
+              height={400}
+            />
+          </div>
+          <p className="text-lg  font-semibold mt-4 text-foreground">{t("performances.empty.title")}</p>
+          <p className="mt-2">{t("performances.empty.subtitle")}</p>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {/* Editorial header: serif title + subtitle on the left, the
+              restaurant selector aligned right (asymmetric), hairline below. */}
+          <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+                {t("performances.heading")}
+              </h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                {t("performances.subheading")}
+              </p>
+            </div>
+            <Select value={shopId} onValueChange={setShopId}>
+              <SelectTrigger className="w-full sm:w-[260px]">
+                <SelectValue placeholder={t("common.chooseRestaurant")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {shops.map((shop) => (
+                    <SelectItem key={shop.id} value={shop.id}>
+                      {shop.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
 
-      
-    
- 
-</div>
-<p className="text-lg  font-semibold mt-4">Aucune donnée disponible..</p>
-<p className="mt-2">Créez votre premier restaurant pour pouvoir visualiser vos performances..</p>  
-</div>
-    </>
+          {/* Overview KPIs */}
+          <div className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+              {t("performances.group.overview")}
+            </p>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <KpiCard
+              title={t("performances.kpi.scans")}
+              number={data.scans}
+              icon={<QrCode />}
+              description={t("performances.kpi.scansDesc")}
+            />
+            <KpiCard
+              title={t("performances.kpi.reviews")}
+              number={data.reviews}
+              icon={<Star />}
+              description={t("performances.kpi.reviewsDesc")}
+            />
+            <KpiCard
+              title={t("performances.kpi.topCategory")}
+              number={topCategoryName ?? "N/A"}
+              icon={<LayoutGrid />}
+              description={t("performances.kpi.periodDesc")}
+            />
+            <KpiCard
+              title={t("performances.kpi.topDish")}
+              number={topDishName ?? "N/A"}
+              icon={<Heart />}
+              description={
+                topDishName && topDishName !== "N/A"
+                  ? t("performances.kpi.topDishDesc").replace(
+                      "{count}",
+                      String(topDishFavorites)
+                    )
+                  : t("performances.kpi.periodDesc")
+              }
+            />
+          </div>
+          </div>
 
+          {/* Order KPIs (FEAT-1) — only when ordering is enabled for this shop */}
+          {orderMetrics?.orderingEnabled ? (
+            <div className="space-y-4">
+              <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+                {t("performances.group.orders")}
+              </p>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+              <KpiCard
+                title={t("performances.kpi.orders")}
+                number={orderMetrics.totalOrders}
+                icon={<ShoppingCart />}
+                description={t("performances.kpi.ordersDesc")}
+              />
+              <KpiCard
+                title={t("performances.kpi.revenue")}
+                number={`${
+                  Number.isInteger(orderMetrics.revenue)
+                    ? orderMetrics.revenue
+                    : orderMetrics.revenue.toFixed(2)
+                } ${orderMetrics.currency}`}
+                icon={<Euro />}
+                description={t("performances.kpi.revenueDesc")}
+              />
+              <KpiCard
+                title={t("performances.kpi.avgBasket")}
+                number={`${orderMetrics.avgOrderValue.toFixed(2)} ${orderMetrics.currency}`}
+                icon={<Receipt />}
+                description={t("performances.kpi.avgBasketDesc")}
+              />
+              <KpiCard
+                title={t("performances.kpi.split")}
+                number={`${orderMetrics.dineInCount} / ${orderMetrics.deliveryCount}`}
+                icon={<Truck />}
+                description={t("performances.kpi.splitDesc")}
+              />
+            </div>
+            </div>
+          ) : null}
 
+          {/* Order revenue chart (FEAT-1) */}
+          {orderMetrics?.orderingEnabled ? (
+            <OrderRevenueChart
+              data={orderMetrics.daily}
+              currency={orderMetrics.currency}
+            />
+          ) : null}
 
-
+          {/* Charts */}
+          <div className="space-y-4">
+            <p className="text-xs font-medium uppercase tracking-widest text-yellow-600 dark:text-yellow-500">
+              {t("performances.group.charts")}
+            </p>
+            <div className="grid gap-4 lg:grid-cols-2">
+              <BarGraph data={bargraphData} />
+              <AreaGraph data={areagraphData} />
+            </div>
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <PieGraph data={piegraphData} />
+            <Card>
+              <CardHeader className="flex flex-col items-stretch space-y-2 border-b p-0 sm:flex-row sm:space-y-0">
+                <div className="flex flex-1 flex-col justify-center gap-2 px-6 py-5 sm:py-6">
+                  <CardTitle>{t("performances.recentReviews")}</CardTitle>
+                  <CardDescription>{t("performances.recentReviewsDesc")}</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent className="px-2 pt-6 sm:p-6">
+                <RecentReviews restaurantId={shopId} />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )}
         </div>
       </CardContent>
     </Card>

@@ -29,6 +29,8 @@ export function SignUpForm() {
 
   const form = useForm<z.infer<typeof SignUpSchema>>({
     resolver: zodResolver(SignUpSchema),
+    // Show validation as the user leaves each field for responsive feedback.
+    mode: 'onTouched',
     defaultValues: {
       email: '',
       password: '',

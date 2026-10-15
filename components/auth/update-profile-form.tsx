@@ -3,7 +3,6 @@
 import * as z from 'zod';
 import { Loader2 } from 'lucide-react';
 import { useForm } from 'react-hook-form';
-import { UserRole } from '@prisma/client';
 import { useSession } from 'next-auth/react';
 import { useTransition } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,13 +16,6 @@ import {
   FormLabel,
   FormMessage
 } from '@/components/ui/form';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { UpdateProfileSchema } from '@/schemas';
 import { Button } from '@/components/ui/button';
@@ -32,8 +24,10 @@ import { updateProfile } from '@/actions/update-profile';
 import { useCurrentUser } from '@/hooks/use-current-user';
 import { cancelNewEmail } from '@/actions/cancel-new-email';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n';
 
 export default function UpdateProfileForm() {
+  const { t } = useI18n();
   const user = useCurrentUser();
   const { update } = useSession();
 
@@ -44,7 +38,6 @@ export default function UpdateProfileForm() {
     defaultValues: {
       name: user?.name || '',
       email: user?.tempEmail ? user.tempEmail : user?.email || '',
-      role: user?.role || 'USER',
       isTwoFactorEnabled: user?.isTwoFactorEnabled || false
     }
   });
@@ -62,7 +55,7 @@ export default function UpdateProfileForm() {
             toast.success(data.success);
           }
         })
-        .catch(() => toast.error('Oups ! Quelque chose s\'est mal passé.'));
+        .catch(() => toast.error(t('account.genericError')));
     });
   };
 
@@ -80,7 +73,7 @@ export default function UpdateProfileForm() {
             form.reset();
           }
         })
-        .catch(() => toast.error('Oups ! Quelque chose s\'est mal passé.'));
+        .catch(() => toast.error(t('account.genericError')));
     });
   };
 
@@ -88,18 +81,12 @@ export default function UpdateProfileForm() {
     <Form {...form}>
       <form className='space-y-6' onSubmit={form.handleSubmit(onSubmit)}>
         <div className='space-y-4'>
-          <div className='flex flex-row items-center justify-between rounded-md border px-3 py-1.5'>
-            <p className='text-sm font-medium'>ID</p>
-            <p className='truncate text-xs max-w-[200px] font-mono px-2 bg-zinc-100 dark:bg-zinc-700 rounded-sm'>
-              {user?.id}
-            </p>
-          </div>
           <FormField
             control={form.control}
             name='name'
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Nom</FormLabel>
+                <FormLabel>{t('account.name')}</FormLabel>
                 <FormControl>
                   <Input
                     {...field}
@@ -118,7 +105,7 @@ export default function UpdateProfileForm() {
               name='email'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>{t('account.email')}</FormLabel>
                   <div className='gap-2'>
                     <FormControl>
                       <Input
@@ -134,13 +121,13 @@ export default function UpdateProfileForm() {
                         onClick={onCancelEmailUpdate}
                         disabled={isPending}
                       >
-                        Annuler
+                        {t('common.cancel')}
                       </Button>
                     )}
                   </div>
                   {!!user.tempEmail && (
                     <FormDescription>
-                      Veuillez vérifier votre nouvelle adresse e-mail ou annuler pour utiliser l'ancienne adresse e-mail.
+                      {t('account.verifyEmailDesc')}
                     </FormDescription>
                   )}
                   <FormMessage />
@@ -149,32 +136,6 @@ export default function UpdateProfileForm() {
             />
           )}
 
-          <FormField
-            control={form.control}
-            name='role'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Rôle</FormLabel>
-                <Select
-                  disabled={isPending}
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder='Sélectionner un rôle' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={UserRole.ADMIN}>Admin</SelectItem>
-                    <SelectItem value={UserRole.USER}>Utilisateur</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
           {user?.isOAuth === false && (
             <FormField
               control={form.control}
@@ -182,9 +143,9 @@ export default function UpdateProfileForm() {
               render={({ field }) => (
                 <FormItem className='flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm'>
                   <div className='space-y-0.5'>
-                    <FormLabel>Authentification à deux facteurs</FormLabel>
+                    <FormLabel>{t('account.twoFactor')}</FormLabel>
                     <FormDescription>
-                      Activez l'authentification à deux facteurs pour votre compte
+                      {t('account.twoFactorDesc')}
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -203,10 +164,10 @@ export default function UpdateProfileForm() {
           {isPending && (
             <>
               <Loader2 className='animate-spin mr-2' size={18} />
-              Enregistrement...
+              {t('common.saving')}
             </>
           )}
-          {!isPending && <>Enregistrer</>}
+          {!isPending && <>{t('common.save')}</>}
         </Button>
       </form>
     </Form>

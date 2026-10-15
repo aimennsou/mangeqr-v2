@@ -3,7 +3,87 @@
  * These routes does not require authentication
  * @type {string[]}
  */
-export const publicRoutes: string[] = ['/','/pricing', '/auth/email-verification'];
+export const publicRoutes: string[] = [
+  '/',
+  '/v2',
+  '/auth/email-verification',
+  '/lp/ar',
+  // Legal pages must be reachable without a session — the cookie banner links
+  // here, and a consent notice behind a login wall is worthless.
+  '/cgu'
+];
+
+/**
+ * Route prefixes that are publicly accessible.
+ *
+ * Matched on a PATH SEGMENT boundary — `/m` matches `/m` and `/m/abc`, but not
+ * `/menu`. Do not switch this back to a bare `startsWith`: plain prefix matching
+ * silently made `/menu` and `/marketing` public, because both start with the
+ * `/m` used by the anonymous lead-menu preview.
+ * @type {string[]}
+ */
+export const publicRoutePrefixes: string[] = [
+  '/embed',
+  // Lead-gen funnel (paid ads): the funnel pages (/go/fr, /go/ar) and the
+  // anonymous lead-menu preview (/m/[id]) must be reachable without auth.
+  '/go',
+  '/m',
+  '/api/track',
+  '/api/review',
+  // FEAT-1 diner ordering: the order-submit API and the diner live status page
+  // are used by unauthenticated diners (from the QR menu), so they're public.
+  '/api/orders',
+  '/order',
+  // Stripe webhook: called by Stripe's servers (no user session); verified via
+  // the signature secret instead of auth.
+  '/api/stripe/webhook',
+  // Invite-without-account (#13): the public invite landing where a person can
+  // sign up + join a workspace from an invite link.
+  '/team/invite',
+  // Public display screens: TV menu board and self-order kiosk (borne). Shown
+  // on in-store hardware without a logged-in session.
+  '/tv',
+  '/borne',
+];
+
+/**
+ * Prefixes that are public ONLY with a child segment.
+ *
+ * `/restaurant` is overloaded: `/restaurant/[id]` (and
+ * `/restaurant/by-subdomain/[sub]`) is the diner-facing menu served from a QR
+ * code and must never require authentication, while a bare `/restaurant` is the
+ * OWNER's private restaurant list inside the (protected) group. Listing it as an
+ * ordinary public prefix made that private page reachable without a session.
+ *
+ * The same overload is why app/robots.ts has to pair `Disallow: /restaurant`
+ * with a more specific `Allow: /restaurant/`.
+ * @type {string[]}
+ */
+export const publicChildOnlyRoutePrefixes: string[] = ['/restaurant'];
+
+/**
+ * Single source of truth for "is this path reachable without a session".
+ *
+ * Kept dependency-free: this runs inside the Edge middleware.
+ */
+export function isPublicPath(pathname: string): boolean {
+  if (publicRoutes.includes(pathname)) return true;
+
+  const matchesSegment = (prefix: string) =>
+    pathname === prefix || pathname.startsWith(`${prefix}/`);
+
+  if (publicRoutePrefixes.some(matchesSegment)) return true;
+  // Child required: the bare prefix stays protected.
+  if (
+    publicChildOnlyRoutePrefixes.some((prefix) =>
+      pathname.startsWith(`${prefix}/`)
+    )
+  ) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * An array of routes that are used for authentication

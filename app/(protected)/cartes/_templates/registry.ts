@@ -1,0 +1,58 @@
+import type { MenuTemplate } from "./types";
+import { ElegantTemplate } from "./ElegantTemplate";
+import { ModerneTemplate } from "./ModerneTemplate";
+import { ArdoiseTemplate } from "./ArdoiseTemplate";
+import { BistroTemplate } from "./BistroTemplate";
+import { ElegantDoreTemplate } from "./ElegantDoreTemplate";
+import { TableauVertTemplate } from "./TableauVertTemplate";
+import { FastFoodTemplate } from "./FastFoodTemplate";
+
+// Registry of available physical-menu templates. Add new designs here.
+export const MENU_TEMPLATES: MenuTemplate[] = [
+  {
+    id: "elegant",
+    label: "Élégant",
+    description: "Style classique, typographie serif, mise en page centrée.",
+    Component: ElegantTemplate,
+  },
+  {
+    id: "moderne",
+    label: "Moderne",
+    description: "Sans-serif épuré, accent ambre, deux colonnes.",
+    Component: ModerneTemplate,
+  },
+  {
+    id: "ardoise",
+    label: "Bistrot",
+    description: "Papier crème, titre manuscrit, bandeaux ambre, deux colonnes.",
+    Component: ArdoiseTemplate,
+  },
+  {
+    id: "bistro",
+    label: "Bistro",
+    description: "Papier crème, bandeau rouge, cadre doré rustique.",
+    Component: BistroTemplate,
+  },
+  {
+    id: "elegant-dore",
+    label: "Élégant Doré",
+    description: "Cadre filigrane doré, serif raffiné, petites capitales.",
+    Component: ElegantDoreTemplate,
+  },
+  {
+    id: "tableau-vert",
+    label: "Brasserie Verte",
+    description: "Papier crème, bandeaux verts pliés, en-tête script, deux colonnes.",
+    Component: TableauVertTemplate,
+  },
+  {
+    id: "fast-food",
+    label: "Fast Food",
+    description: "Ardoise noire, bandeaux jaunes peints, illustrations burger / frites / pizza.",
+    Component: FastFoodTemplate,
+  },
+];
+
+export function getTemplateById(id: string): MenuTemplate {
+  return MENU_TEMPLATES.find((t) => t.id === id) ?? MENU_TEMPLATES[0];
+}

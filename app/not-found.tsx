@@ -1,7 +1,12 @@
+import type { Metadata } from 'next';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-
+export const metadata: Metadata = {
+  title: 'Page introuvable — MangeQR',
+  description: "La page que vous recherchez n'existe pas ou a été déplacée.",
+  robots: { index: false, follow: true },
+};
 
 export default function NotFound() {
   return (

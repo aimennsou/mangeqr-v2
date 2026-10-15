@@ -1,15 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {  PrismaClient } from '@prisma/client';; // Assuming Prisma is set up
+import { db } from '@/lib/db';
 
 const DAY_START_HOUR = 4;
 const NIGHT_START_HOUR = 18;
 
 // Function to calculate day and night scans for each weekday
-const getDayNightScans = async (shopId: string, startDate: Date, endDate: Date) => {
+const getDayNightScans = async (restaurantId: string, startDate: Date, endDate: Date) => {
     try {
-      const scans = await prisma.scandata.findMany({
+      const scans = await db.scanData.findMany({
         where: {
-          shopId,
+          restaurantId,
           createdAt: {
             gte: startDate,
             lte: endDate,
@@ -70,15 +70,16 @@ const getDayNightScans = async (shopId: string, startDate: Date, endDate: Date) 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { shopId, startDate, endDate } = body;
+    const { shopId, restaurantId, startDate, endDate } = body;
+    const targetRestaurantId = restaurantId ?? shopId;
 
     // Validate input data
-    if (!shopId || !startDate || !endDate) {
+    if (!targetRestaurantId || !startDate || !endDate) {
       return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
     }
 
     // Fetch the day/night scan data
-    const result = await getDayNightScans(shopId, new Date(startDate), new Date(endDate));
+    const result = await getDayNightScans(targetRestaurantId, new Date(startDate), new Date(endDate));
 
     // If data was fetched successfully, return it; otherwise, send a 500 error
     if (result) {

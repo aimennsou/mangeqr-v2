@@ -13,13 +13,13 @@ export default function EmailTemplate({
 }: EmailTemplateProps) {
   return (
     <div>
-      <h1>New Contact Form Submission - MangeQR</h1>
-      <div>From: {name}</div>
-      <div>Email: {email}</div>
-      <div>Message:</div>
+      <h1>Nouveau message — MangeQR</h1>
+      <div>De : {name}</div>
+      <div>E-mail : {email}</div>
+      <div>Message :</div>
       <div>{message}</div>
       <hr />
-      <div>This message was sent from the pricing contact form.</div>
+      <div>Ce message a été envoyé depuis un formulaire de contact MangeQR.</div>
     </div>
   );
 }

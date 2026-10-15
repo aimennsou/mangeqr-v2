@@ -10,6 +10,29 @@ datasource db {
 enum UserRole {
   ADMIN
   USER
+  SUPERADMIN
+  // Back-office staff: can access the admin leads CRM (follow up / call leads)
+  // but not the full SUPERADMIN console.
+  STAFF
+}
+
+enum Plan {
+  // Free tier — no payment. Used for accounts created by the back-office (e.g.
+  // a converted funnel lead) so they aren't assumed to have paid for STARTER.
+  FREE
+  STARTER
+  PRO
+  PREMIUM
+}
+
+enum PlanPaymentMethod {
+  CASH
+  ONLINE
+}
+
+enum WorkspaceRole {
+  OWNER
+  MEMBER
 }
 
 
@@ -17,15 +40,131 @@ model User {
   id                      String                  @id @default(uuid()) @db.Uuid
   name                    String?
   email                   String?                 @unique
+  // Optional contact number. Collected by the invite sign-up form, which used to
+  // discard it (it was parked on Invitation.inviteePhone as a workaround).
+  phone                   String?
   tempEmail               String?
   emailVerified           DateTime?
   image                   String?
   password                String?
   role                    UserRole                @default(USER)
+  plan                    Plan                    @default(FREE)
+  planPaymentMethod       PlanPaymentMethod       @default(CASH)
+  stripeCustomerId        String?
+  stripeSubscriptionId    String?
+  planRenewsAt            DateTime?
+  suspended               Boolean                 @default(false)
+  suspendedAt             DateTime?
+  suspendedReason         String?
+  // First-login onboarding: null until the owner completes the onboarding
+  // wizard (create restaurant → menu → categories/dishes → QR). Set once; used
+  // to route new owners into /onboarding before /performances.
+  onboardedAt             DateTime?
+  // FEAT-1/D16: ordering is enabled per ACCOUNT by the SUPERADMIN. Owners can
+  // then toggle it per restaurant (Restaurant.orderingEnabled). Defaults off so
+  // ordering is opt-in and centrally gated.
+  orderingEnabled         Boolean                 @default(false)
+  // Kiosk (borne de commande) + TV menu-board display features, enabled per
+  // ACCOUNT by the SUPERADMIN (like ordering). Off by default.
+  kioskEnabled            Boolean                 @default(false)
+  tvEnabled               Boolean                 @default(false)
+  // Back-office permissions for ADMIN accounts (#2): JSON array of keys, e.g.
+  // ["users","leads","devis"]. Null = no back-office access granted yet. Only
+  // meaningful when role = ADMIN (SUPERADMIN implicitly has all).
+  adminPermissions        Json?
   accounts                Account[]
   isTwoFactorEnabled      Boolean                 @default(false)
   twoFactorConfirmation   TwoFactorConfirmation?
     restaurants     Restaurant[]
+  ownedMemberships   Membership[] @relation("WorkspaceOwner")
+  memberOf           Membership?  @relation("WorkspaceMember")
+  invitationsCreated Invitation[] @relation("InvitationOwner")
+  designOrders       DesignOrder[]
+  supportMessages    SupportMessage[]
+  notifications      Notification[]
+  assignedLeads      LeadMenu[]       @relation("LeadAssignee")
+  leadActivities     LeadActivity[]   @relation("LeadActivityAuthor")
+  planUpgradeRequests PlanUpgradeRequest[]
+  workspaceActivities WorkspaceActivity[] @relation("WorkspaceActivityActor")
+  devisRequests       DevisRequest[]
+}
+
+model Membership {
+  id           String        @id @default(uuid()) @db.Uuid
+  ownerUserId  String        @db.Uuid
+  memberUserId String        @unique @db.Uuid
+  role         WorkspaceRole @default(MEMBER)
+  // Granular per-member permissions (JSON array of permission keys, e.g.
+  // ["menus","orders","reviews"]). Null = default member permission set.
+  permissions  Json?
+  // Per-RESTAURANT scope (JSON array of Restaurant ids). A member may work in
+  // only one of the owner's restaurants, so the area permissions above are not
+  // enough on their own.
+  //   null / absent  => ALL of the owner's restaurants (unscoped)
+  //   ["id", ...]    => ONLY those restaurants
+  // An empty array is normalized to null on write (see parseRestaurantScope):
+  // saving "nothing selected" must not silently lock a member out of the whole
+  // workspace.
+  restaurantIds Json?
+  createdAt    DateTime      @default(now())
+  owner        User          @relation("WorkspaceOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  member       User          @relation("WorkspaceMember", fields: [memberUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId])
+}
+
+model Invitation {
+  id           String        @id @default(uuid()) @db.Uuid
+  ownerUserId  String        @db.Uuid
+  code         String        @unique
+  role         WorkspaceRole @default(MEMBER)
+  // Invite-without-account (#13): the owner pre-fills the invitee's contact so
+  // the person is uniquely attached to the workspace even before signing up.
+  // The invitee opens the link + code, confirms their phone/email, then creates
+  // an account which is immediately linked to this invitation.
+  inviteeName  String?
+  inviteeEmail String?
+  inviteePhone String?
+  // Human label for the invitee's spot (e.g. "Serveur", "Responsable salle").
+  label        String?
+  // Permissions chosen at invite time; copied onto the Membership on redeem.
+  permissions  Json?
+  // Per-restaurant scope chosen at invite time; copied onto the Membership on
+  // redeem, exactly like `permissions`. Same semantics as Membership.restaurantIds
+  // (null = all of the owner's restaurants).
+  restaurantIds Json?
+  expiresAt    DateTime?
+  usedByUserId String?       @db.Uuid
+  usedAt       DateTime?
+  createdAt    DateTime      @default(now())
+  owner        User          @relation("InvitationOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId])
+  @@index([inviteeEmail])
+  @@index([inviteePhone])
+}
+
+// Per-member activity journal (visible to the workspace owner). Each row is one
+// action a member performed on the owner's data (created a dish, edited a menu,
+// took an order, …). `actorUserId` is the member; `ownerUserId` scopes it to
+// the workspace so the owner can review their team's activity.
+model WorkspaceActivity {
+  id           String   @id @default(uuid()) @db.Uuid
+  ownerUserId  String   @db.Uuid
+  actorUserId  String   @db.Uuid
+  actor        User     @relation("WorkspaceActivityActor", fields: [actorUserId], references: [id], onDelete: Cascade)
+  // Denormalized actor label at write time (survives user rename/deletion).
+  actorName    String?
+  // Machine action key, e.g. "menu.create", "dish.update", "order.status".
+  action       String
+  // Short human summary shown in the journal.
+  summary      String
+  // Optional structured payload (ids, before/after, …).
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  @@index([ownerUserId, createdAt])
+  @@index([actorUserId, createdAt])
 }
 
 
@@ -37,12 +176,12 @@ model User {
         type               String
         provider           String
         providerAccountId  String
-        refresh_token      String?  @db.Uuid
-        access_token       String?  @db.Uuid
+        refresh_token      String?  @db.Text
+        access_token       String?  @db.Text
         expires_at         Int?
         token_type         String?
         scope              String?
-        id_token           String?  @db.Uuid
+        id_token           String?  @db.Text
         session_state      String?
 
         user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -101,7 +240,7 @@ model Restaurant {
   coverPhoto     String?
   qrUrl          String?
   wifi           String?
-  subdomain      String?
+  subdomain      String?       @unique
   currency       Currency      @default(EURO)
   website        String?
   instagram      String?
@@ -112,12 +251,31 @@ model Restaurant {
   instagramstate Settings      @default(ACTIVE)
   tiktokstate    Settings      @default(ACTIVE)
   googlestate    Settings      @default(ACTIVE)
+  menuAppearance Json?
+  // FEAT-1 follow-up: per-restaurant ticket-printer configuration (paper width,
+  // copies, auto-print, header/footer, toggles). Stored as JSON to avoid a wide
+  // column set — see PrinterConfig in schemas/index.ts.
+  printerConfig  Json?
+  // TV menu-board display config (theme, columns, show photos/prices,
+  // auto-scroll, header text). See TvConfig in schemas/index.ts.
+  tvConfig       Json?
+  // Self-order kiosk (borne de commande) display config (accent, welcome text,
+  // show photos). See BorneConfig in schemas/index.ts.
+  borneConfig    Json?
+  // FEAT-1/D9: per-restaurant ordering on/off toggle (only effective when the
+  // account is ordering-enabled by the superadmin — see User.orderingEnabled).
+  orderingEnabled Boolean      @default(false)
   menus          Menu[]
   campaigns      MarketingCampaign[]
   reviews        Review[]
   scans          ScanData[]
   categoryData   CategoryData[]
   dishData       DishData[]
+  favoriteData   FavoriteData[]
+  designOrders   DesignOrder[]
+  zones          TableZone[]
+  tables         RestaurantTable[]
+  orders         Order[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 }
@@ -159,6 +317,15 @@ model Dish {
   photo         String?
   price         Float
   allergenes    String[]
+  // FEAT-1/D12: owner-defined add-on groups (single/multi-select) for ordering.
+  addonGroups   DishAddonGroup[]
+  // Back-relations for the three tables that reference a dish. These columns
+  // previously held a bare uuid with no FK, so deleting a dish left dangling
+  // rows: analytics KPIs pointing at nothing, and order lines referencing a
+  // dish that no longer existed.
+  orderItems    OrderItem[]
+  dishViews     DishData[]
+  dishFavorites FavoriteData[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 }
@@ -204,6 +371,8 @@ model ScanData {
   restaurantId  String        @db.Uuid
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
+
+  @@index([restaurantId, createdAt])
 }
 
 model CategoryData {
@@ -212,6 +381,8 @@ model CategoryData {
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   categoryId    String        @db.Uuid
   createdAt     DateTime      @default(now())
+
+  @@index([restaurantId, createdAt])
 }
 
 model DishData {
@@ -219,13 +390,325 @@ model DishData {
   restaurantId  String        @db.Uuid
   restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
   dishId        String        @db.Uuid
+  // Cascade, matching restaurantId above: these are pure analytics rows about a
+  // dish, so once the dish is gone they are noise. Without the FK, a deleted
+  // dish left rows that made the "plat le plus consulté" KPI resolve to nothing.
+  dish          Dish          @relation(fields: [dishId], references: [id], onDelete: Cascade)
   createdAt     DateTime      @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([dishId])
+}
+
+// One row per "favorite" click by a diner on a dish (heart button). Counted to
+// surface the owner's most-favorited dish ("Le plat favoris" KPI).
+model FavoriteData {
+  id            String        @id @default(uuid()) @db.Uuid
+  restaurantId  String        @db.Uuid
+  restaurant    Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  dishId        String        @db.Uuid
+  // Cascade for the same reason as DishData: the "plat favoris" KPI in
+  // /api/cards2 groups by dishId and then looks the dish up, so an orphan row
+  // could win the count and render a blank name.
+  dish          Dish          @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  createdAt     DateTime      @default(now())
+
+  @@index([restaurantId, createdAt])
+  @@index([restaurantId, dishId])
 }
 
 model Newsletter {
   id            String        @id @default(uuid()) @db.Uuid
   email         String        @unique
   createdAt     DateTime      @default(now())
+}
+
+// Lead-generation funnel (paid ads → /go/fr, /go/ar). A LeadMenu is a fully
+// ANONYMOUS row (no User/Restaurant FK): a visitor builds a quick menu, gets a
+// public preview + QR, and optionally orders a physical QR design (which
+// captures their contact info). The whole menu is stored as JSON so no
+// auth-gated relational writes are needed. The SUPERADMIN follows these up in a
+// leads inbox and converts them into real accounts.
+enum LeadStatus {
+  NEW        // menu created, no order yet
+  ORDERED    // ordered a QR design (contact captured) — hot lead
+  CONTACTED  // sales reached out
+  CONVERTED  // became a paying customer
+  CLOSED     // not pursued
+}
+
+// CRM follow-up sub-states for a lead. These are orthogonal to LeadStatus
+// (the overall pipeline stage) and let staff track call attempts, delivery and
+// order progress independently.
+enum LeadCallStatus {
+  NOT_CALLED     // no attempt yet
+  CALLED         // reached / spoke once
+  CALLED_TWICE   // second attempt
+  NO_ANSWER      // tried, no answer
+  CALLBACK       // asked to be called back
+  WRONG_NUMBER   // bad contact info
+}
+
+enum LeadDeliveryStatus {
+  NONE           // nothing to deliver yet
+  PENDING        // to be prepared
+  PREPARING      // in production
+  SHIPPED        // handed to carrier
+  DELIVERED      // received by the lead
+}
+
+enum LeadOrderStatus {
+  NONE           // no order placed
+  PLACED         // design/menu ordered
+  CONFIRMED      // confirmed with the lead
+  PAID           // paid
+  CANCELLED      // order cancelled
+}
+
+model LeadMenu {
+  id             String     @id @default(uuid()) @db.Uuid
+  restaurantName String
+  // Menu content as JSON: [{ name, dishes: [{ name, description, price }] }]
+  data           Json
+  // Which funnel/locale produced it ("fr" | "ar"), for reporting.
+  locale         String     @default("fr")
+  currency       String     @default("EURO")
+
+  // Lead-capture (set when a design is ordered — step 3 of the funnel).
+  designId       String?
+  designName     String?
+  quantity       Int?
+  contactName    String?
+  contactEmail   String?
+  contactPhone   String?
+  deliveryMethod String?
+  notes          String?
+
+  status         LeadStatus @default(NEW)
+
+  // -- CRM follow-up fields (#10) -------------------------------------------
+  callStatus     LeadCallStatus     @default(NOT_CALLED)
+  callAttempts   Int                @default(0)
+  deliveryStatus LeadDeliveryStatus @default(NONE)
+  orderStatus    LeadOrderStatus    @default(NONE)
+  // Staff member (User with role STAFF/SUPERADMIN) responsible for this lead.
+  assignedToId   String?            @db.Uuid
+  assignedTo     User?              @relation("LeadAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  followUpNotes  String?            // free-form running notes
+  nextFollowUpAt DateTime?          // scheduled callback / reminder
+  lastContactedAt DateTime?         // when the lead was last reached
+
+  // -- Conversion linkage (#12) ---------------------------------------------
+  // Set once a lead is materialized into a real account + restaurant.
+  convertedUserId       String?      @db.Uuid
+  convertedRestaurantId String?      @db.Uuid
+  convertedAt           DateTime?
+
+  activities     LeadActivity[]
+
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([status, createdAt])
+  @@index([assignedToId])
+}
+
+// Timeline of actions taken on a lead (calls logged, status changes, notes).
+// Gives the CRM a per-lead history so multiple staff can follow up coherently.
+model LeadActivity {
+  id         String   @id @default(uuid()) @db.Uuid
+  leadId     String   @db.Uuid
+  lead       LeadMenu @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  // Author (staff) — nullable so system-generated entries survive user deletion.
+  authorId   String?  @db.Uuid
+  author     User?    @relation("LeadActivityAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  authorName String?  // denormalized label at write time
+  kind       String   // "call" | "note" | "status" | "assign" | "convert"
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([leadId, createdAt])
+}
+
+// Contact / support messages submitted from the landing contact form (and the
+// in-app support form). Persisted so the SUPERADMIN can triage them in a
+// support inbox (email delivery via Resend still happens best-effort).
+//
+// Each row is a support TICKET/thread. In-app messages carry `userId` so the
+// author can see their own past tickets, their status, and the conversation
+// (replies). Landing (anonymous) contact messages have a null userId.
+enum SupportMessageStatus {
+  NEW
+  READ
+  RESOLVED
+}
+
+// Who authored a reply in a support thread.
+enum SupportAuthorRole {
+  USER
+  STAFF
+}
+
+model SupportMessage {
+  id        String               @id @default(uuid()) @db.Uuid
+  userId    String?              @db.Uuid
+  user      User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  name      String
+  email     String
+  message   String
+  status    SupportMessageStatus @default(NEW)
+  replies   SupportReply[]
+  createdAt DateTime             @default(now())
+  updatedAt DateTime             @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+// A message in a support thread (from the user or from support staff). The
+// original SupportMessage.message is the opening message; replies extend it.
+model SupportReply {
+  id            String            @id @default(uuid()) @db.Uuid
+  ticketId      String            @db.Uuid
+  ticket        SupportMessage    @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorRole    SupportAuthorRole
+  authorName    String?
+  body          String
+  createdAt     DateTime          @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+// A restaurateur's request to have a physical QR-code design produced (poster,
+// engraved wood disc, table sticker, …). Scoped to the workspace owner (userId)
+// and the restaurant whose menu the QR points to.
+model DesignOrder {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @db.Uuid
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurantId  String            @db.Uuid
+  restaurant    Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  designId      String            // references a product in config (DESIGN_PRODUCTS)
+  designName    String            // denormalized label at order time
+  quantity      Int               @default(1)
+  contactName   String
+  contactEmail  String
+  contactPhone  String?
+  deliveryMethod String?          // e.g. "yalidine-bureau" (Algeria) or standard/express
+  notes         String?
+  status        DesignOrderStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([restaurantId])
+}
+
+// In-app notifications shown in the navbar bell (#14). Sources:
+//  - SUPPORT_REPLY : staff replied to one of the user's support tickets
+//  - ORDER_STATUS  : a design / printed-menu order changed status (NOT kitchen)
+//  - BROADCAST     : a message sent from the admin console to users
+//  - PLAN_LIMIT    : an account hit a plan resource cap (#4)
+enum NotificationType {
+  SUPPORT_REPLY
+  ORDER_STATUS
+  BROADCAST
+  PLAN_LIMIT
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  body      String?
+  // Optional deep-link within the app (e.g. "/support", "/numerique").
+  link      String?
+  // Optional reference to the source row (ticket id, order id, …).
+  entityId  String?          @db.Uuid
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, readAt, createdAt])
+  @@index([userId, createdAt])
+}
+
+// Cash (espèce) plan-upgrade requests (#2). Algerian accounts (restaurant
+// currency DINAR) pay offline, so upgrading is a REQUEST the back-office
+// follows up on (call the user, take payment) rather than a Stripe checkout.
+enum PlanUpgradeStatus {
+  PENDING     // awaiting a call / payment
+  CONTACTED   // reached the user
+  APPROVED    // plan granted
+  REJECTED    // declined / abandoned
+}
+
+model PlanUpgradeRequest {
+  id            String            @id @default(uuid()) @db.Uuid
+  userId        String            @db.Uuid
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Requested target plan + billing frequency (mensuel | annuel).
+  targetPlan    Plan
+  frequency     String            @default("mensuel")
+  // Denormalized display price at request time (e.g. "5000 DZD / mois").
+  priceLabel    String?
+  currency      String            @default("DINAR")
+  contactPhone  String?
+  note          String?
+  status        PlanUpgradeStatus @default(PENDING)
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([status, createdAt])
+  @@index([userId, createdAt])
+}
+
+// A quote request ("demande de devis") for hardware add-ons — kiosk (borne) or
+// TV menu-board — captured from the Kit section and followed up by the
+// back-office on a dedicated superadmin page.
+enum DevisKind {
+  BORNE
+  TV
+  BOTH
+  // Subscription enquiry from a pricing card ("Contactez-nous"), rather than a
+  // hardware quote. Shares this table so the back-office has one inbound-interest
+  // inbox; `plan` below records which tier was clicked.
+  PLAN
+}
+
+enum DevisStatus {
+  NEW
+  CONTACTED
+  QUOTED
+  WON
+  CLOSED
+}
+
+model DevisRequest {
+  id            String       @id @default(uuid()) @db.Uuid
+  // Optional link to the requesting account (present when logged in).
+  userId        String?      @db.Uuid
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  kind          DevisKind    @default(BOTH)
+  name          String
+  phone         String
+  email         String?
+  restaurantName String?
+  // Devis sizing details captured from the dialog form.
+  restaurantCount Int?       // how many restaurants/sites
+  borneCount      Int?       // how many self-order kiosks (bornes) wanted
+  tvCount         Int?       // how many TV screens wanted
+  teamType        String?    // free-text about their team (size / structure)
+  // Which pricing tier the prospect clicked, when kind = PLAN (e.g. "Pro").
+  // Null for hardware quotes.
+  plan            String?
+  message         String?
+  status        DevisStatus  @default(NEW)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([status, createdAt])
 }
 
 enum UserType {
@@ -262,4 +745,203 @@ enum ReviewState {
 enum Settings {
   ACTIVE
   INACTIVE
+}
+
+enum DesignOrderStatus {
+  PENDING
+  IN_PROGRESS
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// =============================================================================
+// FEAT-2 — Table layout (zones + tables). Owner defines a drag-to-arrange floor
+// plan per restaurant: named zones (e.g. Terrasse, Salle) and tables with a
+// label/number, optional seat count, and x/y position on the plan.
+// =============================================================================
+
+model TableZone {
+  id            String            @id @default(uuid()) @db.Uuid
+  restaurantId  String            @db.Uuid
+  restaurant    Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  name          String
+  position      Int               @default(0)
+  tables        RestaurantTable[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([restaurantId])
+}
+
+model RestaurantTable {
+  id            String       @id @default(uuid()) @db.Uuid
+  restaurantId  String       @db.Uuid
+  restaurant    Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  // Optional zone grouping (terrace / indoor / …). Null = unzoned.
+  zoneId        String?      @db.Uuid
+  zone          TableZone?   @relation(fields: [zoneId], references: [id], onDelete: SetNull)
+  // Diner-facing label, usually a number ("7"). Unique per restaurant so the
+  // diner's table pick is unambiguous.
+  label         String
+  seats         Int?
+  // Position on the owner's floor-plan canvas (drag-to-arrange).
+  posX          Float        @default(0)
+  posY          Float        @default(0)
+  orders        Order[]
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([restaurantId, label])
+  @@index([restaurantId])
+  @@index([zoneId])
+}
+
+// =============================================================================
+// FEAT-1/D12 — Per-dish add-on groups. Each group is single- or multi-select
+// (e.g. "Taille" single S/M/L, "Suppléments" multi cheese/bacon). Each option
+// carries a priceDelta added to the line total when selected.
+// =============================================================================
+
+enum AddonGroupType {
+  SINGLE
+  MULTI
+}
+
+model DishAddonGroup {
+  id          String           @id @default(uuid()) @db.Uuid
+  dishId      String           @db.Uuid
+  dish        Dish             @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  name        String
+  type        AddonGroupType   @default(SINGLE)
+  // SINGLE groups may be required (diner must choose one). MULTI groups are
+  // always optional in v1.
+  required    Boolean          @default(false)
+  position    Int              @default(0)
+  options     DishAddonOption[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([dishId])
+}
+
+model DishAddonOption {
+  id          String          @id @default(uuid()) @db.Uuid
+  groupId     String          @db.Uuid
+  group       DishAddonGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  name        String
+  // Price added to the line when this option is selected (can be 0).
+  priceDelta  Float           @default(0)
+  position    Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([groupId])
+}
+
+// =============================================================================
+// FEAT-1 — Diner orders. An order is placed from the public menu, either
+// DINE_IN (attached to a table the diner picked) or DELIVERY (with contact +
+// address or geolocation). Line items snapshot the dish name/price and the
+// chosen add-ons (denormalized JSON) so historical orders stay accurate even if
+// the menu changes later.
+// =============================================================================
+
+enum OrderType {
+  DINE_IN
+  DELIVERY
+}
+
+// Shared lifecycle covering both branches (D13b):
+//   dine-in : RECEIVED → IN_PREPARATION → READY → SERVED → COMPLETED (+ CANCELLED)
+//   delivery: RECEIVED → IN_PREPARATION → READY → OUT_FOR_DELIVERY → DELIVERED → COMPLETED (+ CANCELLED)
+enum OrderStatus {
+  RECEIVED
+  IN_PREPARATION
+  READY
+  SERVED
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id            String           @id @default(uuid()) @db.Uuid
+  restaurantId  String           @db.Uuid
+  restaurant    Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  // Per-restaurant incrementing order number for staff reference (e.g. #42).
+  orderNumber   Int
+  type          OrderType        @default(DINE_IN)
+  status        OrderStatus      @default(RECEIVED)
+
+  // Dine-in: the table the diner picked (kept even if the table is later
+  // deleted, hence SetNull + denormalized label).
+  tableId       String?          @db.Uuid
+  table         RestaurantTable? @relation(fields: [tableId], references: [id], onDelete: SetNull)
+  tableLabel    String?
+
+  // Delivery: customer contact + destination (address text and/or geolocation).
+  customerName  String?
+  customerPhone String?
+  address       String?
+  latitude      Float?
+  longitude     Float?
+
+  // Optional order-level note from the diner.
+  note          String?
+
+  // Denormalized total (sum of line totals) at submit time, in the restaurant's
+  // currency. Recomputed server-side from menu prices — never trusted from the
+  // client.
+  total         Float            @default(0)
+
+  // Payment tracking (pay-in-person). Staff mark an order paid from the
+  // Commandes view / after printing the addition. `paidAt` stamps when.
+  paid          Boolean          @default(false)
+  paidAt        DateTime?
+
+  // Server-side print log. Auto-print used to be de-duplicated only in
+  // localStorage (a 6h TTL key per browser), so two staff tabs polling in the
+  // same moment could each print a ticket, and a different device knew nothing
+  // about it. Claimed atomically via `updateMany({ where: { ticketPrintedAt:
+  // null } })`, so exactly one caller can ever win. Null = never printed.
+  ticketPrintedAt DateTime?
+
+  items         OrderItem[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([restaurantId, orderNumber])
+  @@index([restaurantId, status])
+  @@index([restaurantId, createdAt])
+  @@index([tableId])
+}
+
+model OrderItem {
+  id            String    @id @default(uuid()) @db.Uuid
+  orderId       String    @db.Uuid
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  // NULLABLE + SetNull on purpose. An order line is financial history: Cascade
+  // would delete past order lines when an owner removes a dish from the menu,
+  // and Restrict would stop them removing it at all. Same trade-off the Order
+  // model already makes for tableId, and it is safe here because dishName and
+  // unitPrice below are snapshots — nothing reads dishId back out (it is absent
+  // from OrderItemView in data/orders.ts).
+  dishId        String?   @db.Uuid
+  dish          Dish?     @relation(fields: [dishId], references: [id], onDelete: SetNull)
+  // Snapshots so historical orders are stable if the menu changes.
+  dishName      String
+  unitPrice     Float
+  quantity      Int       @default(1)
+  // Chosen add-ons, denormalized as JSON:
+  //   [{ groupName, optionName, priceDelta }]
+  addons        Json?
+  specialRequest String?
+  // (unitPrice + sum(addon priceDelta)) * quantity, computed server-side.
+  lineTotal     Float     @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([orderId])
+  @@index([dishId])
 }

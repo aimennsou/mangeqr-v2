@@ -39,6 +39,10 @@ export default {
           const passwordsMatch = await bcrypt.compare(password, user.password);
 
           if (passwordsMatch) {
+            // Defense in depth: suspended users cannot authenticate (superadmin, S3).
+            if (user.suspended) {
+              return null;
+            }
             return user;
           }
         }

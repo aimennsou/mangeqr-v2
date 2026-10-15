@@ -23,11 +23,13 @@ import {
 import { Plus } from "lucide-react";
 import RestoDrawerDialogDemo from "../_components/restaurants/CreateRestaurant";
 import RestoTable from "../_components/tables/RestoTable";
+import RestoTableSkeleton from "../_components/tables/RestoTableSkeleton";
 import { ContentLayout } from "../_admin-panel/content-layout";
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Restaurant } from "@/types";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 
 
@@ -35,10 +37,11 @@ import { useEffect, useState } from "react";
 
 export default function RestaurantsPage() {
 
-
+  const { t } = useI18n();
  
-  const [restaurants, setRestaurants] = useState([]);
+  const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
 
 
@@ -47,13 +50,16 @@ export default function RestaurantsPage() {
       const response = await fetch('/api/magasin');
       if (response.ok) {
         const data = await response.json();
-        setRestaurants(data);
-        console.log("retrieved restaurants : ", data)
+        // The API returns a `{ message }` object (not an array) when the user
+        // has no restaurants yet; guard against that so the table gets an array.
+        setRestaurants(Array.isArray(data) ? data : []);
       } else {
-        console.error('Failed to fetch restaurants');
+        // 404 = no restaurants for this user; treat as an empty list.
+        setRestaurants([]);
       }
     } catch (error) {
       console.error('Error fetching restaurants:', error);
+      setRestaurants([]);
     } finally {
       setLoading(false);
     }
@@ -69,9 +75,16 @@ export default function RestaurantsPage() {
     fetchData();
   }, []); // Empty dependency array, runs only on mount
 
+  const handleAddRestaurant = (newRestaurant: Restaurant) => {
+    setRestaurants((prev) => [...prev, newRestaurant]);
+    setDialogOpen(false);
+  };
+
+  const hasRestaurants = restaurants.length > 0;
+
 
   return (
-    <ContentLayout title="Mes restaurants">
+    <ContentLayout title={t("nav.restaurants")}>
       <Breadcrumb>
         <BreadcrumbList>
         <BreadcrumbItem>
@@ -83,59 +96,61 @@ export default function RestaurantsPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Mes restaurants</BreadcrumbPage>
+            <BreadcrumbPage>{t("nav.restaurants")}</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <Card className="rounded-lg border-none  mt-6">
-      <CardContent className="p-6">
-      <div className="mt-6">
+      <Card className="rounded-lg border-none mt-6">
+      <CardContent className="p-4 sm:p-6 lg:p-8">
+      {/* No `mt-6` here: the card already pads its content. */}
+      <div className="space-y-8">
 
-
-      <div className="text-center text-gray-500 py-6">
-          
-          <div className="flex justify-center py-16">
-
-
-
-                  <Dialog>
-      <DialogTrigger asChild>
-        <Button size="lg" className="text-black">                  <Plus className="w-4 h-4 mr-2" /> Ajouter un restaurant
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px] "> 
-        <DialogHeader>
-          <DialogTitle>Creer votre restaurant</DialogTitle>
-          <DialogDescription>
-            Make changes to your profile here. Click save when you're done.
-          </DialogDescription>
-        </DialogHeader>
-
-
-
-<RestoDrawerDialogDemo onAddRestaurant={function (newRestaurant: any): void {
-                      throw new Error("Function not implemented.");
-                    } }/>
-
-
-
-
-        
-      </DialogContent>
-    </Dialog>
-
-
-
-
-
+        {/* Editorial header: serif title + subtitle left, add button right,
+            hairline beneath. */}
+        <div className="flex flex-col gap-4 border-b border-border pb-6 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="font-serif-display text-3xl font-light tracking-tight text-foreground sm:text-4xl">
+              {t("nav.restaurants")}
+            </h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {t("restaurants.subheading")}
+            </p>
           </div>
-         <p className="text-lg  font-semibold mt-4">Aucun restaurant disponible.</p>
-          <p className="mt-2">Créez un nouveau restaurant en utilisant le bouton ci-dessus.</p>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button
+                size="lg"
+                className="bg-yellow-400 text-black hover:bg-yellow-400/90"
+              >
+                <Plus className="w-4 h-4 mr-2" /> {t("restaurants.add")}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-[520px]">
+              <DialogHeader className="border-b border-border px-6 py-5">
+                <DialogTitle className="font-serif-display text-2xl font-medium tracking-tight">
+                  {t("restaurants.create.title")}
+                </DialogTitle>
+                <DialogDescription>
+                  {t("restaurants.create.desc")}
+                </DialogDescription>
+              </DialogHeader>
+
+              <RestoDrawerDialogDemo onAddRestaurant={handleAddRestaurant} />
+            </DialogContent>
+          </Dialog>
         </div>
-    
 
-<RestoTable restaurants={restaurants} />
-
+        {loading ? (
+          <RestoTableSkeleton />
+        ) : hasRestaurants ? (
+          <RestoTable restaurants={restaurants} />
+        ) : (
+          <div className="text-center text-gray-500 py-6">
+            <div className="flex justify-center py-8" />
+            <p className="text-lg  font-semibold mt-4">{t("restaurants.empty.title")}</p>
+            <p className="mt-2">{t("restaurants.empty.subtitle")}</p>
+          </div>
+        )}
 
         </div>
       </CardContent>

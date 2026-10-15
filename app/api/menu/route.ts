@@ -1,14 +1,28 @@
 
 import { NextRequest , NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
-import {  PrismaClient } from '@prisma/client';
+import { db } from '@/lib/db';
 import { currentUserId } from '@/lib/authentication';
+import { getPlanLimits, getEffectivePlan } from '@/lib/plan';
+import { getRestaurantScope, assertRestaurantInScope } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
+import { blockIfTrialExpired, blockIfNoPermission } from '@/lib/trial-guard';
+import { notifyPlanLimitHit } from '@/lib/notifications';
 
-
-const prisma = new PrismaClient();
 
 export async function POST(req: NextRequest) {
   try {
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
+    const blocked = await blockIfTrialExpired(userId);
+    if (blocked) return blocked;
+    // Resolve the workspace owner so members act on the owner's data.
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
+
     const { name, availability, state, restaurantId } = await req.json();
 
     // Validate request data
@@ -18,7 +32,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Fetch the restaurant and user associated with the provided restaurantId
-    const restaurant = await prisma.restaurant.findUnique({
+    const restaurant = await db.restaurant.findUnique({
       where: { id: restaurantId },
       include: { user: true },
     });
@@ -27,13 +41,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Restaurant introuvable" }, { status: 404 });
     }
 
+    // Workspace ownership: the target restaurant must belong to the caller's
+    // workspace owner. Blocks writing to restaurants outside the workspace.
+    if (restaurant.userId !== ownerId) {
+      return NextResponse.json(
+        { error: "Action réservée au propriétaire du compte." },
+        { status: 403 }
+      );
+    }
+
     const user = restaurant.user;
 
-    // Determine the menu limit based on the user's plan
-     //    const menuLimit = user.plan === "Pro" ? 6 : user.plan === "Premium" ? 14 : Infinity;
+    // Determine the menu limit from the user's plan (expiry-aware).
+    const menuLimit = getPlanLimits(getEffectivePlan(user)).menus;
 
     // Count menus owned by the user
-    const menuCount = await prisma.menu.count({
+    const menuCount = await db.menu.count({
       where: {
         restaurant: {
           userId: user.id,
@@ -41,22 +64,22 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (menuCount >= 6) {
+    if (menuCount >= menuLimit) {
+      await notifyPlanLimitHit({
+        ownerId: user.id,
+        resource: 'menus',
+        limit: menuLimit,
+      });
       return NextResponse.json(
-        { error: `Limite de menus atteinte. Votre plan permet jusqu'à ${6} menus.` },
+        { error: `Limite de menus atteinte. Votre plan permet jusqu'à ${menuLimit} menus.` },
         { status: 400 }
       );
     }
 
     // Proceed with creating the new menu
     const id = uuidv4();
-    console.log("Generated UUID:", id);
 
-    // Log data before attempting to create the menu
-    console.log("Attempting to create menu with data:", { id, name, availability, state, restaurantId });
-
-
-    const maxPosition = await prisma.menu.aggregate({
+    const maxPosition = await db.menu.aggregate({
       _max: {
         position: true,
       },
@@ -64,7 +87,7 @@ export async function POST(req: NextRequest) {
     
     const position = maxPosition._max.position ? maxPosition._max.position + 1 : 1;
 
-    const newMenu = await prisma.menu.create({
+    const newMenu = await db.menu.create({
       data: {
         id: id,
         name,
@@ -76,8 +99,6 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date(),
       },
     });
-
-    console.log("api/menu created this menu:", newMenu);
 
     return NextResponse.json(newMenu, { status: 201 });
   } catch (error) {
@@ -93,6 +114,16 @@ export async function POST(req: NextRequest) {
 // Update an Offer
 export async function PUT(req: NextRequest) {
   try {
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
+    const blocked = await blockIfTrialExpired(userId);
+    if (blocked) return blocked;
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
+
     const { id, restaurantId, state, name, availability } = await req.json();
 
     // Ensure the ID is always provided, as it's required for the update
@@ -100,16 +131,21 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ error: "Menu ID is required" }, { status: 400 });
     }
 
-    // Log the incoming data to verify values
-    console.log('Request Data:', { id, restaurantId, state, name, availability });
+    // Workspace ownership: the menu being updated must belong to the caller's
+    // workspace owner (via its restaurant). Blocks cross-workspace edits.
+    const ownedMenu = await db.menu.findFirst({
+      where: { id, restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
+      select: { id: true },
+    });
+    if (!ownedMenu) {
+      return NextResponse.json({ error: "Menu introuvable" }, { status: 404 });
+    }
 
-    // Check if restaurantId exists
+    // The target restaurant must belong to the workspace owner AND be in the
+    // caller's scope — otherwise a member assigned to one branch could MOVE a
+    // menu into a branch they don't work in by passing its id.
     if (restaurantId) {
-      const shopExists = await prisma.restaurant.findUnique({
-        where: { id: restaurantId },
-      });
-
-      if (!shopExists) {
+      if (!(await assertRestaurantInScope(userId, restaurantId))) {
         return NextResponse.json({ error: "restaurant not found" }, { status: 400 });
       }
     }
@@ -136,12 +172,10 @@ export async function PUT(req: NextRequest) {
     }
 
     // Update the menu with the provided data
-    const updatedOffer = await prisma.menu.update({
+    const updatedOffer = await db.menu.update({
       where: { id },
       data: dataToUpdate,
     });
-
-    console.log('Updated Offer:', updatedOffer);
 
     return NextResponse.json(updatedOffer, { status: 200 });
   } catch (error) {
@@ -157,9 +191,17 @@ export async function PUT(req: NextRequest) {
 // Delete an Offer
 export async function DELETE(req: NextRequest) {
   try {
-    // Parse the request body and log it
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
+    const blocked = await blockIfTrialExpired(userId);
+    if (blocked) return blocked;
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
+
     const body = await req.json();
-    console.log("api/menu is deleting this menu :", body);
 
     const { id, ids } = body;
 
@@ -169,21 +211,16 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Missing required field: id or ids" }, { status: 400 });
     }
 
-    if (ids && Array.isArray(ids)) {
-      // Delete multiple records
-      await prisma.menu.deleteMany({
-        where: {
-          id: {
-            in: ids,
-          },
-        },
-      });
-    } else if (id) {
-      // Delete a single record
-      await prisma.menu.delete({
-        where: { id },
-      });
-    }
+    const targetIds: string[] = Array.isArray(ids) ? ids : id ? [id] : [];
+
+    // Scope the delete to menus within the caller's workspace only, so a member
+    // or owner can never delete another workspace's menus.
+    await db.menu.deleteMany({
+      where: {
+        id: { in: targetIds },
+        restaurant: scopedRestaurantWhere(ownerId, restaurantIds),
+      },
+    });
 
     return NextResponse.json({ message: "Offer(s) deleted successfully" }, { status: 200 });
   } catch (error) {
@@ -205,7 +242,7 @@ export async function DELETE(req: NextRequest) {
 
 
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     // Step 1: Get the authenticated user's ID
   const userId = await currentUserId();
@@ -214,11 +251,24 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Step 2: Find the user in the database and include their restaurants
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    const denied = await blockIfNoPermission(userId, 'menus');
+    if (denied) return denied;
+
+    // Resolve the workspace owner so a member sees the OWNER's menus, plus this
+    // member's per-restaurant scope.
+    const { ownerId, restaurantIds: memberScope } =
+      await getRestaurantScope(userId);
+
+    // Optional server-side scoping: `?restaurantId=` limits the result to a
+    // single restaurant's menus instead of shipping the whole workspace and
+    // letting the client filter. Omitting it preserves the old behavior.
+    const restaurantIdFilter = req.nextUrl.searchParams.get("restaurantId");
+
+    // Step 2: Find the workspace owner and include their restaurants
+    const user = await db.user.findUnique({
+      where: { id: ownerId },
       include: {
-        restaurants: true,
+        restaurants: { select: { id: true } },
       },
     });
 
@@ -226,14 +276,33 @@ export async function GET() {
       return NextResponse.json({ error: "No restaurants found for this user" }, { status: 404 });
     }
 
-    // Step 3: Extract all the restaurant IDs
-    const shopIds = user.restaurants.map((restaurant) => restaurant.id);
+    // Step 3: The restaurant IDs this CALLER may read — the workspace's own set,
+    // narrowed to the member's restaurant scope. Intersecting (rather than
+    // trusting the scope alone) keeps the ownership guarantee even if a stale
+    // scope still lists a restaurant that has since been deleted or moved.
+    const ownedIds = user.restaurants.map((restaurant) => restaurant.id);
+    const shopIds =
+      memberScope === null
+        ? ownedIds
+        : ownedIds.filter((id) => memberScope.includes(id));
 
-    // Step 4: Fetch all menus associated with these restaurant IDs, including the related restaurant details
-    const menus = await prisma.menu.findMany({
+    if (shopIds.length === 0) {
+      return NextResponse.json([], { status: 200 });
+    }
+
+    // If a restaurantId is requested, only honor it when it belongs to the
+    // workspace; otherwise fall back to the full owned set. This keeps the
+    // ownership guarantee intact regardless of the query param.
+    const scopedShopIds =
+      restaurantIdFilter && shopIds.includes(restaurantIdFilter)
+        ? [restaurantIdFilter]
+        : shopIds;
+
+    // Step 4: Fetch menus for the scoped restaurant IDs, including the related restaurant details
+    const menus = await db.menu.findMany({
       where: {
         restaurantId: {
-          in: shopIds,
+          in: scopedShopIds,
         },
       },
       include: {
@@ -241,7 +310,6 @@ export async function GET() {
       },
     });
 
-    console.log("api/menu fetched this menuu :" , menus)
     // Step 5: Return the menus (including restaurant details) as the response
     return NextResponse.json(menus, { status: 200 });
   } catch (error) {

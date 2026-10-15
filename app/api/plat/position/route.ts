@@ -1,11 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import {  PrismaClient } from '@prisma/client';;
+import { db } from '@/lib/db';
+import { currentUserId } from '@/lib/authentication';
+import { getRestaurantScope } from '@/data/workspace';
+import { scopedRestaurantWhere } from '@/lib/restaurant-scope';
 
 export async function POST(req: NextRequest) {
   try {
-    const updatedDishes = await req.json();
+    const userId = await currentUserId();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const { ownerId, restaurantIds } = await getRestaurantScope(userId);
 
-    console.log("Received data at /api/dish/position:", updatedDishes);
+    const updatedDishes = await req.json();
 
     if (!Array.isArray(updatedDishes)) {
       return NextResponse.json({ error: "Invalid data format" }, { status: 400 });
@@ -22,14 +29,35 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Update dish positions in a transaction
-    await prisma.$transaction(
-      updatedDishes.map((dish) =>
-        prisma.dish.update({
-          where: { id: dish.dishId },
-          data: { position: dish.position, categoryId: dish.categoryId }, // Update both position and categoryId
-        })
-      )
+    // Resolve which target categoryIds actually belong to the caller's workspace,
+    // so we never move a dish into a category outside the workspace.
+    const targetCategoryIds = Array.from(
+      new Set(updatedDishes.map((d) => d.categoryId as string))
+    );
+    const ownedCategories = await db.menuCategory.findMany({
+      where: {
+        id: { in: targetCategoryIds },
+        menu: { restaurant: scopedRestaurantWhere(ownerId, restaurantIds) },
+      },
+      select: { id: true },
+    });
+    const ownedCategoryIds = new Set(ownedCategories.map((c) => c.id));
+
+    // Only update dishes whose SOURCE belongs to the caller's workspace and whose
+    // TARGET category also belongs to it. Scoping the updateMany `where` makes
+    // cross-workspace writes no-ops.
+    await db.$transaction(
+      updatedDishes
+        .filter((dish) => ownedCategoryIds.has(dish.categoryId as string))
+        .map((dish) =>
+          db.dish.updateMany({
+            where: {
+              id: dish.dishId,
+              category: { menu: { restaurant: scopedRestaurantWhere(ownerId, restaurantIds) } },
+            },
+            data: { position: dish.position, categoryId: dish.categoryId },
+          })
+        )
     );
 
     return NextResponse.json({ message: "Dish positions updated successfully" }, { status: 200 });

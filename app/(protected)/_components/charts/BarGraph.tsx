@@ -17,6 +17,7 @@ import {
   ChartTooltip,
   ChartTooltipContent
 } from '@/components/ui/chart';
+import { useI18n } from '@/lib/i18n';
 
 export const description = 'An interactive bar chart';
 
@@ -46,24 +47,29 @@ interface BarGraphProps {
 
 
 export function BarGraph({ data }: BarGraphProps) {
-  const [activeChart, setActiveChart] =
-    React.useState<keyof typeof chartConfig>('shop1');
+  const [activeChart] = React.useState<keyof typeof chartConfig>('shop1');
+  const { t } = useI18n();
 
-console.log(data)
+  const isEmpty = !data || data.length === 0;
 
   return (
     <Card>
       <CardHeader className="flex flex-col items-stretch space-y-2 border-b p-0 sm:flex-row sm:space-y-0">
         <div className="flex flex-1 flex-col justify-center gap-2 px-6 py-5 sm:py-6">
-          <CardTitle>Nombre de scans par jour</CardTitle>
+          <CardTitle>{t("performances.chart.scansTitle")}</CardTitle>
           <CardDescription>
-            Affichage du nombre total de visiteurs par jour pour la période selectionnée
+            {t("performances.chart.scansDesc")}
           </CardDescription>
           
         </div>
       
       </CardHeader>
       <CardContent className="px-2 sm:p-6">
+        {isEmpty ? (
+          <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+            {t("performances.chart.empty")}
+          </div>
+        ) : (
         <ChartContainer
           config={chartConfig}
           className="aspect-auto h-[280px] w-full"
@@ -106,9 +112,14 @@ console.log(data)
                 />
               }
             />
-            <Bar dataKey={activeChart} fill={`var(--color-${activeChart})`} />
+            <Bar
+              dataKey={activeChart}
+              fill={`var(--color-${activeChart})`}
+              maxBarSize={64}
+            />
           </BarChart>
         </ChartContainer>
+        )}
       </CardContent>
       
     </Card>

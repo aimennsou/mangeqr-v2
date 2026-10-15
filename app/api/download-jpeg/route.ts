@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
     }
 
     const shop: Shop = {  qrUrl };
-    console.log("shoppppppp",shop)
     
     // Generate QR code as a JPEG
     const qrCodeJpegBytes = await generateQrCodePng(shop.qrUrl);

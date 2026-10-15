@@ -19,7 +19,19 @@ const Switch = React.forwardRef<
   >
     <SwitchPrimitives.Thumb
       className={cn(
-        'pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform data-[state=checked]:translate-x-4 data-[state=unchecked]:translate-x-0'
+        'pointer-events-none block h-4 w-4 rounded-full bg-background shadow-lg ring-0 transition-transform',
+        // The thumb travel is a PHYSICAL transform, so it must be mirrored by
+        // hand: CSS transforms have no logical equivalent. With a single
+        // `translate-x-4` the thumb moved right in Arabic too, sliding out of the
+        // mirrored track — which is what made every switch in the app look
+        // distorted in RTL.
+        //
+        // ltr:/rtl: are both explicit rather than relying on Tailwind's variant
+        // emission order to override an unprefixed rule. Safe here because
+        // app/layout.tsx always sets `dir` on <html> (and the kiosk sets it on its
+        // own frame), so one of the two always matches.
+        'ltr:data-[state=checked]:translate-x-4 ltr:data-[state=unchecked]:translate-x-0',
+        'rtl:data-[state=checked]:-translate-x-4 rtl:data-[state=unchecked]:translate-x-0'
       )}
     />
   </SwitchPrimitives.Root>

@@ -1,0 +1,25 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Photo du plat">
+  <rect width="240" height="240" rx="16" fill="#F5F1EA"/>
+  <g stroke="#B8AE9C" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Plate -->
+    <ellipse cx="120" cy="150" rx="66" ry="20"/>
+    <ellipse cx="120" cy="146" rx="66" ry="20"/>
+    <circle cx="120" cy="118" r="40"/>
+    <circle cx="120" cy="118" r="28"/>
+    <!-- Cloche / dome handle -->
+    <path d="M92 118a28 28 0 0 1 56 0"/>
+    <line x1="120" y1="78" x2="120" y2="70"/>
+    <circle cx="120" cy="66" r="4" fill="#B8AE9C" stroke="none"/>
+    <!-- Fork -->
+    <line x1="52" y1="112" x2="52" y2="168"/>
+    <path d="M44 112v14M52 112v14M60 112v14"/>
+    <!-- Knife -->
+    <line x1="188" y1="112" x2="188" y2="168"/>
+    <path d="M188 112c8 0 8 26 0 30"/>
+  </g>
+  <!-- Sparkle accents -->
+  <g stroke="#D9CFBE" stroke-width="3" stroke-linecap="round">
+    <path d="M70 60l0 10M65 65l10 0"/>
+    <path d="M176 66l0 8M172 70l8 0"/>
+  </g>
+</svg>
